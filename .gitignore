@@ -11,3 +11,7 @@ backups/
 # Local German source documents
 /Anforderungen-Vinyl-Archiv.md
 /Requirements-Vinyl-Archiv.md
+
+.pytest_cache/
+playwright-report/
+test-results/

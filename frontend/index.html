@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f5f3ec"><title>GrooveShelf — Your collection</title>
+<link rel="stylesheet" href="/styles.css"><script type="module" src="/app.js"></script>
+</head>
+<body>
+<header><a class="brand" href="#"><span class="brand-mark">◉</span> GrooveShelf</a><span class="header-note">A little space for your records.</span></header>
+<main>
+<section class="intro"><div><p class="eyebrow">YOUR PERSONAL ARCHIVE</p><h1>A collection.<br>A thousand stories.</h1><p class="muted">Keep your records close. Find your next favorite listen.</p></div><button id="add" class="primary">＋ Add a record</button></section>
+<section aria-label="Collection controls" class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search artist, album, track or LP number" aria-label="Search collection"></label><div class="view-toggle"><button id="grid-view" aria-pressed="true">Grid</button><button id="table-view" aria-pressed="false">Table</button></div></section>
+<div class="collection-heading"><h2>Your collection</h2><span id="count" class="muted"></span></div>
+<p id="message" role="status" aria-live="polite"></p><section id="collection" aria-label="Records"></section>
+<footer>GrooveShelf <span>Made for the records you keep.</span></footer>
+</main>
+<dialog id="editor"><form id="record-form"><div class="dialog-top"><p class="eyebrow">MAKE ROOM ON YOUR SHELF</p><button type="button" class="icon close-editor" aria-label="Close editor">×</button></div><h2 id="editor-title">Add a record</h2><p class="muted">Start with the essentials. Every record has a place.</p>
+<div class="fields"><label>Inventory number<input name="inventory_number" placeholder="LP-00001" pattern="LP-(?!00000)[0-9]{5}" required maxlength="8"><small>Your label, from LP-00001 to LP-99999.</small></label><label>Format<select name="format"><option>LP</option><option>EP</option><option>Single</option><option>Maxi</option><option>Box set</option><option>Other</option></select></label><label>Artist<input name="artist" required maxlength="300" autocomplete="off"></label><label>Album title<input name="title" required maxlength="300" autocomplete="off"></label><label>Release year <span class="muted">(optional)</span><input name="year" type="number" min="1900" max="2100"></label></div>
+<label>Track list <span class="muted">(optional)</span><textarea name="tracks" rows="5" placeholder="A1 | Opening track&#10;A2 | Another song&#10;B1 | Side two"></textarea><small>One track per line. Use “A1 | Title” to include a side position.</small></label><label>Notes <span class="muted">(optional)</span><textarea name="notes" rows="3" maxlength="10000"></textarea></label><p id="form-error" class="error" role="alert"></p><div class="actions"><button type="button" class="close-editor">Cancel</button><button type="submit" class="primary" id="save">Save record</button></div></form></dialog>
+<dialog id="details"><div class="dialog-top"><p class="eyebrow">ON YOUR SHELF</p><button type="button" class="icon" id="close-details" aria-label="Close details">×</button></div><div id="detail-content"></div><div class="actions"><button id="delete" class="danger">Delete record</button><button id="edit" class="primary">Edit record</button></div><p id="detail-error" class="error" role="alert"></p></dialog>
+<dialog id="confirm-delete"><h2>Remove this record?</h2><p>The record will be removed from your collection. Its inventory number can be used again.</p><p id="delete-error" class="error" role="alert"></p><div class="actions"><button id="cancel-delete">Keep record</button><button id="confirm-delete-button" class="danger">Delete record</button></div></dialog>
+</body></html>

@@ -2,7 +2,7 @@
 
 Updated: October 3, 2026. Derived from the completed requirements questionnaire. The original German answers are retained locally as source material.
 
-This document specifies desired behavior, not completed implementation. All requirements are open. Stable IDs are used in GitHub issues.
+This document specifies desired behavior. The first implementation covers manual copy management, collection browsing and search on `codex/initial-collection-app`; issues remain open until the implementation is reviewed and merged. Stable IDs are used in GitHub issues.
 
 ## Product goal
 
@@ -20,7 +20,7 @@ Project name: **GrooveShelf**. Public repository: [mziethen/grooveshelf](https:/
 - Low maintenance and no mandatory recurring costs.
 - Initial deployment is private on the home network without user accounts.
 - Offline operation is not required. Devices access one shared server-side collection.
-- Frontend framework and database remain undecided. “Docker stack” currently means Compose deployment; Docker Swarm has not been requested explicitly.
+- The initial implementation uses browser-native JavaScript modules and SQLite; see docs/architecture.md. “Docker stack” currently means Compose deployment; Docker Swarm has not been requested explicitly.
 
 ## Domain model
 
