@@ -22,7 +22,7 @@ class Database:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 4:
+            if version > 5:
                 raise RuntimeError("Database schema is newer than this application")
             db.execute("PRAGMA journal_mode = WAL")
             db.executescript("""
@@ -85,4 +85,20 @@ class Database:
                                       ("reader_seen_at", "REAL")]:
                 if name not in station_columns:
                     db.execute(f"ALTER TABLE stations ADD COLUMN {name} {declaration}")
-            db.execute("PRAGMA user_version = 4")
+            db.executescript("""
+                CREATE TABLE IF NOT EXISTS discogs_links (
+                    account TEXT NOT NULL, instance_id INTEGER NOT NULL, release_id INTEGER NOT NULL,
+                    copy_id TEXT UNIQUE REFERENCES copies(id) ON DELETE SET NULL,
+                    PRIMARY KEY (account, instance_id)
+                );
+                CREATE TABLE IF NOT EXISTS discogs_exports (
+                    id TEXT PRIMARY KEY, account TEXT NOT NULL,
+                    copy_id TEXT UNIQUE REFERENCES copies(id) ON DELETE SET NULL,
+                    release_id INTEGER NOT NULL, before_ids TEXT NOT NULL,
+                    status TEXT NOT NULL, created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS discogs_sync_state (
+                    account TEXT PRIMARY KEY, last_success_at TEXT
+                );
+            """)
+            db.execute("PRAGMA user_version = 5")

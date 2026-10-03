@@ -12,7 +12,7 @@
 
 Input/output schemas, persistence and API routing are separate modules. Metadata adapters, NFC readers and listening-session services should be added as separate modules. Internet metadata must not overwrite protected manual fields. Provider credentials stay server-side.
 
-Schema version 2 added Discogs provenance, field protection and freshness metadata. Startup migrates version 1 in place and rejects newer schemas. Covers are stored alongside SQLite. Schema version 3 adds stations, tag associations, listening sessions, play events and favorites, with migrations preserving prior collection data. Exact pressing models are not implemented yet. Future schema changes require explicit migrations and migration tests.
+Schema version 2 added Discogs provenance, field protection and freshness metadata. Startup migrates version 1 in place and rejects newer schemas. Covers are stored alongside SQLite. Schema version 3 adds stations, tag associations, listening sessions, play events and favorites, with migrations preserving prior collection data. Schema version 4 stores per-copy cover preferences. Schema version 5 adds per-account Discogs instance links, deletion tombstones and durable outbound intents. Exact release metadata is supported for collection linking; comprehensive pressing attributes remain planned. Future schema changes require explicit migrations and migration tests.
 
 ## Current limitations
 

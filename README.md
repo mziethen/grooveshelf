@@ -4,15 +4,16 @@ A calm, mobile-first vinyl collection archive, self-hosted on a Raspberry Pi 5.
 
 ## Project status
 
-The application supports manual record management, collection browsing, search and opt-in Discogs lookup with confirmed metadata import and local cover storage and per-record Discogs cover selection. Software NFC associations, station sessions, listening history and favorites are available; the physical PN532 driver and wiring remain pending. See [running and development](docs/development.md).
+The application supports manual record management, collection browsing, search and opt-in Discogs lookup with confirmed metadata import and local cover storage, per-record Discogs cover selection and manual collection synchronization. Software NFC associations, station sessions, listening history and favorites are available; the physical PN532 driver and wiring remain pending. See [running and development](docs/development.md).
 
 ## Features and roadmap
 
 - Manage physical vinyl copies with inventory numbers from `LP-00001` to `LP-99999`.
 - Browse cover grids and tables and open album details.
+- Import or match Discogs collection copies and explicitly add local copies to Discogs. See [manual collection sync](docs/discogs-sync.md).
 - Retrieve metadata and covers from Discogs while preserving manual corrections. See [connecting Discogs](docs/development.md#connecting-discogs).
 - Associate NFC UIDs and follow station scans on the Raspberry Pi screen; physical PN532 reading remains pending. See [listening and NFC](docs/listening.md).
-- View and correct listening history, track play counts and mark favorites. Ratings, a wishlist and Discogs collection imports remain planned.
+- View and correct listening history, track play counts and mark favorites. Ratings and a wishlist remain planned.
 - Cancel pending plays and receive tag-assignment, timer and reader-status feedback.
 - Export a portable collection archive, find incomplete entries, discover listening suggestions and view statistics.
 - Add printable inventory labels later; prepare the model for future listening stations.

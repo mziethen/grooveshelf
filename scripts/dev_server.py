@@ -7,15 +7,16 @@ import argparse
 
 
 class Handler(SimpleHTTPRequestHandler):
+    backend_url = 'http://127.0.0.1:8000'
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(Path(__file__).resolve().parents[1] / 'frontend'), **kwargs)
 
     def proxy(self):
         content = self.rfile.read(int(self.headers.get('Content-Length', 0)))
-        request = Request('http://127.0.0.1:8000' + self.path, data=content if content else None,
+        request = Request(self.backend_url + self.path, data=content if content else None,
                           method=self.command, headers={'Content-Type': 'application/json'})
         try:
-            result = urlopen(request, timeout=10)
+            result = urlopen(request, timeout=60)
         except HTTPError as error:
             result = error
         except URLError:
@@ -41,6 +42,8 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=8080)
+    parser.add_argument('--backend-url', default='http://127.0.0.1:8000')
     args = parser.parse_args()
+    Handler.backend_url = args.backend_url.rstrip('/')
     print(f'GrooveShelf frontend: http://127.0.0.1:{args.port}', flush=True)
     ThreadingHTTPServer(('127.0.0.1', args.port), Handler).serve_forever()

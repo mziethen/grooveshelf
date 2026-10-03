@@ -41,10 +41,15 @@ def image_choices(images):
     return choices
 
 
+def source_key(metadata):
+    return f"r{metadata['discogs_release_id']}" if metadata.get('discogs_release_id') else str(metadata['discogs_master_id'])
+
+
 def public_images(metadata):
-    mid = metadata['discogs_master_id']
+    sid = metadata.get('discogs_release_id') or metadata['discogs_master_id']
+    kind = 'releases' if metadata.get('discogs_release_id') else 'masters'
     return [{'id': image['id'], 'type': image['type'],
-             'preview_url': f"/api/metadata/discogs/masters/{mid}/images/{image['id']}"}
+             'preview_url': f"/api/metadata/discogs/{kind}/{sid}/images/{image['id']}"}
             for image in metadata.get('images', [])]
 
 
@@ -57,7 +62,7 @@ class DiscogsProvider:
         self.retry_after = 0
         self.retry_error = (429, "Discogs is rate-limited. Please try again shortly.")
 
-    def request(self, path, params=None):
+    def request(self, path, params=None, method="GET", body=None):
         if monotonic() < self.retry_after:
             raise HTTPException(*self.retry_error)
         headers = {"User-Agent": USER_AGENT}
@@ -65,7 +70,7 @@ class DiscogsProvider:
             headers["Authorization"] = f"Discogs token={self.token}"
         try:
             with httpx.Client(transport=self.transport, timeout=15, follow_redirects=False) as client:
-                response = client.get("https://api.discogs.com" + path, params=params, headers=headers)
+                response = client.request(method, "https://api.discogs.com" + path, params=params, headers=headers, json=body)
             if response.status_code == 429:
                 try:
                     delay = min(300, max(1, int(response.headers.get("Retry-After", "60"))))
@@ -106,11 +111,21 @@ class DiscogsProvider:
         return {"results": results, "page": page, "pages": min(50, pagination.get("pages", 1))}
 
     def master(self, master_id, force=False):
+        return self.entry(master_id, 'masters', force)
+
+    def release(self, release_id, force=False):
+        return self.entry(release_id, 'releases', force)
+
+    def entry(self, master_id, kind, force=False):
+        cache_key = master_id if kind == 'masters' else f'release:{master_id}'
         with self.lock:
-            cached = self.cache.get(master_id)
+            cached = self.cache.get(cache_key)
             if cached and not force and timestamp() - cached["checked_at"] < 300:
                 return dict(cached)
-            data = self.request(f"/masters/{master_id}")
+            data = self.request(f"/{kind}/{master_id}")
+            formats = data.get('formats', [])
+            descriptions = {value for item in formats for value in item.get('descriptions', [])}
+            copy_format = next((value for value in ['LP', 'EP', 'Single'] if value in descriptions), 'Other')
             tracks = []
             def flatten(items):
                 for item in items:
@@ -125,15 +140,20 @@ class DiscogsProvider:
             year = data.get("year")
             images = data.get("images", [])
             image = next((i for i in images if i.get("type") == "primary"), images[0] if images else {})
-            result = {"discogs_master_id": master_id, "artist": artist[:300] or "Unknown artist",
+            result = {"discogs_master_id": master_id if kind == 'masters' else data.get('master_id') or None,
+                      "discogs_release_id": master_id if kind == 'releases' else None,
+                      "copy_format": copy_format, "is_vinyl": any(item.get('name') == 'Vinyl' for item in formats), "artist": artist[:300] or "Unknown artist",
                       "title": str(data.get("title", "Untitled")).strip()[:300] or "Untitled",
                       "year": year if isinstance(year, int) and 1900 <= year <= 2100 else None,
                       "tracks": tracks[:300], "genres": [str(g)[:100] for g in data.get("genres", [])[:30]],
                       "styles": [str(g)[:100] for g in data.get("styles", [])[:30]],
                       "labels": [], "description": "", "reference_release_url": None, "image_url": image.get("uri"),
-                      "source_url": f"https://www.discogs.com/master/{master_id}", "source_name": "Discogs",
+                      "source_url": f"https://www.discogs.com/{'master' if kind == 'masters' else 'release'}/{master_id}", "source_name": "Discogs",
                       "checked_at": timestamp(), "images": image_choices(images)}
-            release_id = data.get("main_release")
+            if kind == 'releases':
+                result['labels'] = list(dict.fromkeys(str(l.get('name', ''))[:200] for l in data.get('labels', []) if l.get('name')))[:30]
+                result['description'] = str(data.get('notes', ''))[:10000]
+            release_id = data.get("main_release") if kind == 'masters' else None
             if isinstance(release_id, int) and release_id > 0:
                 try:
                     release = self.request(f"/releases/{release_id}")
@@ -144,7 +164,7 @@ class DiscogsProvider:
                     pass  # A missing main release must not prevent master import.
             if len(self.cache) >= 64:
                 self.cache.pop(next(iter(self.cache)))
-            self.cache[master_id] = result
+            self.cache[cache_key] = result
             return dict(result)
 
 

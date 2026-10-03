@@ -4,7 +4,7 @@ import sqlite3
 from uuid import uuid4
 from fastapi import HTTPException
 from .models import RecordInput
-from .discogs import MAX_AGE
+from .discogs import MAX_AGE, source_key
 
 
 class CollectionRepository:
@@ -17,12 +17,12 @@ class CollectionRepository:
         result['tracks'] = json.loads(result['tracks'])
         metadata = json.loads(result.pop('metadata'))
         result['_metadata'] = metadata
-        for field in ['source_url', 'source_name', 'discogs_master_id', 'reference_release_url']:
+        for field in ['source_url', 'source_name', 'discogs_master_id', 'discogs_release_id', 'reference_release_url']:
             result[field] = metadata.get(field)
         for field in ['genres', 'styles', 'labels', 'protected_fields']:
             result[field] = metadata.get(field, [])
         result['description'] = metadata.get('description', '')
-        mid = metadata.get('discogs_master_id')
+        mid = source_key(metadata) if metadata.get('discogs_master_id') or metadata.get('discogs_release_id') else None
         result['cover_url'] = f'/api/covers/discogs/{mid}' if metadata.get('cover_cached') else None
         selected = result.get('cover_image_id')
         result['cover_selection_status'] = 'default'
