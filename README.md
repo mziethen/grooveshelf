@@ -1,33 +1,34 @@
 # GrooveShelf
 
-Ein ruhiges, mobiles Vinyl-Archiv für deine Sammlung — selbst betrieben auf einem Raspberry Pi 5.
+A calm, mobile-first vinyl collection archive, self-hosted on a Raspberry Pi 5.
 
-## Projektstatus
+## Project status
 
-GrooveShelf befindet sich in der Anforderungs- und Planungsphase. Es gibt noch keine lauffähige Anwendung.
+GrooveShelf is in the requirements and planning phase. There is no runnable application yet.
 
-## Geplante Funktionen
+## Planned features
 
-- Physische Vinyl-Exemplare mit eigener Inventarnummer `LP-00001` bis `LP-99999` verwalten.
-- Sammlung als Coverraster oder Tabelle betrachten und Albumdetails öffnen.
-- Metadaten und Cover über Discogs beziehen; eigene Korrekturen schützen.
-- PN532 und NTAG213 zur NFC-Erkennung nutzen; Details auf dem Pi-Bildschirm anzeigen.
-- Hörhistorie, Bewertungen, Wunschliste und Discogs-Import ergänzen.
+- Manage physical vinyl copies with inventory numbers from `LP-00001` to `LP-99999`.
+- Browse cover grids and tables and open album details.
+- Retrieve metadata and covers from Discogs while preserving manual corrections.
+- Read NTAG213 tags using PN532 and show details on the Raspberry Pi screen.
+- Add listening history, ratings, a wishlist and Discogs collection imports.
 
-## Technischer Rahmen
+## Technical direction
 
-Python mit FastAPI im Backend, getrenntes Frontend und Betrieb per Docker Compose auf ARM64. Frontend und Datenbank werden noch ausgewählt. Die erste Version richtet sich an das private Heimnetz.
+Python and FastAPI backend, separate frontend and Docker Compose deployment on ARM64. The frontend framework and database remain undecided. Initial deployment targets a private home network.
 
-## Anforderungen und Fortschritt
+## Requirements and progress
 
-- [Requirements und Meilensteine](Requirements-Vinyl-Archiv.md)
-- [Beantworteter Anforderungskatalog](Anforderungen-Vinyl-Archiv.md)
-- GitHub-Issues bilden die Requirements mit stabilen IDs ab.
+- [Requirements and milestones](REQUIREMENTS.md)
+- [GitHub issue drafts](planning/github-issues.json)
 
-## Mitarbeit
+Stable requirement IDs connect the plan to GitHub issues. Project documentation, issues and templates are maintained in English.
 
-Bitte vor einer Implementierung das zugehörige Issue prüfen. Ein Feature ist abgeschlossen, wenn seine Abnahmekriterien erfüllt sind. Siehe [CONTRIBUTING.md](CONTRIBUTING.md).
+## Contributing
 
-## Lizenz
+Check the corresponding issue before implementing a feature. Completion requires meeting its acceptance criteria. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-GrooveShelf steht unter der [MIT-Lizenz](LICENSE).
+## License
+
+GrooveShelf is available under the [MIT license](LICENSE).

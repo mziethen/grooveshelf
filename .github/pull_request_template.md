@@ -1,9 +1,9 @@
-## Änderung
+## Changes
 
-## Zugehöriges Issue
+## Related issue
 
 Closes #
 
-## Prüfung
+## Validation
 
-## Einschränkungen
+## Limitations

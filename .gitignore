@@ -7,3 +7,7 @@ __pycache__/
 node_modules/
 data/
 backups/
+
+# Local German source documents
+/Anforderungen-Vinyl-Archiv.md
+/Requirements-Vinyl-Archiv.md

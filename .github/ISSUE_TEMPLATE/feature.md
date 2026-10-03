@@ -1,16 +1,16 @@
 ---
-name: Feature
-about: Feature oder Requirement beschreiben
+name: Feature request
+about: Describe a feature or requirement
 title: ""
 labels: feature
 ---
 
-## Ziel
+## Goal
 
-## Requirement-ID
+## Requirement ID
 
-## Abnahmekriterien
+## Acceptance criteria
 
 - [ ]
 
-## Abhängigkeiten und offene Entscheidungen
+## Dependencies and open decisions

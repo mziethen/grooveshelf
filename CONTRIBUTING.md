@@ -1,10 +1,12 @@
-# Mitarbeit an GrooveShelf
+# Contributing to GrooveShelf
 
-Das Projekt befindet sich in der Planung. Besprich größere Änderungen zunächst im zugehörigen Issue.
+The project is in the planning phase. Discuss major changes in the corresponding issue first.
 
-1. Requirement-ID im Issue und Pull Request nennen.
-2. Abnahmekriterien und offene Entscheidungen berücksichtigen.
-3. Implementierung und Dokumentation zusammen aktualisieren.
-4. Relevante Prüfungen und verbleibende Einschränkungen im Pull Request beschreiben.
+1. Reference the requirement ID in issues and pull requests.
+2. Follow acceptance criteria and resolve relevant open decisions.
+3. Update implementation and documentation together.
+4. Describe relevant validation and remaining limitations in the pull request.
 
-Backend, Frontend und Hardware-Anbindung sollen getrennt und erweiterbar bleiben. Der Raspberry Pi 5 ist das primäre Betriebsziel. Geheimnisse, Zugangstokens und private Sammlungsdaten gehören nicht ins Repository.
+Keep backend, frontend and hardware integration separate and extensible. Raspberry Pi 5 is the primary deployment target. Do not commit secrets, access tokens or private collection data.
+
+Write project documentation, issue titles and descriptions, and pull request descriptions in English.

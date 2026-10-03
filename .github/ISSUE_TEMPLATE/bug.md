@@ -1,16 +1,16 @@
 ---
-name: Fehlerbericht
-about: Einen reproduzierbaren Fehler melden
+name: Bug report
+about: Report a reproducible bug
 title: ""
 labels: bug
 ---
 
-## Beobachtetes Verhalten
+## Observed behavior
 
-## Erwartetes Verhalten
+## Expected behavior
 
-## Schritte zur Reproduktion
+## Steps to reproduce
 
-## Umgebung
+## Environment
 
-Version, Gerät und Browser:
+Version, device and browser:
