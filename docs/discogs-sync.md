@@ -1,0 +1,28 @@
+# Discogs collection sync
+
+## Using the manual sync
+
+Set a personal Discogs token in the server's `DISCOGS_TOKEN` environment variable, then restart the backend. The application reads the authenticated identity from Discogs; a username is not entered separately. Credentials remain on the server.
+
+1. For existing GrooveShelf records, open their details and choose **Choose Discogs release**. Enter the numeric ID from the exact release's Discogs URL, preview it, and confirm **Use this release**. Master IDs group multiple pressings and cannot identify a collection copy.
+2. Choose **Sync with Discogs** to read a preview. This performs no collection writes. Non-vinyl remote releases are counted but are not offered for import.
+3. Each remote vinyl copy can be left unchanged, imported as a new local copy, or matched to a local copy linked to that same release. Each eligible local copy can be left unchanged or added to Discogs. All choices initially leave the copy unchanged.
+4. Confirm **Apply selected changes**. Changes are applied individually with progress and a result per entry. On an error, processing stops while completed changes remain saved. Refresh the preview before proceeding.
+
+Imports use the first free number from LP-00001 through LP-99999. Matching retains the existing number. Multiple instances of one release remain separate copies. Release linking retains local artist, title, year, tracks, notes, favorites, NFC tags and listening history; local album fields become protected against provider refresh. Linked release images are used by the cover picker; an earlier master-image preference is retained and reported as missing if it does not belong to the selected release.
+
+Outbound additions go to Discogs' Uncategorised folder (folder 1). Export is blocked while the release has an unlinked remote instance, prompting the user to match it or explicitly import it as another copy first. Collection link IDs are persisted so a repeated unchanged sync adds nothing. An already linked copy cannot be changed to another release through the release picker.
+
+## Failures and missing copies
+
+Each outbound request has a durable intent saved before sending. A timeout, ambiguous response or process crash leaves it unresolved and blocks automatic retries. Refresh the preview and match a newly appearing Discogs instance to the local copy. If the addition is absent, choose **Review failed export**, check the real Discogs collection and explicitly acknowledge that the copy is absent. At least one minute must have passed; the server also checks for new instances before enabling another attempt. This acknowledgment only enables a fresh preview and does not send an export.
+
+A remote deletion never deletes or re-adds the local copy automatically. Deleting a local copy retains its remote link as a tombstone, preventing accidental reimport and leaving the Discogs entry intact. Missing entries and account/release conflicts are shown for review. Linking across different accounts is blocked. Synchronization links and outbound intents survive server restarts.
+
+Preview data expires after ten minutes. Source metadata and images continue to follow the six-hour freshness handling described in [Discogs integration](discogs.md). Pagination, API cooldowns and errors are handled without silently accepting an incomplete collection.
+
+## Current scope and remaining work
+
+This release synchronizes collection additions and exact-release identity. It does not synchronize ratings, custom collection fields, folders, condition or personal notes. Metadata refresh remains independent of collection membership. Missing-entry resolution currently retains both sides; remote deletion and changing existing synchronized associations are not provided. Scheduled automatic sync, advanced conflict resolutions and personal-field mapping remain follow-up work in #55. Full pressing attributes and separate original/pressing years remain in #30.
+
+Official references: [Discogs developer portal](https://www.discogs.com/developers#page:user-collection), [collection usage](https://support.discogs.com/hc/en-us/articles/360007331534-How-Does-The-Collection-Feature-Work), and [API terms](https://support.discogs.com/hc/en-us/articles/360009334593-API-Terms-of-Use). The authenticated identity and collection GET response shapes were verified read-only with the deployment token. Outbound POSTs are covered by mock-transport tests; the real account has not been modified during development. The developer portal returned HTTP 403 during implementation, so a real outbound addition remains to be verified by the owner through the explicit preview flow.

@@ -20,6 +20,7 @@ class RecordInput(BaseModel):
     notes: str = Field(default="", max_length=10000)
     album_id: str | None = None
     discogs_master_id: int | None = Field(default=None, ge=1)
+    discogs_release_id: int | None = Field(default=None, ge=1)
     cover_image_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
 
     @field_validator("inventory_number")
@@ -95,3 +96,21 @@ class ReaderStatusInput(BaseModel):
 class CoverSelection(BaseModel):
     model_config = ConfigDict(extra="forbid")
     image_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
+
+
+class ReleaseLink(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    release_id: int = Field(ge=1)
+
+
+class SyncAction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    plan_id: str
+    action_id: str
+    choice: Literal["import", "export", "link"]
+    copy_id: str | None = None
+
+
+class ExportRetry(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    checked_discogs: Literal[True]

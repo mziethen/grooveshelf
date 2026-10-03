@@ -86,3 +86,14 @@ See [Discogs integration and data handling](discogs.md) for source attribution, 
 ## Listening and NFC
 
 See [station mode, test scans and hardware status](listening.md). Physical PN532 setup is still pending. To open the Pi station view use `http://<pi-address>:8080/?station=pi-main`.
+
+### Isolated browser verification
+
+To test against a disposable backend without touching the active collection, run that backend on port 8010 with `GROOVESHELF_DATABASE` set to a temporary path, then start the frontend with:
+
+```sh
+python scripts/dev_server.py --port 8081 --backend-url http://127.0.0.1:8010
+GROOVESHELF_TEST_URL=http://127.0.0.1:8081 npm test --prefix frontend
+```
+
+The development proxy allows 60 seconds for provider-backed requests. Production Nginx uses its default proxy timeout.

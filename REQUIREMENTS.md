@@ -2,7 +2,7 @@
 
 Updated: October 3, 2026. Derived from the completed requirements questionnaire. The original German answers are retained locally as source material.
 
-This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. Discogs metadata import, covers, source attribution and protected manual edits have also been merged. Station sessions, tag associations, history corrections and favorites are implemented on `codex/nfc-listening` pending review and merge. Physical PN532 integration remains open. Stable IDs are used in GitHub issues.
+This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. Discogs metadata import, covers, source attribution and protected manual edits have also been merged. Station sessions, tag associations, history corrections and favorites have also been merged. Cover selection and manual Discogs collection synchronization are implemented on feature branches pending review and merge. Physical PN532 integration remains open. Stable IDs are used in GitHub issues.
 
 ## Product goal
 
@@ -68,6 +68,8 @@ M1 prioritizes adding records, viewing details and browsing the collection. Meta
 | [CAPTURE-02](https://github.com/mziethen/grooveshelf/issues/20) | Warn about possible duplicates | Show matching albums already in the collection; still allow an additional physical copy. |
 | [CAPTURE-03](https://github.com/mziethen/grooveshelf/issues/21) | Identify records by barcode or catalog number | Identify records using a barcode or catalog number; allow manual search when no match is found. |
 | [CAPTURE-04](https://github.com/mziethen/grooveshelf/issues/22) | Identify records from cover photos | Produce suggestions that users can confirm; assess feasibility and a free data source before implementation. |
+| [COVER-01](https://github.com/mziethen/grooveshelf/issues/56) | Select a Discogs cover | Preview available images, choose a per-copy cover, retain the preference across refreshes and report missing selections. |
+| [SYNC-01](https://github.com/mziethen/grooveshelf/issues/55) | Synchronize with Discogs in both directions | Preview collection additions, import or match remote instances, explicitly export exact-release local copies, prevent duplicate retries and retain local identifiers and history. |
 | [IMPORT-01](https://github.com/mziethen/grooveshelf/issues/23) | Import a Discogs collection | Import a collection with a preview; define repeat-import behavior and assignment of personal LP numbers; do not silently overwrite existing data. Choose API or CSV import. |
 | [EXPORT-01](https://github.com/mziethen/grooveshelf/issues/24) | Export the collection as CSV | Export inventory numbers and agreed collection fields; provide an interface for additional export formats. |
 | [META-04](https://github.com/mziethen/grooveshelf/issues/25) | Configure metadata refresh and confirmation | Allow automatic refresh to be enabled or disabled; allow manual refresh; make initial import confirmation configurable; protect manual corrections. |
@@ -120,7 +122,7 @@ Loan management, mirroring physical shelf order, public collection sharing and a
 3. Define repeat-scan behavior, switching records within ten minutes, restart recovery and manual corrections. Decide whether ratings and play counts belong to albums, copies or both.
 4. Select frontend and database for ARM64 operation, simplicity and extensibility.
 5. Verify Discogs access, terms, cover usage and actual field availability. Discogs is the preferred initial provider; paid providers are optional future work.
-6. Define Discogs import method, inventory-number assignment and matching existing copies.
+6. Initial Discogs import uses the authenticated API, allocates the first unused LP number and offers explicit instance matching. Personal-field sync and advanced conflict resolutions remain open.
 7. Choose backup destination, frequency and restore procedure.
 8. Clarify default interface language, rating scale and the box-set model. English project documentation does not automatically change the requested German/English application content.
 9. Prioritize M2 and M3. Do not deploy real collection data without a backup procedure.
@@ -140,3 +142,7 @@ The initial source adapter uses master entries and, when available, label names 
 ## Listening implementation decisions
 
 The user confirmed a ten-minute session, suppression of repeated scans of the current record, and cancellation when a different record is scanned. Hardware is not connected yet; its interface and exact module remain unknown. The initial station is `pi-main`; the Pi browser follows scans in station mode. End a completed session before replaying the same record. Unknown tags do not cancel an existing session. See [listening and hardware status](docs/listening.md).
+
+## Discogs collection sync decisions
+
+The user requested bidirectional collection synchronization. The initial implementation previews per-copy imports, explicit matches and local additions to Discogs using exact release IDs. Local identifiers, metadata corrections, NFC tags and history are retained. Missing copies are reported without automatic deletion; uncertain exports block retries until explicitly reconciled. See [scope and usage](docs/discogs-sync.md).

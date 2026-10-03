@@ -46,6 +46,10 @@ jobs:
       - name: Compose runtime smoke test
         run: |
           docker compose up --build -d --wait
+          for attempt in $(seq 1 30); do
+            if curl --fail http://localhost:8080/api/health; then break; fi
+            sleep 1
+          done
           curl --fail http://localhost:8080/api/health
           curl --fail -X POST http://localhost:8080/api/records -H 'Content-Type: application/json' --data '{"inventory_number":"LP-00001","artist":"CI artist","title":"Persistence check"}'
           docker compose restart backend

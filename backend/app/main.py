@@ -5,10 +5,11 @@ import logging
 from threading import Event, Thread
 from fastapi import FastAPI, HTTPException, Query, Response
 from .database import Database
-from .discogs import CoverStore, DiscogsProvider, fresh, public_images, MAX_AGE
+from .discogs import CoverStore, DiscogsProvider, fresh, public_images, MAX_AGE, source_key
 from .metadata import MetadataService
-from .models import Record, RecordInput, TagAssignment, ScanInput, PlayInput, FavoriteInput, ReaderStatusInput, CoverSelection
+from .models import Record, RecordInput, TagAssignment, ScanInput, PlayInput, FavoriteInput, ReaderStatusInput, CoverSelection, ReleaseLink, SyncAction, ExportRetry
 from .listening import ListeningService
+from .sync import DiscogsSync
 from .repository import CollectionRepository
 
 
@@ -18,6 +19,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     provider = provider or DiscogsProvider()
     covers = covers or CoverStore(Path(database.path).parent / 'covers')
     metadata = MetadataService(repository, provider, covers)
+    sync = DiscogsSync(repository, provider, metadata)
     listening = ListeningService(database, clock) if clock else ListeningService(database)
 
     @asynccontextmanager
@@ -87,6 +89,26 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         return Response(content, media_type=content_type,
                         headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
 
+    @app.get('/api/metadata/discogs/releases/{release_id}')
+    def preview_release(release_id: int):
+        if release_id < 1:
+            raise HTTPException(422, 'Invalid Discogs release ID.')
+        snapshot = provider.release(release_id)
+        result = {key: value for key, value in snapshot.items() if key not in ['image_url', 'checked_at', 'images']}
+        result['images'] = public_images(snapshot)
+        result['metadata_expires_at'] = snapshot['checked_at'] + MAX_AGE
+        return result
+
+    @app.get('/api/metadata/discogs/releases/{release_id}/images/{image_id}')
+    def preview_release_image(release_id: int, image_id: str):
+        if release_id < 1:
+            raise HTTPException(422, 'Invalid Discogs release ID.')
+        snapshot = provider.release(release_id)
+        image = next((i for i in snapshot.get('images', []) if i['id'] == image_id), None)
+        if not image:
+            raise HTTPException(404, 'Image not available.')
+        return image_response(covers.image_content(f'r{release_id}-{image_id}', image['url'], snapshot['checked_at']))
+
     @app.get('/api/metadata/discogs/masters/{master_id}/images/{image_id}')
     def preview_image(master_id: int, image_id: str):
         if master_id < 1:
@@ -101,7 +123,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     @app.get('/api/records/{record_id}/cover-options')
     def cover_options(record_id: str):
         record = metadata.present(repository.get(record_id))
-        if not record['discogs_master_id']:
+        if not record['discogs_master_id'] and not record.get('discogs_release_id'):
             raise HTTPException(409, 'This record has no Discogs source.')
         if record['metadata_status'] == 'unavailable':
             raise HTTPException(503, 'Discogs is unavailable. Retry loading the images later.')
@@ -115,9 +137,9 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         return public(metadata.select_cover(record_id, data.image_id))
 
     @app.get('/api/covers/discogs/{master_id}/{image_id}')
-    def selected_cover(master_id: int, image_id: str):
+    def selected_cover(master_id: str, image_id: str):
         records = [metadata.present(r) for r in repository.list()
-                   if r['discogs_master_id'] == master_id and r.get('cover_image_id') == image_id]
+                   if (r['discogs_master_id'] or r.get('discogs_release_id')) and source_key(r['_metadata']) == master_id and r.get('cover_image_id') == image_id]
         record = next((r for r in records if fresh(r['_metadata']) and r['cover_url']), None)
         if not record:
             raise HTTPException(404, 'Cover not available.')
@@ -128,8 +150,8 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         return image_response(covers.image_content(key, image['url'], record['_metadata']['checked_at']))
 
     @app.get('/api/covers/discogs/{master_id}')
-    def get_cover(master_id: int):
-        records = [r for r in repository.list() if r['discogs_master_id'] == master_id]
+    def get_cover(master_id: str):
+        records = [r for r in repository.list() if (r['discogs_master_id'] or r.get('discogs_release_id')) and source_key(r['_metadata']) == master_id]
         records = [metadata.present(r) for r in records]
         if not any(r['cover_url'] and fresh(r['_metadata']) for r in records) or not covers.path(master_id).exists():
             raise HTTPException(404, 'Cover not available.')
@@ -169,6 +191,22 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     def delete_record(record_id: str):
         metadata.delete(record_id)
         return Response(status_code=204)
+
+    @app.get('/api/discogs/sync/preview')
+    def sync_preview():
+        return sync.preview()
+
+    @app.post('/api/discogs/sync/apply')
+    def sync_apply(data: SyncAction):
+        return sync.apply(data)
+
+    @app.post('/api/records/{record_id}/discogs-export/retry')
+    def allow_export_retry(record_id: str, data: ExportRetry):
+        return sync.allow_export_retry(record_id)
+
+    @app.put('/api/records/{record_id}/discogs-release', response_model=Record)
+    def link_release(record_id: str, data: ReleaseLink):
+        return public(sync.release_link(record_id, data.release_id))
 
     @app.get('/api/stations/{station_id}')
     def station_status(station_id: str):

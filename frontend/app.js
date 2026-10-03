@@ -1,3 +1,4 @@
+import { createDiscogsSync } from './sync.js';
 import { createCoverPicker } from './covers.js';
 import { createListeningUI } from './listening.js';
 import { createDiscogsSearch } from './discogs.js';
@@ -14,7 +15,7 @@ async function api(path, options = {}) {
   return response.status === 204 ? null : response.json();
 }
 function cover(record) {
-  const image = /^\/api\/covers\/discogs\/[0-9]+(?:\/[a-f0-9]{32}\?v=[0-9.]+)?$/.test(record.cover_url || '') ? `<img src="${escape(record.cover_url)}" alt="Cover of ${escape(record.title)}" loading="lazy">` : '';
+  const image = /^\/api\/covers\/discogs\/r?[0-9]+(?:\/[a-f0-9]{32}\?v=[0-9.]+)?$/.test(record.cover_url || '') ? `<img src="${escape(record.cover_url)}" alt="Cover of ${escape(record.title)}" loading="lazy">` : '';
   return `<div class="cover">${image}<div class="disc" aria-hidden="true"></div><span class="cover-number">${escape(record.inventory_number)}</span></div>`;
 }
 function attribution(record, referenceRelease = false) {
@@ -117,6 +118,7 @@ const discogs = createDiscogsSearch({ api, escape, onImport(data) {
   for (const key of ['artist', 'title', 'year']) form.elements[key].value = data[key] ?? '';
   form.elements.tracks.value = data.tracks.map(t => t.position ? `${t.position} | ${t.title}` : t.title).join('\n');
 }});
+createDiscogsSync({api, escape, currentRecord: () => state.selected, reload: load, renderCurrent: route});
 createCoverPicker({api, escape, currentRecord: () => state.selected, reload: load, renderCurrent: route});
 $('#editor').addEventListener('close', () => discogs.close());
 $('#refresh').addEventListener('click', async () => {
