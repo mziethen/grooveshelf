@@ -25,3 +25,5 @@ The Discogs adapter and metadata service are separate from routing and persisten
 Listening uses a station-scoped service and a background timer. Counts derive from events rather than mutable counters. A bridge interface keeps device drivers outside the web API. See [listening and NFC](listening.md).
 
 Schema version 6 adds nullable per-copy rating and record/sleeve condition. Personal-field edits use a separate endpoint without contacting metadata providers. Existing clients that omit new fields retain stored ratings and conditions on regular record edits. Provider refresh, release linking and collection matching do not overwrite personal fields.
+
+Schema version 7 adds a separate wishlist table. Acquired wishes retain an internal copy receipt; acquisition and copy creation commit together under a SQLite write lock. Wishlist references do not store provider metadata snapshots.

@@ -126,3 +126,18 @@ class SyncAction(BaseModel):
 class ExportRetry(BaseModel):
     model_config = ConfigDict(extra="forbid")
     checked_discogs: Literal[True]
+
+
+class WishInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    artist: str = Field(min_length=1, max_length=300)
+    title: str = Field(min_length=1, max_length=300)
+    notes: str = Field(default="", max_length=10000)
+    discogs_master_id: int | None = Field(default=None, ge=1)
+
+
+class Wish(WishInput):
+    id: str
+    created_at: str
+    updated_at: str
+    source_url: str | None = None

@@ -49,7 +49,7 @@ class MetadataService:
             except HTTPException:
                 return self.hide_stale(record)
 
-    def save(self, data, copy_id=None):
+    def save(self, data, copy_id=None, wish_id=None):
         if (data.discogs_master_id or data.discogs_release_id) and (copy_id or data.album_id):
             raise HTTPException(409, 'Discogs import is only available when adding a new record. Existing manual corrections are preserved.')
         with self.lock:
@@ -62,7 +62,7 @@ class MetadataService:
                 if not imported or not any(i['id'] == data.cover_image_id for i in imported.get('images', [])):
                     raise HTTPException(409, 'The selected image is no longer available. Choose another cover.')
             try:
-                return self.repository.save(data, copy_id, imported)
+                return self.repository.save(data, copy_id, imported, wish_id=wish_id)
             finally:
                 self.prune_covers()
 

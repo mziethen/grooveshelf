@@ -7,9 +7,10 @@ from fastapi import FastAPI, HTTPException, Query, Response
 from .database import Database
 from .discogs import CoverStore, DiscogsProvider, fresh, public_images, MAX_AGE, source_key
 from .metadata import MetadataService
-from .models import Record, RecordInput, TagAssignment, ScanInput, PlayInput, FavoriteInput, ReaderStatusInput, CoverSelection, ReleaseLink, SyncAction, ExportRetry, PersonalFields
+from .models import Record, RecordInput, TagAssignment, ScanInput, PlayInput, FavoriteInput, ReaderStatusInput, CoverSelection, ReleaseLink, SyncAction, ExportRetry, PersonalFields, WishInput, Wish
 from .listening import ListeningService
 from .sync import DiscogsSync
+from .wishlist import WishlistService
 from .repository import CollectionRepository
 
 
@@ -19,6 +20,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     provider = provider or DiscogsProvider()
     covers = covers or CoverStore(Path(database.path).parent / 'covers')
     metadata = MetadataService(repository, provider, covers)
+    wishlist = WishlistService(database, repository, metadata)
     sync = DiscogsSync(repository, provider, metadata)
     listening = ListeningService(database, clock) if clock else ListeningService(database)
 
@@ -198,6 +200,30 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     def delete_record(record_id: str):
         metadata.delete(record_id)
         return Response(status_code=204)
+
+    def public_wish(wish):
+        return {key:value for key,value in wish.items() if key not in ['acquired_copy_id', 'acquired_at']}
+
+    @app.get('/api/wishlist', response_model=list[Wish])
+    def list_wishlist(q: str = Query(default='', max_length=300)):
+        return [public_wish(wish) for wish in wishlist.list(q)]
+
+    @app.post('/api/wishlist', response_model=Wish, status_code=201)
+    def create_wish(data: WishInput):
+        return public_wish(wishlist.save(data))
+
+    @app.put('/api/wishlist/{wish_id}', response_model=Wish)
+    def update_wish(wish_id: str, data: WishInput):
+        return public_wish(wishlist.update(wish_id, data))
+
+    @app.delete('/api/wishlist/{wish_id}', status_code=204)
+    def delete_wish(wish_id: str):
+        wishlist.delete(wish_id)
+        return Response(status_code=204)
+
+    @app.post('/api/wishlist/{wish_id}/acquire', response_model=Record, status_code=201)
+    def acquire_wish(wish_id: str, data: RecordInput):
+        return public(wishlist.acquire(wish_id, data))
 
     @app.get('/api/discogs/sync/preview')
     def sync_preview():
