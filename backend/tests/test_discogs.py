@@ -87,6 +87,7 @@ def test_import_cover_attribution_and_delete_cleanup(setup):
     assert response.status_code == 201
     record = response.json()
     assert record['source_url'] == 'https://www.discogs.com/master/42'
+    assert record['reference_release_url'] == 'https://www.discogs.com/release/100'
     assert record['genres'] == ['Rock'] and record['description'] == 'Album notes'
     assert '_metadata' not in record
     cover = client.get(record['cover_url'])

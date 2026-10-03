@@ -17,7 +17,7 @@ class CollectionRepository:
         result['tracks'] = json.loads(result['tracks'])
         metadata = json.loads(result.pop('metadata'))
         result['_metadata'] = metadata
-        for field in ['source_url', 'source_name', 'discogs_master_id']:
+        for field in ['source_url', 'source_name', 'discogs_master_id', 'reference_release_url']:
             result[field] = metadata.get(field)
         for field in ['genres', 'styles', 'labels', 'protected_fields']:
             result[field] = metadata.get(field, [])

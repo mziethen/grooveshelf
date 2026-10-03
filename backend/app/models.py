@@ -42,6 +42,7 @@ class Record(RecordInput):
     cover_url: str | None = None
     source_url: str | None = None
     source_name: str | None = None
+    reference_release_url: str | None = None
     genres: list[str] = Field(default_factory=list)
     styles: list[str] = Field(default_factory=list)
     labels: list[str] = Field(default_factory=list)

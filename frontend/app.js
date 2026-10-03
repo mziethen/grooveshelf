@@ -15,9 +15,10 @@ function cover(record) {
   const image = /^\/api\/covers\/discogs\/[0-9]+$/.test(record.cover_url || '') ? `<img src="${escape(record.cover_url)}" alt="Cover of ${escape(record.title)}" loading="lazy">` : '';
   return `<div class="cover">${image}<div class="disc" aria-hidden="true"></div><span class="cover-number">${escape(record.inventory_number)}</span></div>`;
 }
-function attribution(record) {
-  if (!record.source_url) return '';
-  return `<a class="attribution" href="${escape(record.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a>`;
+function attribution(record, referenceRelease = false) {
+  const url = referenceRelease ? (record.reference_release_url || record.source_url) : record.source_url;
+  if (!url) return '';
+  return `<a class="attribution" href="${escape(url)}" target="_blank" rel="noopener">Data provided by Discogs</a>`;
 }
 function coverFallbacks(root) {
   root.querySelectorAll('.cover img').forEach(img => img.addEventListener('error', () => img.remove(), {once: true}));
@@ -66,7 +67,7 @@ function renderDetails(record) {
     $('#detail-error').textContent = '';
     $('#refresh').hidden = !record.source_url;
     $('#edit').disabled = record.metadata_status === 'unavailable';
-    $('#detail-content').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2>${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year || 'Release year not added'}</p>${attribution(record)}</div></div>${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">Labels: ${escape(record.labels.join(', '))}</p>` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => `<li><span>${escape(t.position) || '—'}</span>${escape(t.title)}</li>`).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
+    $('#detail-content').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2>${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year || 'Release year not added'}</p>${attribution(record)}</div></div>${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">Reference release labels: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => `<li><span>${escape(t.position) || '—'}</span>${escape(t.title)}</li>`).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
     coverFallbacks($('#detail-content'));
     if (!$('#details').open) $('#details').showModal();
 }

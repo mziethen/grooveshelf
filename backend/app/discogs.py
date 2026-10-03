@@ -103,13 +103,14 @@ class DiscogsProvider:
                       "year": year if isinstance(year, int) and 1900 <= year <= 2100 else None,
                       "tracks": tracks[:300], "genres": [str(g)[:100] for g in data.get("genres", [])[:30]],
                       "styles": [str(g)[:100] for g in data.get("styles", [])[:30]],
-                      "labels": [], "description": "", "image_url": image.get("uri"),
+                      "labels": [], "description": "", "reference_release_url": None, "image_url": image.get("uri"),
                       "source_url": f"https://www.discogs.com/master/{master_id}", "source_name": "Discogs",
                       "checked_at": timestamp()}
             release_id = data.get("main_release")
             if isinstance(release_id, int) and release_id > 0:
                 try:
                     release = self.request(f"/releases/{release_id}")
+                    result["reference_release_url"] = f"https://www.discogs.com/release/{release_id}"
                     result["labels"] = list(dict.fromkeys(str(l.get("name", ""))[:200] for l in release.get("labels", []) if l.get("name")))[:30]
                     result["description"] = str(release.get("notes", ""))[:10000]
                 except HTTPException:
