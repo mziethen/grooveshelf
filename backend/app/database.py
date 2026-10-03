@@ -22,7 +22,7 @@ class Database:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 3:
+            if version > 4:
                 raise RuntimeError("Database schema is newer than this application")
             db.execute("PRAGMA journal_mode = WAL")
             db.executescript("""
@@ -48,6 +48,8 @@ class Database:
             copy_columns = {row[1] for row in db.execute("PRAGMA table_info(copies)")}
             if "favorite" not in copy_columns:
                 db.execute("ALTER TABLE copies ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0")
+            if "cover_image_id" not in copy_columns:
+                db.execute("ALTER TABLE copies ADD COLUMN cover_image_id TEXT")
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS stations (
                     id TEXT PRIMARY KEY, name TEXT NOT NULL,
@@ -83,4 +85,4 @@ class Database:
                                       ("reader_seen_at", "REAL")]:
                 if name not in station_columns:
                     db.execute(f"ALTER TABLE stations ADD COLUMN {name} {declaration}")
-            db.execute("PRAGMA user_version = 3")
+            db.execute("PRAGMA user_version = 4")

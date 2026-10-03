@@ -4,7 +4,7 @@
 
 The initial adapter searches master entries by artist and album title. It normalizes artist, album title, original year, tracks and side positions, genre and style. If available, label names and album notes come from the master's main release; they describe that reference release, not necessarily the user's exact pressing. Reviews and exact pressing identification remain future work.
 
-Search and preview do not create collection entries or download covers. A user explicitly chooses **Use these details** and then saves the record. Missing results or an unconfigured token do not prevent manual entry. Cover failures do not prevent importing the remaining metadata.
+Search and metadata preview do not create collection entries. Opening the image gallery downloads bounded, validated image previews. A user explicitly chooses **Use these details** and then saves the record. Missing results or an unconfigured token do not prevent manual entry. Cover failures do not prevent importing the remaining metadata.
 
 ## Source and freshness
 
@@ -29,3 +29,11 @@ The adapter uses fixed Discogs API endpoints. Cover retrieval accepts only HTTPS
 ## Verification
 
 Automated fixtures cover search/preview without saving, confirmation payloads, local covers, attribution, missing tokens, failed imports, provider outages, rate-limit cooldowns, protected edits, copy isolation, cache expiry, cleanup and database migration. Browser fixtures test the full confirmation flow independently of real credentials. Live anonymous master preview/import and cover retrieval were checked using master 10362 in a disposable database; authenticated search still needs validation with the deployment owner's token.
+
+## Cover selection
+
+The import preview offers a thumbnail gallery and a larger preview. Choose an image before **Use these details**, or leave **Use default cover** selected. Existing Discogs records have a **Choose cover** action in their details. Previewing or canceling does not change the saved selection; **Save cover** confirms it.
+
+The preference belongs to the physical copy, not the shared album. Stable image identifiers retain the preference when Discogs changes signed image URLs. Refreshes preserve the choice; a removed image is reported as missing without silently substituting another image. Resetting to the default uses the provider's primary image. Cached previews expire after six hours and gallery dialogs stop displaying expired images. Credentials and original image URLs are not returned by the gallery API.
+
+The current gallery uses the linked album master. Exact pressing/release galleries depend on the upcoming release-linking and collection-sync work (#30, #55). Some Discogs entries have no accessible images, especially without authenticated API access.

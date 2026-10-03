@@ -1,7 +1,8 @@
+import { createCoverPicker } from './covers.js';
 import { createListeningUI } from './listening.js';
 import { createDiscogsSearch } from './discogs.js';
 const $ = (selector) => document.querySelector(selector);
-const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null };
+const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, coverImageId: null };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(path, options = {}) {
   const response = await fetch(`/api${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
@@ -13,7 +14,7 @@ async function api(path, options = {}) {
   return response.status === 204 ? null : response.json();
 }
 function cover(record) {
-  const image = /^\/api\/covers\/discogs\/[0-9]+$/.test(record.cover_url || '') ? `<img src="${escape(record.cover_url)}" alt="Cover of ${escape(record.title)}" loading="lazy">` : '';
+  const image = /^\/api\/covers\/discogs\/[0-9]+(?:\/[a-f0-9]{32}\?v=[0-9.]+)?$/.test(record.cover_url || '') ? `<img src="${escape(record.cover_url)}" alt="Cover of ${escape(record.title)}" loading="lazy">` : '';
   return `<div class="cover">${image}<div class="disc" aria-hidden="true"></div><span class="cover-number">${escape(record.inventory_number)}</span></div>`;
 }
 function attribution(record, referenceRelease = false) {
@@ -76,14 +77,15 @@ function renderDetails(record) {
     scheduleExpiry();
     $('#detail-error').textContent = '';
     $('#refresh').hidden = !record.source_url;
+    $('#choose-cover').hidden = !record.source_url;
     $('#edit').disabled = record.metadata_status === 'unavailable';
-    $('#detail-content').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2>${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year || 'Release year not added'}</p>${attribution(record)}</div></div>${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">Reference release labels: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => `<li><span>${escape(t.position) || '—'}</span>${escape(t.title)}</li>`).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
+    $('#detail-content').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2>${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year || 'Release year not added'}</p>${attribution(record)}</div></div>${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">Reference release labels: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => `<li><span>${escape(t.position) || '—'}</span>${escape(t.title)}</li>`).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.cover_selection_status === 'missing' ? '<p class="error">Your selected Discogs image is no longer available. Choose another cover.</p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
     coverFallbacks($('#detail-content'));
     listening.details(record);
     if (!$('#details').open) $('#details').showModal();
 }
 function openEditor(record = null) {
-  state.editing = record; state.masterId = null;
+  state.editing = record; state.masterId = null; state.coverImageId = null;
   discogs.reset(Boolean(record));
   const form = $('#record-form'); form.reset();
   $('#form-error').textContent = '';
@@ -102,7 +104,7 @@ $('#record-form').addEventListener('submit', async event => {
     return separator < 0 ? { position: '', title: line } : { position: line.slice(0, separator).trim(), title: line.slice(separator + 1).trim() };
   });
   try {
-    const record = await api(state.editing ? `/records/${state.editing.id}` : '/records', {method: state.editing ? 'PUT' : 'POST', body: JSON.stringify({...values, discogs_master_id: state.masterId, year: values.year ? Number(values.year) : null, tracks})});
+    const record = await api(state.editing ? `/records/${state.editing.id}` : '/records', {method: state.editing ? 'PUT' : 'POST', body: JSON.stringify({...values, discogs_master_id: state.masterId, cover_image_id: state.coverImageId, year: values.year ? Number(values.year) : null, tracks})});
     $('#editor').close(); await load();
     if (location.hash === `#record/${record.id}`) await route(); else location.hash = `record/${record.id}`;
   } catch (error) { $('#form-error').textContent = error.message; }
@@ -110,11 +112,12 @@ $('#record-form').addEventListener('submit', async event => {
 });
 const listening = createListeningUI({ api, escape, reload: load, currentRecord: () => state.selected, renderCurrent: route });
 const discogs = createDiscogsSearch({ api, escape, onImport(data) {
-  state.masterId = data.discogs_master_id;
+  state.masterId = data.discogs_master_id; state.coverImageId = data.cover_image_id || null;
   const form = $('#record-form');
   for (const key of ['artist', 'title', 'year']) form.elements[key].value = data[key] ?? '';
   form.elements.tracks.value = data.tracks.map(t => t.position ? `${t.position} | ${t.title}` : t.title).join('\n');
 }});
+createCoverPicker({api, escape, currentRecord: () => state.selected, reload: load, renderCurrent: route});
 $('#editor').addEventListener('close', () => discogs.close());
 $('#refresh').addEventListener('click', async () => {
   $('#refresh').disabled = true; $('#detail-error').textContent = '';

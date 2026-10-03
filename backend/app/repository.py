@@ -24,6 +24,12 @@ class CollectionRepository:
         result['description'] = metadata.get('description', '')
         mid = metadata.get('discogs_master_id')
         result['cover_url'] = f'/api/covers/discogs/{mid}' if metadata.get('cover_cached') else None
+        selected = result.get('cover_image_id')
+        result['cover_selection_status'] = 'default'
+        if selected:
+            available = any(image['id'] == selected for image in metadata.get('images', []))
+            result['cover_selection_status'] = 'selected' if available else 'missing'
+            result['cover_url'] = f'/api/covers/discogs/{mid}/{selected}?v={metadata.get("checked_at", 0)}' if available else None
         result['metadata_status'] = 'current' if mid else 'manual'
         result['metadata_expires_at'] = metadata.get('checked_at', 0) + MAX_AGE if mid else None
         return result
@@ -85,12 +91,20 @@ class CollectionRepository:
                 else:
                     db.execute('INSERT INTO copies (id, album_id, inventory_number, format, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)',
                                (record_id, album_id, data.inventory_number, data.format, data.notes, now))
+                if imported:
+                    db.execute('UPDATE copies SET cover_image_id=? WHERE id=?', (data.cover_image_id, record_id))
                 db.execute('DELETE FROM albums WHERE id NOT IN (SELECT album_id FROM copies)')
         except sqlite3.IntegrityError as error:
             if 'copies.inventory_number' in str(error):
                 raise HTTPException(409, 'This inventory number is already in use') from error
             raise
         return self.get(record_id)
+
+    def select_cover(self, copy_id, image_id):
+        with self.database.connect() as db:
+            if not db.execute('UPDATE copies SET cover_image_id=? WHERE id=?', (image_id, copy_id)).rowcount:
+                raise HTTPException(404, 'Record not found')
+        return self.get(copy_id)
 
     def refresh_album(self, album_id, imported):
         with self.database.connect() as db:

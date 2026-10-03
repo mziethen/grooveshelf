@@ -20,6 +20,7 @@ class RecordInput(BaseModel):
     notes: str = Field(default="", max_length=10000)
     album_id: str | None = None
     discogs_master_id: int | None = Field(default=None, ge=1)
+    cover_image_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
 
     @field_validator("inventory_number")
     @classmethod
@@ -41,6 +42,7 @@ class Record(RecordInput):
     album_id: str
     created_at: str
     cover_url: str | None = None
+    cover_selection_status: str = "default"
     source_url: str | None = None
     source_name: str | None = None
     reference_release_url: str | None = None
@@ -88,3 +90,8 @@ class FavoriteInput(BaseModel):
 class ReaderStatusInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Literal["connected", "disconnected", "error", "simulation"]
+
+
+class CoverSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    image_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")

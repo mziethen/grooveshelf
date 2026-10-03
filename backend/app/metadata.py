@@ -58,6 +58,9 @@ class MetadataService:
                 if current['metadata_status'] == 'unavailable':
                     raise HTTPException(503, 'Discogs metadata could not be refreshed. Please retry before editing this record.')
             imported = self.snapshot(data.discogs_master_id) if data.discogs_master_id else None
+            if data.cover_image_id and not copy_id:
+                if not imported or not any(i['id'] == data.cover_image_id for i in imported.get('images', [])):
+                    raise HTTPException(409, 'The selected image is no longer available. Choose another cover.')
             try:
                 return self.repository.save(data, copy_id, imported)
             finally:
@@ -73,16 +76,30 @@ class MetadataService:
             self.repository.refresh_album(record['album_id'], snapshot)
             return self.repository.get(copy_id)
 
+    def select_cover(self, copy_id, image_id):
+        with self.lock:
+            record = self.present(self.repository.get(copy_id))
+            if not record['discogs_master_id']:
+                raise HTTPException(409, 'This record has no Discogs source.')
+            if image_id:
+                if record['metadata_status'] == 'unavailable':
+                    raise HTTPException(503, 'Discogs is unavailable. Retry before choosing a cover.')
+                image = next((i for i in record['_metadata'].get('images', []) if i['id'] == image_id), None)
+                if not image:
+                    raise HTTPException(409, 'The selected image is no longer available. Choose another cover.')
+                self.covers.image_content(f"{record['discogs_master_id']}-{image_id}", image['url'], record['_metadata']['checked_at'])
+            return self.repository.select_cover(copy_id, image_id)
+
     def prune_covers(self):
         referenced = {r['discogs_master_id'] for r in self.repository.list() if r['discogs_master_id']}
         if self.covers.directory.exists():
             for path in self.covers.directory.glob('discogs-master-*.img'):
                 try:
-                    mid = int(path.stem.removeprefix('discogs-master-'))
+                    mid = int(path.stem.removeprefix('discogs-master-').split('-')[0])
                 except ValueError:
                     continue
                 if mid not in referenced:
-                    self.covers.clear(mid)
+                    path.unlink(missing_ok=True)
 
     def delete(self, copy_id):
         with self.lock:

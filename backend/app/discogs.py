@@ -5,6 +5,7 @@ from threading import Lock
 from time import monotonic
 from urllib.parse import urlsplit
 import os
+import hashlib
 import httpx
 from fastapi import HTTPException
 
@@ -19,6 +20,32 @@ def timestamp():
 def fresh(metadata):
     age = timestamp() - metadata.get("checked_at", 0)
     return 0 <= age < MAX_AGE
+
+
+def image_choices(images):
+    choices = []
+    seen = set()
+    for image in images[:60]:
+        url = image.get('uri')
+        if not isinstance(url, str):
+            continue
+        parsed = urlsplit(url)
+        if parsed.scheme != 'https' or parsed.netloc != 'i.discogs.com':
+            continue
+        # Signed/size-specific URLs change; the original image filename is stable.
+        identity = parsed.path.split('/discogs-images/')[-1] if '/discogs-images/' in parsed.path else parsed.path
+        key = hashlib.sha256(identity.encode()).hexdigest()[:32]
+        if key not in seen:
+            choices.append({'id': key, 'type': 'primary' if image.get('type') == 'primary' else 'secondary', 'url': url})
+            seen.add(key)
+    return choices
+
+
+def public_images(metadata):
+    mid = metadata['discogs_master_id']
+    return [{'id': image['id'], 'type': image['type'],
+             'preview_url': f"/api/metadata/discogs/masters/{mid}/images/{image['id']}"}
+            for image in metadata.get('images', [])]
 
 
 class DiscogsProvider:
@@ -105,7 +132,7 @@ class DiscogsProvider:
                       "styles": [str(g)[:100] for g in data.get("styles", [])[:30]],
                       "labels": [], "description": "", "reference_release_url": None, "image_url": image.get("uri"),
                       "source_url": f"https://www.discogs.com/master/{master_id}", "source_name": "Discogs",
-                      "checked_at": timestamp()}
+                      "checked_at": timestamp(), "images": image_choices(images)}
             release_id = data.get("main_release")
             if isinstance(release_id, int) and release_id > 0:
                 try:
@@ -153,6 +180,9 @@ class CoverStore:
                 return False
             with self.lock:
                 self.directory.mkdir(parents=True, exist_ok=True)
+                for old in self.directory.glob('discogs-master-*.img'):
+                    if timestamp() - old.stat().st_mtime >= MAX_AGE:
+                        old.unlink(missing_ok=True)
                 path = self.path(master_id)
                 temporary = path.with_suffix(".tmp")
                 temporary.write_bytes(content)
@@ -161,6 +191,20 @@ class CoverStore:
         except (httpx.HTTPError, OSError, ValueError):
             self.retry_after = monotonic() + 30
             return False
+
+    def image_content(self, key, url, checked_at):
+        # Reuse bytes only within the validated provider snapshot's lifetime.
+        with self.lock:
+            path = self.path(key)
+            if path.exists() and checked_at <= path.stat().st_mtime and timestamp() - path.stat().st_mtime < MAX_AGE:
+                return path.read_bytes()
+        if not self.store(key, url):
+            raise HTTPException(502, 'Image could not be downloaded. Choose another image or retry later.')
+        with self.lock:
+            try:
+                return self.path(key).read_bytes()
+            except FileNotFoundError:
+                raise HTTPException(404, 'Image not available.') from None
 
     def clear(self, master_id):
         with self.lock:
