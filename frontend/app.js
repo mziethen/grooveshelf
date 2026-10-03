@@ -8,7 +8,7 @@ import { createCoverPicker } from './covers.js';
 import { createListeningUI } from './listening.js';
 import { createDiscogsSearch } from './discogs.js';
 const $ = (selector) => document.querySelector(selector);
-const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, coverImageId: null, wishId: null };
+const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, releaseId: null, coverImageId: null, wishId: null };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(path, options = {}) {
   const response = await fetch(`/api${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
@@ -94,7 +94,7 @@ function renderDetails(record) {
     if (!$('#details').open) $('#details').showModal();
 }
 function openEditor(record = null, after = null) {
-  state.wishId = null; state.editing = record; state.masterId = null; state.coverImageId = null;
+  state.wishId = null; state.editing = record; state.masterId = null; state.releaseId = null; state.coverImageId = null;
   discogs.reset(Boolean(record));
   const form = $('#record-form'); form.reset();
   $('#form-error').textContent = '';
@@ -111,7 +111,7 @@ $('#record-form').addEventListener('submit', async event => {
   const formSnapshot=JSON.stringify([...new FormData(event.target)]);
   const addAnother=event.submitter?.id==='save-next'&&!state.editing&&!state.wishId;
   const keepArtist=$('#keep-artist').checked;
-  const selectedMaster=state.masterId;
+  const selectedMaster=state.masterId;const selectedRelease=state.releaseId;
   const values = personalPayload(Object.fromEntries(new FormData(event.target)));
   const tracks = values.tracks.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
     const separator = line.indexOf('|');
@@ -119,8 +119,8 @@ $('#record-form').addEventListener('submit', async event => {
   });
   try {
     if(!await capture.check(!state.editing,true)) {$('#form-error').textContent='Review the existing copies and confirm that you are adding another physical copy.';return;}
-    if(formSnapshot!==JSON.stringify([...new FormData(event.target)])||selectedMaster!==state.masterId){$('#form-error').textContent='Your details changed while checking. Save again to use the current details.';return;}
-    const record = await api(state.wishId ? `/wishlist/${state.wishId}/acquire` : state.editing ? `/records/${state.editing.id}` : '/records', {method: state.editing ? 'PUT' : 'POST', body: JSON.stringify({...values, discogs_master_id: state.masterId, cover_image_id: state.coverImageId, year: values.year ? Number(values.year) : null, tracks})});
+    if(formSnapshot!==JSON.stringify([...new FormData(event.target)])||selectedMaster!==state.masterId||selectedRelease!==state.releaseId){$('#form-error').textContent='Your details changed while checking. Save again to use the current details.';return;}
+    const record = await api(state.wishId ? `/wishlist/${state.wishId}/acquire` : state.editing ? `/records/${state.editing.id}` : '/records', {method: state.editing ? 'PUT' : 'POST', body: JSON.stringify({...values, discogs_master_id: state.masterId, discogs_release_id:state.releaseId, cover_image_id: state.coverImageId, year: values.year ? Number(values.year) : null, tracks})});
     if(addAnother){
       openEditor(null,record.inventory_number);
       event.target.elements.format.value=values.format;
@@ -141,12 +141,12 @@ createWishlist({api,escape,onAcquire(wish) {
   for(const name of ['artist','title','notes'])$('#record-form').elements[name].value=wish[name];
   if(wish.discogs_master_id)discogs.preview(wish.discogs_master_id);
 }});
-const capture=createCapture({api,escape,currentIdentity:()=>({masterId:state.masterId,editingId:state.editing?.id||null})});
+const capture=createCapture({api,escape,currentIdentity:()=>({masterId:state.masterId,releaseId:state.releaseId,editingId:state.editing?.id||null})});
 populatePersonalOptions($('#record-form'));
 const personal = createPersonalUI({api,escape,currentRecord:()=>state.selected,reload:load,renderCurrent:route});
 const listening = createListeningUI({ api, escape, reload: load, currentRecord: () => state.selected, renderCurrent: route });
 const discogs = createDiscogsSearch({ api, escape, onImport(data) {
-  state.masterId = data.discogs_master_id; state.coverImageId = data.cover_image_id || null;
+  state.masterId = data.discogs_master_id || null; state.releaseId=data.discogs_release_id || null; state.coverImageId = data.cover_image_id || null;
   const form = $('#record-form');
   for (const key of ['artist', 'title', 'year']) form.elements[key].value = data[key] ?? '';
   capture.changed();
@@ -157,9 +157,7 @@ createCoverPicker({api, escape, currentRecord: () => state.selected, reload: loa
 $('#editor').addEventListener('close', () => discogs.close());
 $('#refresh').addEventListener('click', async () => {
   $('#refresh').disabled = true; $('#detail-error').textContent = '';
-  try { await api(`/records/${state.selected.id}/refresh`, {method: 'POST'}); createStatistics({api,escape,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
-createDiscovery({api,escape,cover,coverFallbacks,hideExpired,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
-await load(); await route(); }
+  try { await api(`/records/${state.selected.id}/refresh`, {method: 'POST'}); await load(); await route(); }
   catch (error) { $('#detail-error').textContent = error.message; }
   finally { $('#refresh').disabled = false; }
 });

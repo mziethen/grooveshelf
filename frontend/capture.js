@@ -2,11 +2,11 @@ export function createCapture({api,escape,currentIdentity}) {
   const $=selector=>document.querySelector(selector);
   const form=$('#record-form');let generation=0;let editorGeneration=0;let timer;let lastQuery='';let lastMatches='';let editing=false;
   function clear(){lastQuery='';lastMatches='';$('#duplicate-confirm').checked=false;$('#duplicate-panel').hidden=true;$('#duplicate-results').replaceChildren();}
-  function query(){const identity=currentIdentity();return {artist:form.elements.artist.value,title:form.elements.title.value,discogs_master_id:identity.masterId,exclude_id:identity.editingId};}
+  function query(){const identity=currentIdentity();return {artist:form.elements.artist.value,title:form.elements.title.value,discogs_master_id:identity.masterId,discogs_release_id:identity.releaseId,exclude_id:identity.editingId};}
   async function check(required=false,forSave=false) {
     if(forSave)clearTimeout(timer);
     const values=query();const fingerprint=JSON.stringify(values);const current=++generation;
-    if(!values.discogs_master_id&&(!values.artist.trim()||!values.title.trim())){clear();return true;}
+    if(!values.discogs_master_id&&!values.discogs_release_id&&(!values.artist.trim()||!values.title.trim())){clear();return true;}
     try {
       const data=await api('/capture/duplicates',{method:'POST',body:JSON.stringify(values)});
       if(current!==generation)return false;

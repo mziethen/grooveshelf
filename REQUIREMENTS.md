@@ -170,3 +170,7 @@ DISCOVER-01 selects physical copies uniformly within the selected group. Least-p
 ### Listening statistics decisions
 
 STATS-01 ranks physical copies separately. Date filters are inclusive Europe/Berlin calendar dates and month grouping follows that timezone including DST. Never-played uses lifetime history. Removed-copy events remain in monthly totals with an explicit count but not in current-copy rankings. Statistics reflect current persisted event corrections. See [listening statistics](docs/statistics.md).
+
+### Identifier lookup decisions
+
+CAPTURE-03 searches Discogs releases by typed barcode or catalog number. Barcode normalization preserves leading zeros; USB keyboard scanners may trigger lookup with Enter. Users confirm release details before saving; manual and artist/title lookup remain available. Camera scanning and persisting identifier text are outside this feature. See [identifier lookup](docs/identifier-search.md).
