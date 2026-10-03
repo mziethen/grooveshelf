@@ -158,3 +158,7 @@ Wishes contain personal artist/title/notes and optional Discogs master reference
 ### Rapid capture decisions
 
 CAPTURE-01 and CAPTURE-02 use consecutive saving with free, unreserved LP-number suggestions. Each new draft retains format and optionally artist; all album and personal-copy fields reset. Duplicate warnings compare local Discogs references or normalized artist/title, show existing LP numbers and require confirmation when adding another matching physical copy. Existing-copy edits remain available, and an unavailable advisory check does not prevent saving. See [rapid entry usage](docs/capture.md).
+
+### Collection tools decisions
+
+EXPORT-01 exports one row per physical copy with personal fields, listening totals, NFC UID, JSON tracks and Discogs references. CSV uses UTF-8 and spreadsheet formula protection; it is not a portable archive. CAPTURE-05 combines missing-cover, missing-tracks and missing-NFC filters with AND semantics within the current search, displaying matching counts. Unavailable provider data counts as missing; no deliberate-unavailability markers are currently supported. See [collection tools](docs/collection-tools.md).

@@ -25,6 +25,9 @@ class Handler(SimpleHTTPRequestHandler):
         with result:
             self.send_response(result.status)
             self.send_header('Content-Type', result.headers.get('Content-Type', 'application/json'))
+            for name in ['Content-Disposition', 'Cache-Control', 'X-Content-Type-Options']:
+                if result.headers.get(name):
+                    self.send_header(name, result.headers[name])
             self.end_headers()
             self.wfile.write(result.read())
 

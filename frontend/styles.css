@@ -15,3 +15,7 @@
 .wish-entry{border-top:1px solid var(--line);padding:14px 0}.wish-entry h3{font-size:18px;overflow-wrap:anywhere}.wish-entry p{font-size:13px}.wish-entry .notes{max-height:140px;overflow:auto}.wish-entry .actions{justify-content:flex-start;flex-wrap:wrap;font-size:12px}
 
 .duplicate-panel{border:1px solid #d7c597;background:#fbf5e4;border-radius:9px;padding:14px;margin-top:18px;font-size:13px}.duplicate-panel h3{font-size:16px}.duplicate-panel ul{padding-left:20px;max-height:180px;overflow:auto}.duplicate-panel li{margin:12px 0}.duplicate-panel a{text-decoration:underline}
+
+.missing-filters{border:1px solid var(--line,#ddd);border-radius:12px;padding:16px;display:flex;flex-wrap:wrap;gap:16px}.missing-filters label{display:flex;align-items:center;gap:8px}.missing-filters p{width:100%;margin:0}.export-link{color:inherit;padding:12px;text-decoration:underline}
+
+.missing-filters input{width:auto;margin:0}.missing-filters label{font-weight:500}
