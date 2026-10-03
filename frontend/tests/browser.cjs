@@ -1,0 +1,50 @@
+const assert = require('node:assert/strict');
+const { chromium } = require('playwright');
+const base = process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
+(async () => {
+  const browser = await chromium.launch({ headless: true });
+  const created = new Set();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  try {
+    await page.goto(base);
+    await page.getByRole('button', { name: '＋ Add a record', exact: true }).click();
+    await page.getByLabel('Inventory number', { exact: false }).fill('LP-99881');
+    await page.getByLabel('Artist', { exact: true }).fill('Browser Test Artist');
+    await page.getByLabel('Album title', { exact: true }).fill('A quiet afternoon');
+    await page.getByLabel('Track list', { exact: false }).fill('A1 | Quiet opening\nB1 | A second side');
+    await page.getByRole('button', { name: 'Save record' }).click();
+    await page.locator('#details').waitFor({ state: 'visible' });
+    created.add(page.url().split('#record/')[1]);
+    assert.equal(await page.locator('.detail-tracks li').count(), 2);
+    await page.getByRole('button', { name: 'Edit record', exact: true }).click();
+    await page.getByLabel('Album title', { exact: true }).fill('An even quieter afternoon');
+    await page.getByRole('button', { name: 'Save record' }).click();
+    await page.locator('#details').getByRole('heading', { name: 'An even quieter afternoon' }).waitFor();
+    await page.getByRole('button', { name: 'Close details' }).click();
+    await page.getByRole('button', { name: 'Table', exact: true }).click();
+    await page.getByRole('button', { name: 'An even quieter afternoon', exact: true }).waitFor();
+    await page.getByRole('searchbox').fill('second side');
+    await page.waitForTimeout(350);
+    assert.equal(await page.locator('tbody tr').count(), 1);
+    await page.getByRole('searchbox').fill('no such record xyz');
+    await page.getByRole('heading', { name: 'Nothing here just yet.' }).waitFor();
+    await page.getByRole('searchbox').fill('');
+    await page.getByRole('button', { name: 'Grid', exact: true }).click();
+    await page.getByRole('button', { name: /An even quieter afternoon/ }).waitFor();
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+    await page.screenshot({ path: '/tmp/grooveshelf-mobile.png', fullPage: true });
+    await page.getByRole('button', { name: /An even quieter afternoon/ }).click();
+    await page.getByRole('button', { name: 'Delete record', exact: true }).click();
+    await page.locator('#confirm-delete-button').click();
+    await page.locator('#details').waitFor({ state: 'hidden' });
+    assert.equal(errors.length, 0, errors.join('\n'));
+    console.log('Browser flow passed: create, details, edit, views, track search, empty result, mobile layout, delete.');
+  } finally {
+    for (const id of created) await context.request.delete(`${base}/api/records/${id}`);
+    await browser.close();
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });
