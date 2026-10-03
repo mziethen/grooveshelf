@@ -7,10 +7,11 @@ from fastapi import FastAPI, HTTPException, Query, Response
 from .database import Database
 from .discogs import CoverStore, DiscogsProvider, fresh, public_images, MAX_AGE, source_key
 from .metadata import MetadataService
-from .models import Record, RecordInput, TagAssignment, ScanInput, PlayInput, FavoriteInput, ReaderStatusInput, CoverSelection, ReleaseLink, SyncAction, ExportRetry, PersonalFields, WishInput, Wish
+from .models import Record, RecordInput, TagAssignment, ScanInput, PlayInput, FavoriteInput, ReaderStatusInput, CoverSelection, ReleaseLink, SyncAction, ExportRetry, PersonalFields, WishInput, Wish, CaptureQuery
 from .listening import ListeningService
 from .sync import DiscogsSync
 from .wishlist import WishlistService
+from .capture import CaptureService
 from .repository import CollectionRepository
 
 
@@ -20,6 +21,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     provider = provider or DiscogsProvider()
     covers = covers or CoverStore(Path(database.path).parent / 'covers')
     metadata = MetadataService(repository, provider, covers)
+    capture = CaptureService(repository)
     wishlist = WishlistService(database, repository, metadata)
     sync = DiscogsSync(repository, provider, metadata)
     listening = ListeningService(database, clock) if clock else ListeningService(database)
@@ -163,6 +165,14 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
             except FileNotFoundError:
                 raise HTTPException(404, 'Cover not available.') from None
         return image_response(content)
+
+    @app.get('/api/capture/next-inventory')
+    def next_inventory(after: str | None = Query(default=None, pattern=r"^LP-[0-9]{5}$")):
+        return capture.next_inventory(after)
+
+    @app.post('/api/capture/duplicates')
+    def possible_duplicates(data: CaptureQuery):
+        return capture.duplicates(data)
 
     @app.get('/api/records', response_model=list[Record])
     def list_records(q: str = Query(default='', max_length=300)):

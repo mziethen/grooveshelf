@@ -154,3 +154,7 @@ Personal ratings use whole stars from 1 to 5; null means not rated. Record and s
 ## Wishlist implementation decisions
 
 Wishes contain personal artist/title/notes and optional Discogs master references, without physical inventory numbers. Reference selection retains the user's wording. Purchasing a wish opens the normal record editor; a successful save atomically creates the copy and marks the wish acquired. Failed or canceled saves retain the wish, and repeated acquisition cannot create duplicate copies. See [wishlist usage](docs/wishlist.md).
+
+### Rapid capture decisions
+
+CAPTURE-01 and CAPTURE-02 use consecutive saving with free, unreserved LP-number suggestions. Each new draft retains format and optionally artist; all album and personal-copy fields reset. Duplicate warnings compare local Discogs references or normalized artist/title, show existing LP numbers and require confirmation when adding another matching physical copy. Existing-copy edits remain available, and an unavailable advisory check does not prevent saving. See [rapid entry usage](docs/capture.md).

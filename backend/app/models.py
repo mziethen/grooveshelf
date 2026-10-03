@@ -141,3 +141,12 @@ class Wish(WishInput):
     created_at: str
     updated_at: str
     source_url: str | None = None
+
+
+class CaptureQuery(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    artist: str = Field(default="", max_length=300)
+    title: str = Field(default="", max_length=300)
+    discogs_master_id: int | None = Field(default=None, ge=1)
+    discogs_release_id: int | None = Field(default=None, ge=1)
+    exclude_id: str | None = Field(default=None, max_length=100)
