@@ -4,13 +4,13 @@ A calm, mobile-first vinyl collection archive, self-hosted on a Raspberry Pi 5.
 
 ## Project status
 
-The first implementation is available on `codex/initial-collection-app`: manual record management, collection browsing and search. Automatic metadata and NFC are still planned. See [running and development](docs/development.md).
+The application supports manual record management, collection browsing, search and opt-in Discogs lookup with confirmed metadata import and local cover storage. NFC is still planned. See [running and development](docs/development.md).
 
-## Planned features
+## Features and roadmap
 
 - Manage physical vinyl copies with inventory numbers from `LP-00001` to `LP-99999`.
 - Browse cover grids and tables and open album details.
-- Retrieve metadata and covers from Discogs while preserving manual corrections.
+- Retrieve metadata and covers from Discogs while preserving manual corrections. See [connecting Discogs](docs/development.md#connecting-discogs).
 - Read NTAG213 tags using PN532 and show details on the Raspberry Pi screen.
 - Add listening history, ratings, a wishlist and Discogs collection imports.
 - Cancel pending plays, correct history and receive clear NFC feedback.
