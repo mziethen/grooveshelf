@@ -2,6 +2,10 @@
   "name": "grooveshelf-ui",
   "private": true,
   "version": "0.1.0",
-  "scripts": { "test": "node tests/browser.cjs" },
-  "devDependencies": { "playwright": "1.62.1" }
+  "scripts": {
+    "test": "node tests/browser.cjs && node tests/discogs.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
 }
