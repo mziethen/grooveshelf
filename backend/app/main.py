@@ -82,6 +82,18 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
             raise HTTPException(422, 'Enter an artist or album title to search.')
         return provider.search(artist.strip(), title.strip(), page)
 
+    @app.get('/api/metadata/discogs/identifier-search')
+    def search_identifier(kind: Literal['barcode', 'catno'], value: str = Query(min_length=1, max_length=100),
+                          page: int = Query(default=1, ge=1, le=50)):
+        value = value.strip()
+        if kind == 'barcode':
+            value = value.replace(' ', '').replace('-', '')
+            if not value.isascii() or not value.isdigit() or not 6 <= len(value) <= 32:
+                raise HTTPException(422, 'Enter a barcode containing 6 to 32 digits.')
+        elif not value:
+            raise HTTPException(422, 'Enter a catalog number.')
+        return provider.identifier_search(kind, value, page)
+
     @app.get('/api/metadata/discogs/masters/{master_id}')
     def preview_master(master_id: int):
         if master_id < 1:

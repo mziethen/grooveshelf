@@ -16,6 +16,7 @@ The application supports manual record management, collection browsing, search a
 - View [listening statistics](docs/statistics.md) with per-copy rankings, monthly play totals, date filters and lifetime never-played records.
 - Get [listening suggestions](docs/discovery.md) from all, never-played, least-played or not-recently-played owned records.
 - Download the owned collection as CSV and [find incomplete records](docs/collection-tools.md) with combined missing-cover, missing-track and missing-NFC filters.
+- Find [Discogs releases by barcode or catalog number](docs/identifier-search.md), preview them and explicitly import their details.
 - Use [rapid entry](docs/capture.md) to add records consecutively with free LP-number suggestions and possible-duplicate warnings.
 - View and correct listening history, track play counts and mark favorites. Personal ratings, record and sleeve condition, and notes can be edited per copy. A separate [wishlist](docs/wishlist.md) tracks desired albums and supports acquiring them into the collection.
 - Cancel pending plays and receive tag-assignment, timer and reader-status feedback.

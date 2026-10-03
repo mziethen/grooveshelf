@@ -110,6 +110,21 @@ class DiscogsProvider:
         pagination = data.get("pagination", {})
         return {"results": results, "page": page, "pages": min(50, pagination.get("pages", 1))}
 
+    def identifier_search(self, kind, value, page):
+        if not self.token:
+            raise HTTPException(503, 'Discogs search needs a server-side DISCOGS_TOKEN. You can still enter records manually.')
+        data = self.request('/database/search', {kind: value, 'type': 'release', 'per_page': 20, 'page': page})
+        results = []
+        for item in data.get('results', []):
+            rid = item.get('id')
+            if item.get('type') != 'release' or not isinstance(rid, int) or rid < 1:
+                continue
+            results.append({'id': rid, 'title': str(item.get('title', 'Untitled'))[:600],
+                            'year': item.get('year'), 'country': str(item.get('country', ''))[:100],
+                            'catno': str(item.get('catno', ''))[:300],
+                            'source_url': f'https://www.discogs.com/release/{rid}'})
+        return {'results': results, 'page': page, 'pages': min(50, data.get('pagination', {}).get('pages', 1))}
+
     def master(self, master_id, force=False):
         return self.entry(master_id, 'masters', force)
 
