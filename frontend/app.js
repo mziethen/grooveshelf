@@ -1,3 +1,4 @@
+import { createLabels } from './labels.js';
 import { createStatistics } from './statistics.js';
 import { createDiscovery } from './discovery.js';
 import { createCapture } from './capture.js';
@@ -203,6 +204,7 @@ async function pollMetadata() {
 }
 setInterval(pollMetadata, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pollMetadata(); });
+createLabels({api,escape});
 createStatistics({api,escape,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
 createDiscovery({api,escape,cover,coverFallbacks,hideExpired,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
 await load(); await route();

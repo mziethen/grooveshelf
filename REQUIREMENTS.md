@@ -174,3 +174,7 @@ STATS-01 ranks physical copies separately. Date filters are inclusive Europe/Ber
 ### Identifier lookup decisions
 
 CAPTURE-03 searches Discogs releases by typed barcode or catalog number. Barcode normalization preserves leading zeros; USB keyboard scanners may trigger lookup with Enter. Users confirm release details before saving; manual and artist/title lookup remain available. Camera scanning and persisting identifier text are outside this feature. See [identifier lookup](docs/identifier-search.md).
+
+### Inventory label decisions
+
+LABEL-01 generates standalone printable HTML using browser printing, with A4 and Letter page sizes, configurable millimeter dimensions, columns, symmetric margins, gaps and skipped first-sheet positions. Labels contain only LP numbers. Defaults are editable starting dimensions; users should test alignment at actual size on plain paper. QR codes remain dependent on LATER-05. See [inventory labels](docs/labels.md).
