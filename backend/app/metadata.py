@@ -1,6 +1,7 @@
 from threading import RLock
 from fastapi import HTTPException
 from .discogs import fresh, source_key
+from .settings import SettingsService
 
 
 class MetadataService:
@@ -9,6 +10,7 @@ class MetadataService:
         self.provider = provider
         self.covers = covers
         self.lock = RLock()
+        self.settings = SettingsService(repository.database)
 
     def snapshot(self, master_id=None, force=False, release_id=None):
         metadata = self.provider.release(release_id, force=force) if release_id else self.provider.master(master_id, force=force)
@@ -42,6 +44,8 @@ class MetadataService:
             record = self.repository.get(record['id'])
             if fresh(record['_metadata']):
                 return record
+            if not self.settings.get()['automatic_refresh']:
+                return self.hide_stale(record)
             try:
                 snapshot = self.snapshot(metadata.get('discogs_master_id'), release_id=metadata.get('discogs_release_id'))
                 self.repository.refresh_album(record['album_id'], snapshot)

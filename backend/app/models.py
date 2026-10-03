@@ -150,3 +150,9 @@ class CaptureQuery(BaseModel):
     discogs_master_id: int | None = Field(default=None, ge=1)
     discogs_release_id: int | None = Field(default=None, ge=1)
     exclude_id: str | None = Field(default=None, max_length=100)
+
+
+class MetadataSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    automatic_refresh: bool
+    confirm_import: bool
