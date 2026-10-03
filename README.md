@@ -21,7 +21,9 @@ Python and FastAPI backend, separate frontend and Docker Compose deployment on A
 ## Requirements and progress
 
 - [Requirements and milestones](REQUIREMENTS.md)
-- [GitHub issue drafts](planning/github-issues.json)
+- [GitHub issues](https://github.com/mziethen/grooveshelf/issues)
+- [Milestones](https://github.com/mziethen/grooveshelf/milestones)
+- [Requirement-to-issue mapping](planning/github-issue-links.json)
 
 Stable requirement IDs connect the plan to GitHub issues. Project documentation, issues and templates are maintained in English.
 
