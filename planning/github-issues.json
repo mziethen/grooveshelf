@@ -1,0 +1,248 @@
+[
+  {
+    "id": "CORE-01",
+    "title": "[CORE-01] Physisches Exemplar anlegen und bearbeiten",
+    "body": "## Ziel\n\nPhysisches Exemplar anlegen und bearbeiten\n\n## Requirement\n\nCORE-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Manuelle Inventarnummer.\n- [ ] Format und Eindeutigkeit geprüft.\n- [ ] Künstler, Albumtitel und Format erfassbar.\n- [ ] mehrere Exemplare desselben Albums möglich.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M1 – erste benutzbare Version"
+  },
+  {
+    "id": "CORE-02",
+    "title": "[CORE-02] Exemplar löschen und Nummer ändern",
+    "body": "## Ziel\n\nExemplar löschen und Nummer ändern\n\n## Requirement\n\nCORE-02 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Änderungen und Löschung sind möglich.\n- [ ] eine freigewordene Nummer kann erneut vergeben werden.\n- [ ] andere Exemplare bleiben unverändert.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M1 – erste benutzbare Version"
+  },
+  {
+    "id": "CORE-03",
+    "title": "[CORE-03] Sammlung anzeigen",
+    "body": "## Ziel\n\nSammlung anzeigen\n\n## Requirement\n\nCORE-03 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umschaltbares Coverraster und Tabelle.\n- [ ] beide öffnen dieselbe Detailansicht.\n- [ ] auf Smartphone, Tablet und Mac bedienbar.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M1 – erste benutzbare Version"
+  },
+  {
+    "id": "CORE-04",
+    "title": "[CORE-04] Albumdetails anzeigen",
+    "body": "## Ziel\n\nAlbumdetails anzeigen\n\n## Requirement\n\nCORE-04 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Cover, Künstler, Albumname und Trackliste sofort sichtbar.\n- [ ] fehlende Informationen verständlich dargestellt.\n- [ ] Seitenpositionen wie A1/B1 angezeigt, soweit vorhanden.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M1 – erste benutzbare Version"
+  },
+  {
+    "id": "META-01",
+    "title": "[META-01] Discogs-Suche und Datenübernahme",
+    "body": "## Ziel\n\nDiscogs-Suche und Datenübernahme\n\n## Requirement\n\nMETA-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Suche nach Künstler und Album.\n- [ ] zunächst Master-orientierte Auswahl.\n- [ ] Nutzer bestätigt einen Vorschlag vor Übernahme.\n- [ ] falsche oder fehlende Treffer verhindern keine manuelle Erfassung.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M1 – erste benutzbare Version"
+  },
+  {
+    "id": "META-02",
+    "title": "[META-02] Basis-Metadaten und Cover speichern",
+    "body": "## Ziel\n\nBasis-Metadaten und Cover speichern\n\n## Requirement\n\nMETA-02 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Cover, Tracks, Jahr, Genre und weitere verfügbare Grundangaben übernehmen.\n- [ ] Cover lokal speichern, soweit Quellenbedingungen dies erlauben.\n- [ ] Quelle und Link anzeigen.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M1 – erste benutzbare Version"
+  },
+  {
+    "id": "META-03",
+    "title": "[META-03] Eigene Korrekturen schützen",
+    "body": "## Ziel\n\nEigene Korrekturen schützen\n\n## Requirement\n\nMETA-03 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Manuell bearbeitete Angaben werden bei erneuter Übernahme nicht still überschrieben.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M1 – erste benutzbare Version"
+  },
+  {
+    "id": "OPS-01",
+    "title": "[OPS-01] Getrennte Dienste und Compose-Betrieb",
+    "body": "## Ziel\n\nGetrennte Dienste und Compose-Betrieb\n\n## Requirement\n\nOPS-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Frontend und FastAPI-Backend getrennt.\n- [ ] dokumentierter Start auf Raspberry Pi 5.\n- [ ] persistente Datenablage.\n- [ ] Konfiguration ohne Änderung des Quellcodes.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M1 – erste benutzbare Version"
+  },
+  {
+    "id": "OSS-01",
+    "title": "[OSS-01] GitHub-Projekt und Nachverfolgung",
+    "body": "## Ziel\n\nGitHub-Projekt und Nachverfolgung\n\n## Requirement\n\nOSS-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Repository, README, Installationsanleitung und gewählte Open-Source-Lizenz vorhanden.\n- [ ] Requirements mit Issues und Meilensteinen verknüpft.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M1 – erste benutzbare Version"
+  },
+  {
+    "id": "NFC-01",
+    "title": "[NFC-01] PN532-Anbindung",
+    "body": "## Ziel\n\nPN532-Anbindung\n\n## Requirement\n\nNFC-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Raspberry Pi liest NTAG213-Tags über PN532.\n- [ ] unbekannte Tags können einem Exemplar zugeordnet werden.\n- [ ] Verbindungsschnittstelle wird vor Umsetzung festgelegt.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M2 – NFC und Hörhistorie"
+  },
+  {
+    "id": "NFC-02",
+    "title": "[NFC-02] Tags ersetzen",
+    "body": "## Ziel\n\nTags ersetzen\n\n## Requirement\n\nNFC-02 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Neuer Tag kann bestehendem Exemplar zugeordnet werden.\n- [ ] Sammlung und Historie bleiben erhalten.\n- [ ] alte Zuordnung wird entfernt.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M2 – NFC und Hörhistorie"
+  },
+  {
+    "id": "NFC-03",
+    "title": "[NFC-03] Scan öffnet Details",
+    "body": "## Ziel\n\nScan öffnet Details\n\n## Requirement\n\nNFC-03 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Scan führt zur Detailansicht des zugeordneten Exemplars auf dem Bildschirm am Raspberry Pi.\n- [ ] die Browsersteuerung ist noch zu entscheiden. Ein dauerhaft geöffneter Browser im Kioskmodus ist ein Umsetzungsvorschlag.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M2 – NFC und Hörhistorie"
+  },
+  {
+    "id": "PLAY-01",
+    "title": "[PLAY-01] Zeitversetzte Hörzählung",
+    "body": "## Ziel\n\nZeitversetzte Hörzählung\n\n## Requirement\n\nPLAY-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Ein gültiger Scan startet einen Zehn-Minuten-Vorgang.\n- [ ] daraus entsteht höchstens ein Hörereignis pro Vorgang.\n- [ ] Wiederholung, Abbruch und Neustartverhalten werden vor Umsetzung festgelegt.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M2 – NFC und Hörhistorie"
+  },
+  {
+    "id": "PLAY-02",
+    "title": "[PLAY-02] Historie und Zähler",
+    "body": "## Ziel\n\nHistorie und Zähler\n\n## Requirement\n\nPLAY-02 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Hörereignisse, Anzahl und zuletzt gehört sichtbar.\n- [ ] Zähler und Historie bleiben konsistent.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M2 – NFC und Hörhistorie"
+  },
+  {
+    "id": "PLAY-03",
+    "title": "[PLAY-03] Lieblingsplatten",
+    "body": "## Ziel\n\nLieblingsplatten\n\n## Requirement\n\nPLAY-03 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Lieblingsmarkierung setzen, entfernen und anzeigen.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M2 – NFC und Hörhistorie"
+  },
+  {
+    "id": "SEARCH-01",
+    "title": "[SEARCH-01] Sammlung durchsuchen",
+    "body": "## Ziel\n\nSammlung durchsuchen\n\n## Requirement\n\nSEARCH-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Suche findet Künstler, Albumtitel und Tracktitel und führt zu den entsprechenden Exemplaren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "PERSONAL-01",
+    "title": "[PERSONAL-01] Persönliche Angaben",
+    "body": "## Ziel\n\nPersönliche Angaben\n\n## Requirement\n\nPERSONAL-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Zustand von Platte und Hülle, Notizen und Bewertung erfassen und bearbeiten.\n- [ ] Bewertungsskala noch festzulegen.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "WISH-01",
+    "title": "[WISH-01] Wunschliste",
+    "body": "## Ziel\n\nWunschliste\n\n## Requirement\n\nWISH-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Gewünschte Alben separat verwalten.\n- [ ] Einträge müssen keine physische Inventarnummer besitzen.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "CAPTURE-01",
+    "title": "[CAPTURE-01] Schnellerfassungsmodus",
+    "body": "## Ziel\n\nSchnellerfassungsmodus\n\n## Requirement\n\nCAPTURE-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Mehrere Platten nacheinander mit wenigen wiederkehrenden Eingaben erfassen.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "CAPTURE-02",
+    "title": "[CAPTURE-02] Dublettenhinweis",
+    "body": "## Ziel\n\nDublettenhinweis\n\n## Requirement\n\nCAPTURE-02 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Bereits vorhandene passende Alben anzeigen.\n- [ ] zusätzliches Exemplar weiterhin zulassen.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "CAPTURE-03",
+    "title": "[CAPTURE-03] Barcode und Katalognummer",
+    "body": "## Ziel\n\nBarcode und Katalognummer\n\n## Requirement\n\nCAPTURE-03 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Identifikation über Barcode beziehungsweise Katalognummer.\n- [ ] bei fehlendem Treffer manuelle Suche möglich.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "CAPTURE-04",
+    "title": "[CAPTURE-04] Coverfoto zur Identifikation",
+    "body": "## Ziel\n\nCoverfoto zur Identifikation\n\n## Requirement\n\nCAPTURE-04 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Foto liefert bestätigbare Suchvorschläge.\n- [ ] technische Machbarkeit und kostenfreie Quelle vorher prüfen.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "IMPORT-01",
+    "title": "[IMPORT-01] Discogs-Import",
+    "body": "## Ziel\n\nDiscogs-Import\n\n## Requirement\n\nIMPORT-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Sammlung importieren.\n- [ ] Vorschau, wiederholte Importe und Zuordnung eigener LP-Nummern geregelt.\n- [ ] vorhandene Daten nicht still überschreiben. API-Import oder CSV-Verfahren noch festzulegen.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "EXPORT-01",
+    "title": "[EXPORT-01] CSV-Export",
+    "body": "## Ziel\n\nCSV-Export\n\n## Requirement\n\nEXPORT-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Sammlung mit Inventarnummern und vereinbarten Feldern exportieren.\n- [ ] Schnittstelle für weitere Exportformate vorsehen.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "META-04",
+    "title": "[META-04] Aktualisierung und Übernahmeoptionen",
+    "body": "## Ziel\n\nAktualisierung und Übernahmeoptionen\n\n## Requirement\n\nMETA-04 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Automatische Aktualisierung ein- und ausschaltbar.\n- [ ] manuelle Aktualisierung möglich.\n- [ ] Bestätigung der Erstübernahme konfigurierbar.\n- [ ] eigene Korrekturen geschützt.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "META-05",
+    "title": "[META-05] Konflikte und zusätzliche Quellen",
+    "body": "## Ziel\n\nKonflikte und zusätzliche Quellen\n\n## Requirement\n\nMETA-05 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Widersprüche sichtbar machen und Entscheidung anfordern.\n- [ ] weitere Quellen über definierte Schnittstellen ergänzbar.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "META-06",
+    "title": "[META-06] Albumtexte und Zusatzinformationen",
+    "body": "## Ziel\n\nAlbumtexte und Zusatzinformationen\n\n## Requirement\n\nMETA-06 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Beschreibungen, Rezensionen, Label und Mitwirkende übernehmen, soweit Quelle und Nutzungsbedingungen dies ermöglichen.\n- [ ] fehlende Felder zulassen.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "OPS-02",
+    "title": "[OPS-02] Backup und Wiederherstellung",
+    "body": "## Ziel\n\nBackup und Wiederherstellung\n\n## Requirement\n\nOPS-02 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Datenbank, Cover und erforderliche Konfiguration sichern und wiederherstellen.\n- [ ] Verfahren und Zielmedium noch festzulegen. Vor produktiver Nutzung erforderlich.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "UI-01",
+    "title": "[UI-01] Sprache",
+    "body": "## Ziel\n\nSprache\n\n## Requirement\n\nUI-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Deutsche und englische Inhalte unterstützen.\n- [ ] gewünschte Oberflächensprache und Übersetzungsumfang noch klären.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "Meilenstein M3 – Sammlung und Erfassung ausbauen"
+  },
+  {
+    "id": "LATER-01",
+    "title": "[LATER-01] Exakte Pressungen und getrennte Anzeige von Originaljahr und Pressungsjahr",
+    "body": "## Ziel\n\nExakte Pressungen und getrennte Anzeige von Originaljahr und Pressungsjahr\n\n## Requirement\n\nLATER-01 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-02",
+    "title": "[LATER-02] Tracklängen, Songwriter, Produzenten und weitere Mitwirkendendetails",
+    "body": "## Ziel\n\nTracklängen, Songwriter, Produzenten und weitere Mitwirkendendetails\n\n## Requirement\n\nLATER-02 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-03",
+    "title": "[LATER-03] Eigene Fotos von Cover, Rückseite, Label und Matrixnummer",
+    "body": "## Ziel\n\nEigene Fotos von Cover, Rückseite, Label und Matrixnummer\n\n## Requirement\n\nLATER-03 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-04",
+    "title": "[LATER-04] Lagerorte",
+    "body": "## Ziel\n\nLagerorte\n\n## Requirement\n\nLATER-04 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-05",
+    "title": "[LATER-05] QR-Codes als zusätzliche Kennzeichnung",
+    "body": "## Ziel\n\nQR-Codes als zusätzliche Kennzeichnung\n\n## Requirement\n\nLATER-05 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-06",
+    "title": "[LATER-06] Geschätzte Marktwerte",
+    "body": "## Ziel\n\nGeschätzte Marktwerte\n\n## Requirement\n\nLATER-06 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-07",
+    "title": "[LATER-07] Stapelbearbeitung",
+    "body": "## Ziel\n\nStapelbearbeitung\n\n## Requirement\n\nLATER-07 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-08",
+    "title": "[LATER-08] Links zu Streamingdiensten",
+    "body": "## Ziel\n\nLinks zu Streamingdiensten\n\n## Requirement\n\nLATER-08 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-09",
+    "title": "[LATER-09] Anmeldung und mehrere Benutzerkonten",
+    "body": "## Ziel\n\nAnmeldung und mehrere Benutzerkonten\n\n## Requirement\n\nLATER-09 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-10",
+    "title": "[LATER-10] Optionale kostenpflichtige Metadatenquellen",
+    "body": "## Ziel\n\nOptionale kostenpflichtige Metadatenquellen\n\n## Requirement\n\nLATER-10 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-11",
+    "title": "[LATER-11] Weitere Exportformate",
+    "body": "## Ziel\n\nWeitere Exportformate\n\n## Requirement\n\nLATER-11 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  },
+  {
+    "id": "LATER-12",
+    "title": "[LATER-12] NFC-Tags beschreiben, falls für den gewählten Ablauf erforderlich",
+    "body": "## Ziel\n\nNFC-Tags beschreiben, falls für den gewählten Ablauf erforderlich\n\n## Requirement\n\nLATER-12 — siehe Requirements-Vinyl-Archiv.md und den beantworteten Anforderungskatalog.\n\n## Abnahmekriterien\n\n- [ ] Umfang und Abnahmekriterien vor Umsetzung konkretisieren.\n- [ ] Feature umsetzen und dokumentieren.\n\n## Status\n\nOffen; noch nicht implementiert.\n",
+    "milestone": "M4 – spätere optionale Features"
+  }
+]
