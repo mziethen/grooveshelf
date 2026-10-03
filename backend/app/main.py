@@ -15,6 +15,8 @@ from .capture import CaptureService
 from .export import collection_csv
 from .discovery import suggest
 from .statistics import statistics
+from .settings import SettingsService
+from .models import MetadataSettings
 from datetime import date
 from typing import Literal
 from .repository import CollectionRepository
@@ -26,6 +28,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     provider = provider or DiscogsProvider()
     covers = covers or CoverStore(Path(database.path).parent / 'covers')
     metadata = MetadataService(repository, provider, covers)
+    settings = SettingsService(database)
     capture = CaptureService(repository)
     wishlist = WishlistService(database, repository, metadata)
     sync = DiscogsSync(repository, provider, metadata)
@@ -69,6 +72,14 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         with database.connect() as db:
             db.execute('SELECT 1')
         return {'status': 'ok'}
+
+    @app.get('/api/settings', response_model=MetadataSettings)
+    def get_settings():
+        return settings.get()
+
+    @app.put('/api/settings', response_model=MetadataSettings)
+    def save_settings(data: MetadataSettings):
+        return settings.save(data.model_dump())
 
     @app.get('/api/metadata/discogs/status')
     def discogs_status():
@@ -149,6 +160,8 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         if record['metadata_status'] == 'unavailable':
             raise HTTPException(503, 'Discogs is unavailable. Retry loading the images later.')
         if 'images' not in record['_metadata']:
+            if not settings.get()['automatic_refresh']:
+                raise HTTPException(503, 'Refresh this record manually before loading images.')
             record = metadata.refresh(record_id)
         return {'images': public_images(record['_metadata']), 'source_url': record['source_url'],
                 'metadata_expires_at': record['metadata_expires_at'], 'selected_id': record['cover_image_id'], 'selection_status': record['cover_selection_status']}

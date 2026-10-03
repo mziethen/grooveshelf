@@ -178,3 +178,7 @@ CAPTURE-03 searches Discogs releases by typed barcode or catalog number. Barcode
 ### Inventory label decisions
 
 LABEL-01 generates standalone printable HTML using browser printing, with A4 and Letter page sizes, configurable millimeter dimensions, columns, symmetric margins, gaps and skipped first-sheet positions. Labels contain only LP numbers. Defaults are editable starting dimensions; users should test alignment at actual size on plain paper. QR codes remain dependent on LATER-05. See [inventory labels](docs/labels.md).
+
+### Metadata settings decisions
+
+META-04 provides persistent installation settings for automatic refresh of existing records and confirmation before importing details into a draft. Both default to enabled. Disabled refresh hides expired provider content and leaves explicit manual refresh available. Disabled confirmation fills a selected result into the draft without saving it. Manual corrections remain protected; provider expiry remains six hours. See [metadata settings](docs/settings.md).

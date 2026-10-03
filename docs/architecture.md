@@ -27,3 +27,5 @@ Listening uses a station-scoped service and a background timer. Counts derive fr
 Schema version 6 adds nullable per-copy rating and record/sleeve condition. Personal-field edits use a separate endpoint without contacting metadata providers. Existing clients that omit new fields retain stored ratings and conditions on regular record edits. Provider refresh, release linking and collection matching do not overwrite personal fields.
 
 Schema version 7 adds a separate wishlist table. Acquired wishes retain an internal copy receipt; acquisition and copy creation commit together under a SQLite write lock. Wishlist references do not store provider metadata snapshots.
+
+Schema version 8 adds persistent boolean metadata settings with enabled defaults. Automatic access refresh is checked in MetadataService; manual refresh and explicitly initiated imports retain their existing paths. Initial preview confirmation is read from the shared settings API, with confirmation enabled on lookup failure.
