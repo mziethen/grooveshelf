@@ -186,3 +186,7 @@ META-04 provides persistent installation settings for automatic refresh of exist
 ### Storage location decisions
 
 LATER-04 stores an optional free-text location of up to 200 characters on each physical copy. Locations are displayed, searchable and included in CSV. Personal editing works independently of metadata availability; legacy updates that omit location preserve it. Rapid capture clears the next draft location. No hierarchy, shelf ordering or automatic assignment is introduced. See [storage locations](docs/locations.md).
+
+### Portable archive and backup decisions
+
+EXPORT-02 and OPS-02 use a versioned ZIP containing a SQLite snapshot and local cover files with checksums. Live browser export and offline export/verification are available. Restore validates input and publishes only a new data directory; it never replaces or merges an existing collection. Pending sessions are canceled and readers reset on transfer. Environment files and secrets are excluded; credentials and hardware setup must be configured separately. Backup destination is a user-chosen file, copied off the Pi; frequency is manual after significant changes and before upgrades. See [portable archives](docs/archives.md).

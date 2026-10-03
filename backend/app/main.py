@@ -2,6 +2,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 import os
 import logging
+import tempfile
+import shutil
+from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
+from .archive import export_archive
 from threading import Event, Thread
 from fastapi import FastAPI, HTTPException, Query, Response
 from .database import Database
@@ -225,6 +230,21 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         if result['record']:
             result['record'] = Record.model_validate(result['record']).model_dump()
         return result
+
+    @app.get('/api/export/collection.zip')
+    def export_portable_archive():
+        directory = Path(tempfile.mkdtemp(prefix='grooveshelf-export-'))
+        path = directory / 'grooveshelf-collection.zip'
+        try:
+            with metadata.lock, listening.lock, covers.lock:
+                export_archive(database.path, path)
+        except Exception as error:
+            shutil.rmtree(directory, ignore_errors=True)
+            logging.getLogger(__name__).exception('Portable archive export failed')
+            raise HTTPException(503, 'The archive could not be created. Check server logs and available disk space.') from error
+        return FileResponse(path, media_type='application/zip', filename='grooveshelf-collection.zip',
+                            background=BackgroundTask(shutil.rmtree, directory),
+                            headers={'X-Content-Type-Options': 'nosniff'})
 
     @app.get('/api/export/collection.csv')
     def export_collection():
