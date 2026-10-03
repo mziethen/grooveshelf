@@ -24,6 +24,13 @@ function attribution(record, referenceRelease = false) {
 function coverFallbacks(root) {
   root.querySelectorAll('.cover img').forEach(img => img.addEventListener('error', () => img.remove(), {once: true}));
 }
+let collectionMarkup;
+function updateCollection(target, markup) {
+  if (collectionMarkup === markup) return false;
+  collectionMarkup = markup;
+  target.innerHTML = markup;
+  return true;
+}
 function render() {
   scheduleExpiry();
   $('#count').textContent = `${state.records.length} ${state.records.length === 1 ? 'record' : 'records'}`;
@@ -33,18 +40,20 @@ function render() {
   target.className = state.view === 'grid' ? 'grid' : 'table-wrap';
   if (!state.records.length) {
     target.className = '';
-    target.innerHTML = `<div class="empty"><h3>${$('#search').value ? 'Nothing here just yet.' : 'Your shelf is waiting.'}</h3><p>${$('#search').value ? 'Try a different artist, album, track or inventory number.' : 'Add your first record and start making<br>a little home for your collection.'}</p>${$('#search').value ? '' : '<button class="primary" id="empty-add">＋ Add your first record</button>'}</div>`;
+    if (!updateCollection(target, `<div class="empty"><h3>${$('#search').value ? 'Nothing here just yet.' : 'Your shelf is waiting.'}</h3><p>${$('#search').value ? 'Try a different artist, album, track or inventory number.' : 'Add your first record and start making<br>a little home for your collection.'}</p>${$('#search').value ? '' : '<button class="primary" id="empty-add">＋ Add your first record</button>'}</div>`)) return;
     $('#empty-add')?.addEventListener('click', () => openEditor());
     return;
   }
-  if (state.view === 'grid') target.innerHTML = state.records.map(r => `<article class="record-entry"><button class="record-card" data-record="${escape(r.id)}">${cover(r)}<h3>${escape(r.title)}</h3><p>${escape(r.artist)}</p><div class="record-meta"><span>${escape(r.inventory_number)}</span><span>${r.favorite ? '★ ' : ''}${escape(r.format)}${r.year ? ` · ${r.year}` : ''}</span></div></button>${attribution(r)}</article>`).join('');
-  else target.innerHTML = `<table><thead><tr><th>Inventory</th><th>Album</th><th>Artist</th><th>Format</th><th>Year</th></tr></thead><tbody>${state.records.map(r => `<tr><td>${escape(r.inventory_number)}</td><td><button data-record="${escape(r.id)}">${escape(r.title)}</button></td><td>${escape(r.artist)}${attribution(r)}</td><td>${escape(r.format)}</td><td>${r.year ?? '—'}</td></tr>`).join('')}</tbody></table>`;
+  let markup;
+  if (state.view === 'grid') markup = state.records.map(r => `<article class="record-entry"><button class="record-card" data-record="${escape(r.id)}">${cover(r)}<h3>${escape(r.title)}</h3><p>${escape(r.artist)}</p><div class="record-meta"><span>${escape(r.inventory_number)}</span><span>${r.favorite ? '★ ' : ''}${escape(r.format)}${r.year ? ` · ${r.year}` : ''}</span></div></button>${attribution(r)}</article>`).join('');
+  else markup = `<table><thead><tr><th>Inventory</th><th>Album</th><th>Artist</th><th>Format</th><th>Year</th></tr></thead><tbody>${state.records.map(r => `<tr><td>${escape(r.inventory_number)}</td><td><button data-record="${escape(r.id)}">${escape(r.title)}</button></td><td>${escape(r.artist)}${attribution(r)}</td><td>${escape(r.format)}</td><td>${r.year ?? '—'}</td></tr>`).join('')}</tbody></table>`;
+  if (!updateCollection(target, markup)) return;
   coverFallbacks(target);
   target.querySelectorAll('[data-record]').forEach(button => button.addEventListener('click', () => { location.hash = `record/${button.dataset.record}`; }));
 }
 async function load() {
   const request = ++state.request;
-  $('#message').textContent = 'Loading your collection…';
+  if (collectionMarkup === undefined) $('#message').textContent = 'Loading your collection…';
   try {
     const records = await api(`/records?q=${encodeURIComponent($('#search').value)}`);
     if (request !== state.request) return;
@@ -109,31 +118,7 @@ const discogs = createDiscogsSearch({ api, escape, onImport(data) {
 $('#editor').addEventListener('close', () => discogs.close());
 $('#refresh').addEventListener('click', async () => {
   $('#refresh').disabled = true; $('#detail-error').textContent = '';
-  try { await api(`/records/${state.selected.id}/refresh`, {method: 'POST'}); function hideExpired(record) {
-  if (!record.metadata_expires_at || record.metadata_expires_at * 1000 > Date.now()) return record;
-  const result = {...record, metadata_status: 'unavailable', cover_url: null, genres: [], styles: [], labels: [], description: ''};
-  for (const [field, fallback] of [['artist', 'Unknown artist'], ['title', 'Metadata temporarily unavailable'], ['year', null], ['tracks', []]]) {
-    if (!record.protected_fields.includes(field)) result[field] = fallback;
-  }
-  return result;
-}
-let expiryTimer;
-function scheduleExpiry() {
-  clearTimeout(expiryTimer);
-  const deadlines = [...state.records, ...(state.selected ? [state.selected] : [])]
-    .map(r => r.metadata_expires_at * 1000).filter(deadline => deadline > Date.now());
-  if (deadlines.length) expiryTimer = setTimeout(pollMetadata, Math.max(1, Math.min(...deadlines) - Date.now() + 1));
-}
-async function pollMetadata() {
-  if (document.hidden) return;
-  state.records = state.records.map(hideExpired); render();
-  if ($('#details').open && state.selected) renderDetails(state.selected);
-  await load();
-  if ($('#details').open) await route();
-}
-setInterval(pollMetadata, 60000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) pollMetadata(); });
-await load(); await route(); }
+  try { await api(`/records/${state.selected.id}/refresh`, {method: 'POST'}); await load(); await route(); }
   catch (error) { $('#detail-error').textContent = error.message; }
   finally { $('#refresh').disabled = false; }
 });

@@ -98,9 +98,10 @@ export function createListeningUI({ api, escape, reload, currentRecord, renderCu
       $('#station-end').hidden=!session || !['pending','completed'].includes(session.status);
       $('#station-end').textContent=session?.status==='pending'?'Cancel listening':'End session';
       const blocked=Boolean(document.querySelector('dialog[open]:not(#details)'));
-      const changed=observedSequence!==station.scan_sequence || observedStatus!==session?.status;
+      const sessionStatus=session?.status || '';
+      const changed=observedSequence!==station.scan_sequence || observedStatus!==sessionStatus;
       if(!blocked && changed) {
-        observedSequence=station.scan_sequence;observedStatus=session?.status || '';
+        observedSequence=station.scan_sequence;observedStatus=sessionStatus;
         if(session && ['pending','completed'].includes(session.status) && !station.unknown_uid) {
           if(location.hash!==`#record/${session.copy_id}`) location.hash=`record/${session.copy_id}`;
           else await renderCurrent();
