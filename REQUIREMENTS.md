@@ -162,3 +162,7 @@ CAPTURE-01 and CAPTURE-02 use consecutive saving with free, unreserved LP-number
 ### Collection tools decisions
 
 EXPORT-01 exports one row per physical copy with personal fields, listening totals, NFC UID, JSON tracks and Discogs references. CSV uses UTF-8 and spreadsheet formula protection; it is not a portable archive. CAPTURE-05 combines missing-cover, missing-tracks and missing-NFC filters with AND semantics within the current search, displaying matching counts. Unavailable provider data counts as missing; no deliberate-unavailability markers are currently supported. See [collection tools](docs/collection-tools.md).
+
+### Listening suggestion decisions
+
+DISCOVER-01 selects physical copies uniformly within the selected group. Least-played means the lowest lifetime recorded play count; not-recently-played means at least 30 elapsed days since the latest play and includes never-played copies. Another suggestion avoids the preceding copy when alternatives exist. Suggestions and details navigation do not create plays. See [listening suggestions](docs/discovery.md).
