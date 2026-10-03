@@ -12,6 +12,7 @@ from .listening import ListeningService
 from .sync import DiscogsSync
 from .wishlist import WishlistService
 from .capture import CaptureService
+from .export import collection_csv
 from .repository import CollectionRepository
 
 
@@ -173,6 +174,17 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     @app.post('/api/capture/duplicates')
     def possible_duplicates(data: CaptureQuery):
         return capture.duplicates(data)
+
+    @app.get('/api/export/collection.csv')
+    def export_collection():
+        records = []
+        for record in repository.list():
+            if record['metadata_expires_at'] and not fresh(record['_metadata']):
+                record = metadata.hide_stale(record)
+            records.append(public(record))
+        return Response(collection_csv(records), media_type='text/csv; charset=utf-8',
+                        headers={'Content-Disposition': 'attachment; filename="grooveshelf-collection.csv"',
+                                 'X-Content-Type-Options': 'nosniff'})
 
     @app.get('/api/records', response_model=list[Record])
     def list_records(q: str = Query(default='', max_length=300)):

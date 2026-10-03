@@ -38,20 +38,22 @@ function updateCollection(target, markup) {
 }
 function render() {
   scheduleExpiry();
-  $('#count').textContent = `${state.records.length} ${state.records.length === 1 ? 'record' : 'records'}`;
+  const filtered = ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked);
+  const records = state.records.filter(record=>(!$('#missing-cover').checked||!record.cover_url)&&(!$('#missing-tracks').checked||!record.tracks.length)&&(!$('#missing-nfc').checked||!record.nfc_uid));
+  $('#count').textContent = filtered ? `${records.length} of ${state.records.length} records match` : `${records.length} ${records.length === 1 ? 'record' : 'records'}`;
   $('#grid-view').setAttribute('aria-pressed', state.view === 'grid');
   $('#table-view').setAttribute('aria-pressed', state.view === 'table');
   const target = $('#collection');
   target.className = state.view === 'grid' ? 'grid' : 'table-wrap';
-  if (!state.records.length) {
+  if (!records.length) {
     target.className = '';
-    if (!updateCollection(target, `<div class="empty"><h3>${$('#search').value ? 'Nothing here just yet.' : 'Your shelf is waiting.'}</h3><p>${$('#search').value ? 'Try a different artist, album, track or inventory number.' : 'Add your first record and start making<br>a little home for your collection.'}</p>${$('#search').value ? '' : '<button class="primary" id="empty-add">＋ Add your first record</button>'}</div>`)) return;
+    if (!updateCollection(target, `<div class="empty"><h3>${($('#search').value || filtered) ? 'Nothing here just yet.' : 'Your shelf is waiting.'}</h3><p>${($('#search').value || filtered) ? 'Try different search words or clear the missing-information filters.' : 'Add your first record and start making<br>a little home for your collection.'}</p>${($('#search').value || filtered) ? '' : '<button class="primary" id="empty-add">＋ Add your first record</button>'}</div>`)) return;
     $('#empty-add')?.addEventListener('click', () => openEditor());
     return;
   }
   let markup;
-  if (state.view === 'grid') markup = state.records.map(r => `<article class="record-entry"><button class="record-card" data-record="${escape(r.id)}">${cover(r)}<h3>${escape(r.title)}</h3><p>${escape(r.artist)}</p><div class="record-meta"><span>${escape(r.inventory_number)}</span><span>${r.favorite ? '★ ' : ''}${escape(r.format)}${r.year ? ` · ${r.year}` : ''}</span></div></button>${attribution(r)}</article>`).join('');
-  else markup = `<table><thead><tr><th>Inventory</th><th>Album</th><th>Artist</th><th>Format</th><th>Year</th></tr></thead><tbody>${state.records.map(r => `<tr><td>${escape(r.inventory_number)}</td><td><button data-record="${escape(r.id)}">${escape(r.title)}</button></td><td>${escape(r.artist)}${attribution(r)}</td><td>${escape(r.format)}</td><td>${r.year ?? '—'}</td></tr>`).join('')}</tbody></table>`;
+  if (state.view === 'grid') markup = records.map(r => `<article class="record-entry"><button class="record-card" data-record="${escape(r.id)}">${cover(r)}<h3>${escape(r.title)}</h3><p>${escape(r.artist)}</p><div class="record-meta"><span>${escape(r.inventory_number)}</span><span>${r.favorite ? '★ ' : ''}${escape(r.format)}${r.year ? ` · ${r.year}` : ''}</span></div></button>${attribution(r)}</article>`).join('');
+  else markup = `<table><thead><tr><th>Inventory</th><th>Album</th><th>Artist</th><th>Format</th><th>Year</th></tr></thead><tbody>${records.map(r => `<tr><td>${escape(r.inventory_number)}</td><td><button data-record="${escape(r.id)}">${escape(r.title)}</button></td><td>${escape(r.artist)}${attribution(r)}</td><td>${escape(r.format)}</td><td>${r.year ?? '—'}</td></tr>`).join('')}</tbody></table>`;
   if (!updateCollection(target, markup)) return;
   coverFallbacks(target);
   target.querySelectorAll('[data-record]').forEach(button => button.addEventListener('click', () => { location.hash = `record/${button.dataset.record}`; }));
@@ -171,6 +173,7 @@ $('#confirm-delete-button').addEventListener('click', async () => {
   finally { button.disabled = false; }
 });
 let timer;
+for (const name of ['cover','tracks','nfc']) $('#missing-'+name).addEventListener('change',render);
 $('#search').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(load, 200); });
 for (const view of ['grid','table']) $(`#${view}-view`).addEventListener('click', () => { state.view = view; localStorage.setItem('grooveshelf-view', view); render(); });
 window.addEventListener('hashchange', route);
