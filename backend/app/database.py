@@ -21,6 +21,9 @@ class Database:
     def initialize(self):
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
+            version = db.execute("PRAGMA user_version").fetchone()[0]
+            if version > 2:
+                raise RuntimeError("Database schema is newer than this application")
             db.execute("PRAGMA journal_mode = WAL")
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS albums (
@@ -38,5 +41,8 @@ class Database:
                     notes TEXT NOT NULL DEFAULT '',
                     created_at TEXT NOT NULL
                 );
-                PRAGMA user_version = 1;
             """)
+            columns = {row[1] for row in db.execute("PRAGMA table_info(albums)")}
+            if "metadata" not in columns:
+                db.execute("ALTER TABLE albums ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}'")
+            db.execute("PRAGMA user_version = 2")

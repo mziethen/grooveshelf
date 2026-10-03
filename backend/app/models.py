@@ -18,6 +18,7 @@ class RecordInput(BaseModel):
     tracks: list[Track] = Field(default_factory=list, max_length=300)
     notes: str = Field(default="", max_length=10000)
     album_id: str | None = None
+    discogs_master_id: int | None = Field(default=None, ge=1)
 
     @field_validator("inventory_number")
     @classmethod
@@ -39,3 +40,12 @@ class Record(RecordInput):
     album_id: str
     created_at: str
     cover_url: str | None = None
+    source_url: str | None = None
+    source_name: str | None = None
+    genres: list[str] = Field(default_factory=list)
+    styles: list[str] = Field(default_factory=list)
+    labels: list[str] = Field(default_factory=list)
+    description: str = ""
+    metadata_status: str = "manual"
+    metadata_expires_at: float | None = None
+    protected_fields: list[str] = Field(default_factory=list)
