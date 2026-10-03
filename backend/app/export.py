@@ -3,7 +3,7 @@ import io
 import json
 
 FIELDS = ['inventory_number', 'artist', 'title', 'format', 'year', 'rating',
-          'media_condition', 'sleeve_condition', 'notes', 'favorite', 'play_count',
+          'media_condition', 'sleeve_condition', 'storage_location', 'notes', 'favorite', 'play_count',
           'last_played_at', 'nfc_uid', 'tracks', 'discogs_master_id',
           'discogs_release_id', 'source_url', 'metadata_status']
 

@@ -56,8 +56,8 @@ function render() {
     return;
   }
   let markup;
-  if (state.view === 'grid') markup = records.map(r => `<article class="record-entry"><button class="record-card" data-record="${escape(r.id)}">${cover(r)}<h3>${escape(r.title)}</h3><p>${escape(r.artist)}</p><div class="record-meta"><span>${escape(r.inventory_number)}</span><span>${r.favorite ? '★ ' : ''}${escape(r.format)}${r.year ? ` · ${r.year}` : ''}</span></div></button>${attribution(r)}</article>`).join('');
-  else markup = `<table><thead><tr><th>Inventory</th><th>Album</th><th>Artist</th><th>Format</th><th>Year</th></tr></thead><tbody>${records.map(r => `<tr><td>${escape(r.inventory_number)}</td><td><button data-record="${escape(r.id)}">${escape(r.title)}</button></td><td>${escape(r.artist)}${attribution(r)}</td><td>${escape(r.format)}</td><td>${r.year ?? '—'}</td></tr>`).join('')}</tbody></table>`;
+  if (state.view === 'grid') markup = records.map(r => `<article class="record-entry"><button class="record-card" data-record="${escape(r.id)}">${cover(r)}<h3>${escape(r.title)}</h3><p>${escape(r.artist)}</p><div class="record-meta"><span>${escape(r.inventory_number)}</span><span>${r.favorite ? '★ ' : ''}${escape(r.format)}${r.year ? ` · ${r.year}` : ''}</span></div>${r.storage_location?`<p class="record-location">${escape(r.storage_location)}</p>`:''}</button>${attribution(r)}</article>`).join('');
+  else markup = `<table><thead><tr><th>Inventory</th><th>Album</th><th>Artist</th><th>Format</th><th>Year</th><th>Location</th></tr></thead><tbody>${records.map(r => `<tr><td>${escape(r.inventory_number)}</td><td><button data-record="${escape(r.id)}">${escape(r.title)}</button></td><td>${escape(r.artist)}${attribution(r)}</td><td>${escape(r.format)}</td><td>${r.year ?? '—'}</td><td>${escape(r.storage_location)||'—'}</td></tr>`).join('')}</tbody></table>`;
   if (!updateCollection(target, markup)) return;
   coverFallbacks(target);
   target.querySelectorAll('[data-record]').forEach(button => button.addEventListener('click', () => { location.hash = `record/${button.dataset.record}`; }));
@@ -102,7 +102,7 @@ function openEditor(record = null, after = null) {
   $('#form-error').textContent = '';
   $('#editor-title').textContent = record ? 'Edit your record' : 'Add a record';
   if (record) {
-    for (const key of ['inventory_number','artist','title','format','year','notes','rating','media_condition','sleeve_condition']) form.elements[key].value = record[key] ?? '';
+    for (const key of ['inventory_number','artist','title','format','year','notes','rating','media_condition','sleeve_condition','storage_location']) form.elements[key].value = record[key] ?? '';
     form.elements.tracks.value = record.tracks.map(t => t.position ? `${t.position} | ${t.title}` : t.title).join('\n');
   }
   if(!$('#editor').open)$('#editor').showModal();

@@ -45,7 +45,7 @@ class CollectionRepository:
         records = [self.decode(row) for row in rows]
         q = query.casefold().strip()
         return [r for r in records if not q or q in ' '.join(
-            [r['artist'], r['title'], r['inventory_number']] +
+            [r['artist'], r['title'], r['inventory_number'], r['storage_location']] +
             [t['title'] for t in r['tracks']]).casefold()]
 
     def get(self, copy_id):
@@ -99,7 +99,7 @@ class CollectionRepository:
                 if wish_id:
                     db.execute('UPDATE wishlist SET acquired_copy_id=?, acquired_at=?, updated_at=? WHERE id=?',
                                (record_id,now,now,wish_id))
-                for field in ['rating', 'media_condition', 'sleeve_condition']:
+                for field in ['rating', 'media_condition', 'sleeve_condition', 'storage_location']:
                     if not existing or field in data.model_fields_set:
                         db.execute(f'UPDATE copies SET {field}=? WHERE id=?', (getattr(data, field), record_id))
                 if imported:
@@ -117,6 +117,8 @@ class CollectionRepository:
                                 (data.rating,data.media_condition,data.sleeve_condition,data.notes,copy_id))
             if not result.rowcount:
                 raise HTTPException(404, 'Record not found')
+            if 'storage_location' in data.model_fields_set:
+                db.execute('UPDATE copies SET storage_location=? WHERE id=?', (data.storage_location,copy_id))
         return self.get(copy_id)
 
     def select_cover(self, copy_id, image_id):

@@ -13,6 +13,7 @@ The application supports manual record management, collection browsing, search a
 - Import or match Discogs collection copies and explicitly add local copies to Discogs. See [manual collection sync](docs/discogs-sync.md).
 - Retrieve metadata and covers from Discogs while preserving manual corrections. See [connecting Discogs](docs/development.md#connecting-discogs).
 - Associate NFC UIDs and follow station scans on the Raspberry Pi screen; physical PN532 reading remains pending. See [listening and NFC](docs/listening.md).
+- Track [storage locations](docs/locations.md) per physical copy, find records by location and include locations in CSV export.
 - Configure [automatic metadata refresh and import confirmation](docs/settings.md) with persistent installation settings.
 - Generate [inventory labels](docs/labels.md) with configurable paper, label dimensions, margins, gaps and first-sheet offsets. Preview, print or download a standalone document.
 - View [listening statistics](docs/statistics.md) with per-copy rankings, monthly play totals, date filters and lifetime never-played records.

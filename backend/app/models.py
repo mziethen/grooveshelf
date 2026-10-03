@@ -15,6 +15,7 @@ SleeveCondition = Literal["M", "NM", "VG+", "VG", "G+", "G", "F", "P", "Generic"
 
 class PersonalFields(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    storage_location: str = Field(default="", max_length=200)
     rating: int | None = Field(default=None, ge=1, le=5, strict=True)
     media_condition: Condition | None = None
     sleeve_condition: SleeveCondition | None = None
