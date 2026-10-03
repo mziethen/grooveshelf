@@ -244,5 +244,59 @@
     "title": "[LATER-12] Write NFC tags if required by the selected workflow",
     "body": "## Goal\n\nWrite NFC tags if required by the selected workflow\n\n## Requirement\n\nLATER-12 — see REQUIREMENTS.md.\n\n## Acceptance criteria\n\n- [ ] Define scope and acceptance criteria before implementation.\n- [ ] implement and document the feature.\n\n## Dependencies and open decisions\n\nReview the open decisions in REQUIREMENTS.md before implementation.\n\n## Status\n\nOpen; not implemented.\n",
     "milestone": "M4 — Optional future features"
+  },
+  {
+    "id": "PLAY-04",
+    "title": "[PLAY-04] Show and cancel pending listening sessions",
+    "body": "## Goal\n\nShow and cancel pending listening sessions\n\n## Requirement\n\nPLAY-04 — see [REQUIREMENTS.md](https://github.com/mziethen/grooveshelf/blob/main/REQUIREMENTS.md).\n\n## Acceptance criteria\n\n- [ ] Show the scanned record and a countdown until the ten-minute listening threshold is reached.\n- [ ] Allow cancellation before a play is recorded; a canceled session must not increase the play count.\n- [ ] Show completion or cancellation clearly and keep the display consistent with server state.\n- [ ] Define behavior for repeated scans, another record being scanned, and reconnecting or restarting before implementation.\n\n## Dependencies and open decisions\n\nRelated: #12, #13 and #14. Reuse the listening-session logic from PLAY-01 rather than introducing a separate timer.\n\n## Status\n\nAccepted for planning; not implemented.\n",
+    "milestone": "M2 — NFC and listening history"
+  },
+  {
+    "id": "PLAY-05",
+    "title": "[PLAY-05] Correct listening history manually",
+    "body": "## Goal\n\nCorrect listening history manually\n\n## Requirement\n\nPLAY-05 — see [REQUIREMENTS.md](https://github.com/mziethen/grooveshelf/blob/main/REQUIREMENTS.md).\n\n## Acceptance criteria\n\n- [ ] Add a missed play with a selected physical copy and listening timestamp.\n- [ ] Edit an incorrect listening timestamp and remove an erroneous play with confirmation.\n- [ ] Recalculate play counts and last-played values consistently after corrections.\n- [ ] Distinguish manually entered plays from NFC-generated plays.\n\n## Dependencies and open decisions\n\nDepends on #14. Coordinate album-versus-copy aggregation with #13.\n\n## Status\n\nAccepted for planning; not implemented.\n",
+    "milestone": "M2 — NFC and listening history"
+  },
+  {
+    "id": "NFC-04",
+    "title": "[NFC-04] Provide guided tag assignment and reader feedback",
+    "body": "## Goal\n\nProvide guided tag assignment and reader feedback\n\n## Requirement\n\nNFC-04 — see [REQUIREMENTS.md](https://github.com/mziethen/grooveshelf/blob/main/REQUIREMENTS.md).\n\n## Acceptance criteria\n\n- [ ] When an unknown tag is scanned, offer a record selector and confirm the selected association.\n- [ ] Show clear visual feedback for successful reads, unknown tags, assignment success, reader disconnection and detectable read errors.\n- [ ] Prevent silently assigning a tag already linked to another copy; explicitly resolve reassignment.\n- [ ] Allow retrying a failed assignment without creating duplicate associations.\n\n## Dependencies and open decisions\n\nRelated: #10, #11 and #12. Extend their integration and assignment logic with a guided interface.\n\n## Status\n\nAccepted for planning; not implemented.\n",
+    "milestone": "M2 — NFC and listening history"
+  },
+  {
+    "id": "EXPORT-02",
+    "title": "[EXPORT-02] Export and restore a complete portable collection archive",
+    "body": "## Goal\n\nExport and restore a complete portable collection archive\n\n## Requirement\n\nEXPORT-02 — see [REQUIREMENTS.md](https://github.com/mziethen/grooveshelf/blob/main/REQUIREMENTS.md).\n\n## Acceptance criteria\n\n- [ ] Export records, albums, metadata, locally stored covers, NFC associations, listening history, notes, ratings, favorites and wishlist entries when supported.\n- [ ] Include an archive format version and preserve internal IDs and relationships.\n- [ ] Restore the archive to a fresh compatible installation on another Raspberry Pi and verify that collection data and covers remain usable.\n- [ ] Validate the archive and report incompatible or corrupt input before modifying the collection.\n- [ ] Exclude access tokens and secrets; document archive contents and supported restore behavior.\n\n## Dependencies and open decisions\n\nRelated: #28 and #24. OPS-02 covers operational backup; this issue covers portable application-level export and restore. Share restore validation where possible. Required before the first production deployment.\n\n## Status\n\nAccepted for planning; not implemented.\n",
+    "milestone": "M3 — Collection management and capture"
+  },
+  {
+    "id": "CAPTURE-05",
+    "title": "[CAPTURE-05] Find incomplete collection entries",
+    "body": "## Goal\n\nFind incomplete collection entries\n\n## Requirement\n\nCAPTURE-05 — see [REQUIREMENTS.md](https://github.com/mziethen/grooveshelf/blob/main/REQUIREMENTS.md).\n\n## Acceptance criteria\n\n- [ ] Filter records missing cover art, track lists or NFC associations.\n- [ ] Combine missing-field filters and display matching counts.\n- [ ] Open an entry directly for editing or tag assignment.\n- [ ] Distinguish missing information from fields deliberately marked as unavailable when supported.\n\n## Dependencies and open decisions\n\nRelated: #3, #4, #10 and #19.\n\n## Status\n\nAccepted for planning; not implemented.\n",
+    "milestone": "M3 — Collection management and capture"
+  },
+  {
+    "id": "DISCOVER-01",
+    "title": "[DISCOVER-01] Suggest what to listen to next",
+    "body": "## Goal\n\nSuggest what to listen to next\n\n## Requirement\n\nDISCOVER-01 — see [REQUIREMENTS.md](https://github.com/mziethen/grooveshelf/blob/main/REQUIREMENTS.md).\n\n## Acceptance criteria\n\n- [ ] Offer a randomly selected record from the owned collection with cover, artist and album title.\n- [ ] Allow choosing among the full collection, never-played records, least-played records and records not played recently.\n- [ ] Offer another suggestion and open its details without recording a play.\n- [ ] Handle an empty collection or empty candidate set clearly.\n- [ ] Use local collection and listening data without requiring paid services; define recency and frequency rules before implementation.\n\n## Dependencies and open decisions\n\nDepends on #3 and #14. Wishlist entries are not playable owned copies.\n\n## Status\n\nAccepted for planning; not implemented.\n",
+    "milestone": "M3 — Collection management and capture"
+  },
+  {
+    "id": "STATS-01",
+    "title": "[STATS-01] Display simple listening statistics",
+    "body": "## Goal\n\nDisplay simple listening statistics\n\n## Requirement\n\nSTATS-01 — see [REQUIREMENTS.md](https://github.com/mziethen/grooveshelf/blob/main/REQUIREMENTS.md).\n\n## Acceptance criteria\n\n- [ ] Display most-played albums, play totals by month and records never played.\n- [ ] Apply a selectable date range to time-based statistics and define the local timezone used for month boundaries.\n- [ ] Reflect manual history corrections in statistics.\n- [ ] Define album-versus-copy aggregation and show the chosen interpretation in the interface.\n- [ ] Provide useful empty states when listening history is unavailable.\n\n## Dependencies and open decisions\n\nDepends on #14 and PLAY-05. Statistics describe recorded listening events, not verified audio playback.\n\n## Status\n\nAccepted for planning; not implemented.\n",
+    "milestone": "M3 — Collection management and capture"
+  },
+  {
+    "id": "LABEL-01",
+    "title": "[LABEL-01] Print inventory labels",
+    "body": "## Goal\n\nPrint inventory labels\n\n## Requirement\n\nLABEL-01 — see [REQUIREMENTS.md](https://github.com/mziethen/grooveshelf/blob/main/REQUIREMENTS.md).\n\n## Acceptance criteria\n\n- [ ] Select records and generate a printable document containing their inventory numbers.\n- [ ] Allow configuring label dimensions and page layout for the chosen label stock.\n- [ ] Provide a preview and instructions for printing at actual size.\n- [ ] Allow an optional QR code once LATER-05 is available; plain inventory labels work independently.\n\n## Dependencies and open decisions\n\nRelated: #34. Label dimensions and preferred output format must be selected before implementation.\n\n## Status\n\nAccepted for planning; not implemented.\n",
+    "milestone": "M4 — Optional future features"
+  },
+  {
+    "id": "ARCH-01",
+    "title": "[ARCH-01] Prepare the data model for multiple listening stations",
+    "body": "## Goal\n\nPrepare the data model for multiple listening stations\n\n## Requirement\n\nARCH-01 — see [REQUIREMENTS.md](https://github.com/mziethen/grooveshelf/blob/main/REQUIREMENTS.md).\n\n## Acceptance criteria\n\n- [ ] Represent the current Raspberry Pi reader as one station with a stable identifier.\n- [ ] Associate scan events and pending listening sessions with their source station.\n- [ ] Keep inventory numbers and physical-copy identities independent of stations.\n- [ ] Define repeated-scan and deduplication boundaries with PLAY-01 so future stations do not share timers accidentally.\n- [ ] Document extension points for additional stations; initially implement and operate only one Raspberry Pi station.\n\n## Dependencies and open decisions\n\nRelated: #10 and #13. Multi-station operation and its management interface remain future work; this issue covers model preparation only.\n\n## Status\n\nAccepted for planning; not implemented.\n",
+    "milestone": "M2 — NFC and listening history"
   }
 ]

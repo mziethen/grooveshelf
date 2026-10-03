@@ -13,6 +13,9 @@ GrooveShelf is in the requirements and planning phase. There is no runnable appl
 - Retrieve metadata and covers from Discogs while preserving manual corrections.
 - Read NTAG213 tags using PN532 and show details on the Raspberry Pi screen.
 - Add listening history, ratings, a wishlist and Discogs collection imports.
+- Cancel pending plays, correct history and receive clear NFC feedback.
+- Export a portable collection archive, find incomplete entries, discover listening suggestions and view statistics.
+- Add printable inventory labels later; prepare the model for future listening stations.
 
 ## Technical direction
 

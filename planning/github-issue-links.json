@@ -244,5 +244,59 @@
     "number": 41,
     "url": "https://github.com/mziethen/grooveshelf/issues/41",
     "milestone": "M4 — Optional future features"
+  },
+  {
+    "id": "PLAY-04",
+    "number": 42,
+    "url": "https://github.com/mziethen/grooveshelf/issues/42",
+    "milestone": "M2 — NFC and listening history"
+  },
+  {
+    "id": "PLAY-05",
+    "number": 43,
+    "url": "https://github.com/mziethen/grooveshelf/issues/43",
+    "milestone": "M2 — NFC and listening history"
+  },
+  {
+    "id": "NFC-04",
+    "number": 44,
+    "url": "https://github.com/mziethen/grooveshelf/issues/44",
+    "milestone": "M2 — NFC and listening history"
+  },
+  {
+    "id": "EXPORT-02",
+    "number": 45,
+    "url": "https://github.com/mziethen/grooveshelf/issues/45",
+    "milestone": "M3 — Collection management and capture"
+  },
+  {
+    "id": "CAPTURE-05",
+    "number": 46,
+    "url": "https://github.com/mziethen/grooveshelf/issues/46",
+    "milestone": "M3 — Collection management and capture"
+  },
+  {
+    "id": "DISCOVER-01",
+    "number": 47,
+    "url": "https://github.com/mziethen/grooveshelf/issues/47",
+    "milestone": "M3 — Collection management and capture"
+  },
+  {
+    "id": "STATS-01",
+    "number": 48,
+    "url": "https://github.com/mziethen/grooveshelf/issues/48",
+    "milestone": "M3 — Collection management and capture"
+  },
+  {
+    "id": "LABEL-01",
+    "number": 49,
+    "url": "https://github.com/mziethen/grooveshelf/issues/49",
+    "milestone": "M4 — Optional future features"
+  },
+  {
+    "id": "ARCH-01",
+    "number": 50,
+    "url": "https://github.com/mziethen/grooveshelf/issues/50",
+    "milestone": "M2 — NFC and listening history"
   }
 ]
