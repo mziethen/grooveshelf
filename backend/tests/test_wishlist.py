@@ -68,3 +68,17 @@ def test_version_six_migration_preserves_collection(tmp_path):
     with TestClient(create_app(path,start_worker=False)) as client:
         assert client.get('/api/records/'+copy['id']).json()['rating']==5
         assert client.get('/api/wishlist').json()==[]
+
+
+def test_concurrent_acquisition_from_two_app_instances_creates_one_copy(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    path=str(tmp_path/'shared.sqlite3')
+    with TestClient(create_app(path,start_worker=False)) as first, TestClient(create_app(path,start_worker=False)) as second:
+        item=first.post('/api/wishlist',json=wish()).json()
+        url='/api/wishlist/'+item['id']+'/acquire'
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            jobs=[pool.submit(first.post,url,json=record('LP-00001')),pool.submit(second.post,url,json=record('LP-00002'))]
+            responses=[job.result() for job in jobs]
+        assert sorted(response.status_code for response in responses)==[201,409]
+        assert len(first.get('/api/records').json())==1
+        assert first.get('/api/wishlist').json()==[]
