@@ -185,3 +185,20 @@ def test_version_two_metadata_survives_listening_migration(tmp_path):
         assert record['notes']=='My note' and record['protected_fields']==['title']
         assert record['play_count']==0 and record['nfc_uid'] is None
         assert client.get('/api/stations/pi-main').status_code==200
+
+
+def test_background_worker_records_due_play_without_browser_requests(tmp_path):
+    import time
+    clock=Clock();path=str(tmp_path/'background.sqlite3')
+    with TestClient(create_app(path,clock=clock,start_worker=True)) as client:
+        record=client.post('/api/records',json={'inventory_number':'LP-00001','artist':'Artist','title':'Background'}).json()
+        client.put('/api/tags/04112233445566',json={'copy_id':record['id']})
+        scan(client);clock.advance(601)
+        deadline=time.monotonic()+4
+        count=0
+        while time.monotonic()<deadline:
+            with sqlite3.connect(path) as db:
+                count=db.execute('SELECT COUNT(*) FROM play_events').fetchone()[0]
+            if count:break
+            time.sleep(0.05)
+        assert count==1
