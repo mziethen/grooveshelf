@@ -13,6 +13,7 @@ The application supports manual record management, collection browsing, search a
 - Import or match Discogs collection copies and explicitly add local copies to Discogs. See [manual collection sync](docs/discogs-sync.md).
 - Retrieve metadata and covers from Discogs while preserving manual corrections. See [connecting Discogs](docs/development.md#connecting-discogs).
 - Associate NFC UIDs and follow station scans on the Raspberry Pi screen; physical PN532 reading remains pending. See [listening and NFC](docs/listening.md).
+- Get [listening suggestions](docs/discovery.md) from all, never-played, least-played or not-recently-played owned records.
 - Download the owned collection as CSV and [find incomplete records](docs/collection-tools.md) with combined missing-cover, missing-track and missing-NFC filters.
 - Use [rapid entry](docs/capture.md) to add records consecutively with free LP-number suggestions and possible-duplicate warnings.
 - View and correct listening history, track play counts and mark favorites. Personal ratings, record and sleeve condition, and notes can be edited per copy. A separate [wishlist](docs/wishlist.md) tracks desired albums and supports acquiring them into the collection.
