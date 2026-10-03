@@ -12,10 +12,12 @@
 
 Input/output schemas, persistence and API routing are separate modules. Metadata adapters, NFC readers and listening-session services should be added as separate modules. Internet metadata must not overwrite protected manual fields. Provider credentials stay server-side.
 
-Exact pressing models, covers, NFC associations and listening history are not implemented yet. The initial schema is version 1. Future schema changes require explicit migrations and migration tests; `CREATE TABLE IF NOT EXISTS` is only the initial bootstrap, not a migration system.
+Schema version 2 adds Discogs provenance, field protection and freshness metadata. Startup migrates version 1 in place and rejects newer schemas. Covers are stored alongside SQLite. Exact pressing models, NFC associations and listening history are not implemented yet. Future schema changes require explicit migrations and migration tests.
 
 ## Current limitations
 
-No authentication, automatic metadata, cover storage, NFC or complete portable backup exists yet. Deployment is for a trusted home network. Do not expose this version publicly. Operational backup is required before using it as the sole copy of a real collection.
+User authentication, NFC and complete portable backup are not implemented yet. Discogs lookup, confirmed import, local cover storage and freshness refresh are available. Deployment is for a trusted home network. Do not expose this version publicly. Operational backup is required before using it as the sole copy of a real collection.
 
 The full collection is returned in one request, which is appropriate for the initial approximately 300-record collection. Pagination can be added when needed. API search is case-insensitive across artist, album, track title and inventory number.
+
+The Discogs adapter and metadata service are separate from routing and persistence. Metadata credentials are configured server-side. See [integration details](discogs.md).

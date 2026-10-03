@@ -2,7 +2,7 @@
 
 Updated: October 3, 2026. Derived from the completed requirements questionnaire. The original German answers are retained locally as source material.
 
-This document specifies desired behavior. The first implementation covers manual copy management, collection browsing and search on `codex/initial-collection-app`; issues remain open until the implementation is reviewed and merged. Stable IDs are used in GitHub issues.
+This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. The next implementation adds confirmed Discogs metadata import, covers, source attribution and protected manual edits on `codex/discogs-metadata`; its issues remain open until review and merge. Stable IDs are used in GitHub issues.
 
 ## Product goal
 
@@ -132,3 +132,7 @@ Create one issue per stable requirement ID, for example `[CORE-01] Create and ed
 Suggested labels: `feature`, `bug`, `backend`, `frontend`, `nfc`, `metadata`, `import-export`, `operations`, `needs-decision`.
 
 Workflow: Backlog → Ready → In progress → Review → Done. Complete an issue only once its acceptance criteria are verified. Pull requests reference their issues. All 50 requirements have corresponding GitHub issues, assigned to four milestones. See [issues](https://github.com/mziethen/grooveshelf/issues) and [milestones](https://github.com/mziethen/grooveshelf/milestones). The proposed status workflow is guidance; no GitHub Projects board has been created.
+
+## Discogs implementation decisions
+
+The initial source adapter uses master entries and, when available, label names and notes from their main release. Provider content is refreshed on access after six hours; if unavailable, expired provider fields are hidden while manual corrections remain visible. This does not yet implement user-configurable refresh settings. See [integration details](docs/discogs.md).

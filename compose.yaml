@@ -4,6 +4,7 @@ services:
     restart: unless-stopped
     environment:
       GROOVESHELF_DATABASE: /data/grooveshelf.sqlite3
+      DISCOGS_TOKEN: ${DISCOGS_TOKEN:-}
     volumes:
       - collection-data:/data
     healthcheck:
