@@ -21,6 +21,7 @@ const base = process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
       saved = body;
     } else if (path === '/api/records') body = saved ? [saved] : [];
     else if (path === '/api/records/fixture-copy') body = saved;
+    else if (path === '/api/records/fixture-copy/plays') body = [];
     else if (path === '/api/covers/discogs/42') { await route.fulfill({status:200,contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZxkAAAAASUVORK5CYII=','base64')}); return; }
     else { await route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({detail:'Not found'})});return; }
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});

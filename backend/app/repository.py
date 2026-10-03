@@ -83,7 +83,7 @@ class CollectionRepository:
                     db.execute('''UPDATE copies SET album_id=?, inventory_number=?, format=?, notes=?
                                   WHERE id=?''', (album_id, data.inventory_number, data.format, data.notes, record_id))
                 else:
-                    db.execute('INSERT INTO copies VALUES (?, ?, ?, ?, ?, ?)',
+                    db.execute('INSERT INTO copies (id, album_id, inventory_number, format, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)',
                                (record_id, album_id, data.inventory_number, data.format, data.notes, now))
                 db.execute('DELETE FROM albums WHERE id NOT IN (SELECT album_id FROM copies)')
         except sqlite3.IntegrityError as error:

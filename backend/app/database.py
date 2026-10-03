@@ -22,7 +22,7 @@ class Database:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 2:
+            if version > 3:
                 raise RuntimeError("Database schema is newer than this application")
             db.execute("PRAGMA journal_mode = WAL")
             db.executescript("""
@@ -45,4 +45,42 @@ class Database:
             columns = {row[1] for row in db.execute("PRAGMA table_info(albums)")}
             if "metadata" not in columns:
                 db.execute("ALTER TABLE albums ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}'")
-            db.execute("PRAGMA user_version = 2")
+            copy_columns = {row[1] for row in db.execute("PRAGMA table_info(copies)")}
+            if "favorite" not in copy_columns:
+                db.execute("ALTER TABLE copies ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0")
+            db.executescript("""
+                CREATE TABLE IF NOT EXISTS stations (
+                    id TEXT PRIMARY KEY, name TEXT NOT NULL,
+                    last_uid TEXT, last_scan_at REAL, scan_sequence INTEGER NOT NULL DEFAULT 0
+                );
+                INSERT OR IGNORE INTO stations (id, name) VALUES ('pi-main', 'Raspberry Pi');
+                CREATE TABLE IF NOT EXISTS nfc_tags (
+                    uid TEXT PRIMARY KEY,
+                    copy_id TEXT NOT NULL UNIQUE REFERENCES copies(id) ON DELETE CASCADE
+                );
+                CREATE TABLE IF NOT EXISTS listening_sessions (
+                    id TEXT PRIMARY KEY,
+                    station_id TEXT NOT NULL REFERENCES stations(id),
+                    copy_id TEXT NOT NULL REFERENCES copies(id) ON DELETE CASCADE,
+                    started_at REAL NOT NULL, due_at REAL NOT NULL,
+                    status TEXT NOT NULL,
+                    ended_at REAL
+                );
+                CREATE INDEX IF NOT EXISTS sessions_station ON listening_sessions(station_id, started_at);
+                CREATE TABLE IF NOT EXISTS play_events (
+                    id TEXT PRIMARY KEY,
+                    copy_id TEXT REFERENCES copies(id) ON DELETE SET NULL,
+                    station_id TEXT REFERENCES stations(id),
+                    session_id TEXT UNIQUE,
+                    played_at REAL NOT NULL,
+                    origin TEXT NOT NULL,
+                    inventory_number TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS plays_copy ON play_events(copy_id, played_at);
+            """)
+            station_columns = {row[1] for row in db.execute("PRAGMA table_info(stations)")}
+            for name, declaration in [("reader_status", "TEXT NOT NULL DEFAULT 'disconnected'"),
+                                      ("reader_seen_at", "REAL")]:
+                if name not in station_columns:
+                    db.execute(f"ALTER TABLE stations ADD COLUMN {name} {declaration}")
+            db.execute("PRAGMA user_version = 3")

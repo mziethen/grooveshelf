@@ -1,4 +1,5 @@
 from typing import Literal
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -50,3 +51,40 @@ class Record(RecordInput):
     metadata_status: str = "manual"
     metadata_expires_at: float | None = None
     protected_fields: list[str] = Field(default_factory=list)
+    favorite: bool = False
+    play_count: int = 0
+    last_played_at: str | None = None
+    nfc_uid: str | None = None
+
+
+class TagAssignment(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    copy_id: str
+    replace: bool = False
+
+
+class ScanInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    uid: str
+
+
+class PlayInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    played_at: datetime
+
+    @field_validator("played_at")
+    @classmethod
+    def aware_time(cls, value):
+        if value.tzinfo is None:
+            raise ValueError("Use a timestamp with a timezone")
+        return value
+
+
+class FavoriteInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    favorite: bool
+
+
+class ReaderStatusInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["connected", "disconnected", "error", "simulation"]
