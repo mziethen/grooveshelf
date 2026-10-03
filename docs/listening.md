@@ -33,7 +33,7 @@ The station page polls once per second. Incoming known scans open the record det
 
 ## Tags
 
-Supported UID representations are 4, 7 or 10-byte hexadecimal identifiers, including colon, hyphen or whitespace separators. NTAG213 typically supplies a seven-byte UID; confirm the actual reader output during hardware setup.
+Supported UID representations are 4, 7 or 10-byte hexadecimal identifiers, including colon, hyphen or whitespace separators. [NTAG213 uses a manufacturer-programmed seven-byte UID](https://www.nxp.com/products/NTAG213_215_216); confirm its representation in the reader output during hardware setup.
 
 Assign or replace a tag from record details. Replacement requires explicit confirmation and preserves record IDs and listening history. A tag associated with another record cannot be silently reassigned: remove its current association first. Removing a tag does not delete its record or history.
 
