@@ -5,9 +5,9 @@ import logging
 from threading import Event, Thread
 from fastapi import FastAPI, HTTPException, Query, Response
 from .database import Database
-from .discogs import CoverStore, DiscogsProvider, fresh
+from .discogs import CoverStore, DiscogsProvider, fresh, public_images, MAX_AGE
 from .metadata import MetadataService
-from .models import Record, RecordInput, TagAssignment, ScanInput, PlayInput, FavoriteInput, ReaderStatusInput
+from .models import Record, RecordInput, TagAssignment, ScanInput, PlayInput, FavoriteInput, ReaderStatusInput, CoverSelection
 from .listening import ListeningService
 from .repository import CollectionRepository
 
@@ -75,8 +75,57 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     def preview_master(master_id: int):
         if master_id < 1:
             raise HTTPException(422, 'Invalid Discogs master ID.')
-        result = provider.master(master_id)
-        return {key: value for key, value in result.items() if key not in ['image_url', 'checked_at']}
+        snapshot = provider.master(master_id)
+        result = {key: value for key, value in snapshot.items() if key not in ['image_url', 'checked_at', 'images']}
+        result['images'] = public_images(snapshot)
+        result['metadata_expires_at'] = snapshot['checked_at'] + MAX_AGE
+        return result
+
+    def image_response(content):
+        signature = content[:12]
+        content_type = 'image/png' if signature.startswith(b'\x89PNG') else 'image/webp' if signature.startswith(b'RIFF') else 'image/jpeg'
+        return Response(content, media_type=content_type,
+                        headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
+
+    @app.get('/api/metadata/discogs/masters/{master_id}/images/{image_id}')
+    def preview_image(master_id: int, image_id: str):
+        if master_id < 1:
+            raise HTTPException(422, 'Invalid Discogs master ID.')
+        snapshot = provider.master(master_id)
+        image = next((i for i in snapshot.get('images', []) if i['id'] == image_id), None)
+        if not image:
+            raise HTTPException(404, 'Image not available.')
+        key = f'{master_id}-{image_id}'
+        return image_response(covers.image_content(key, image['url'], snapshot['checked_at']))
+
+    @app.get('/api/records/{record_id}/cover-options')
+    def cover_options(record_id: str):
+        record = metadata.present(repository.get(record_id))
+        if not record['discogs_master_id']:
+            raise HTTPException(409, 'This record has no Discogs source.')
+        if record['metadata_status'] == 'unavailable':
+            raise HTTPException(503, 'Discogs is unavailable. Retry loading the images later.')
+        if 'images' not in record['_metadata']:
+            record = metadata.refresh(record_id)
+        return {'images': public_images(record['_metadata']), 'source_url': record['source_url'],
+                'metadata_expires_at': record['metadata_expires_at'], 'selected_id': record['cover_image_id'], 'selection_status': record['cover_selection_status']}
+
+    @app.put('/api/records/{record_id}/cover', response_model=Record)
+    def select_cover(record_id: str, data: CoverSelection):
+        return public(metadata.select_cover(record_id, data.image_id))
+
+    @app.get('/api/covers/discogs/{master_id}/{image_id}')
+    def selected_cover(master_id: int, image_id: str):
+        records = [metadata.present(r) for r in repository.list()
+                   if r['discogs_master_id'] == master_id and r.get('cover_image_id') == image_id]
+        record = next((r for r in records if fresh(r['_metadata']) and r['cover_url']), None)
+        if not record:
+            raise HTTPException(404, 'Cover not available.')
+        image = next((i for i in record['_metadata'].get('images', []) if i['id'] == image_id), None)
+        key = f'{master_id}-{image_id}'
+        if not image:
+            raise HTTPException(404, 'Selected image is no longer available.')
+        return image_response(covers.image_content(key, image['url'], record['_metadata']['checked_at']))
 
     @app.get('/api/covers/discogs/{master_id}')
     def get_cover(master_id: int):
@@ -89,10 +138,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
                 content = covers.path(master_id).read_bytes()
             except FileNotFoundError:
                 raise HTTPException(404, 'Cover not available.') from None
-        signature = content[:12]
-        content_type = 'image/png' if signature.startswith(b'\x89PNG') else 'image/webp' if signature.startswith(b'RIFF') else 'image/jpeg'
-        return Response(content, media_type=content_type,
-                            headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
+        return image_response(content)
 
     @app.get('/api/records', response_model=list[Record])
     def list_records(q: str = Query(default='', max_length=300)):

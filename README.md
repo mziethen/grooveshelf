@@ -4,7 +4,7 @@ A calm, mobile-first vinyl collection archive, self-hosted on a Raspberry Pi 5.
 
 ## Project status
 
-The application supports manual record management, collection browsing, search and opt-in Discogs lookup with confirmed metadata import and local cover storage. Software NFC associations, station sessions, listening history and favorites are available; the physical PN532 driver and wiring remain pending. See [running and development](docs/development.md).
+The application supports manual record management, collection browsing, search and opt-in Discogs lookup with confirmed metadata import and local cover storage and per-record Discogs cover selection. Software NFC associations, station sessions, listening history and favorites are available; the physical PN532 driver and wiring remain pending. See [running and development](docs/development.md).
 
 ## Features and roadmap
 
