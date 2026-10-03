@@ -23,3 +23,5 @@ The full collection is returned in one request, which is appropriate for the ini
 The Discogs adapter and metadata service are separate from routing and persistence. Metadata credentials are configured server-side. See [integration details](discogs.md).
 
 Listening uses a station-scoped service and a background timer. Counts derive from events rather than mutable counters. A bridge interface keeps device drivers outside the web API. See [listening and NFC](listening.md).
+
+Schema version 6 adds nullable per-copy rating and record/sleeve condition. Personal-field edits use a separate endpoint without contacting metadata providers. Existing clients that omit new fields retain stored ratings and conditions on regular record edits. Provider refresh, release linking and collection matching do not overwrite personal fields.

@@ -22,7 +22,7 @@ class Database:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 5:
+            if version > 6:
                 raise RuntimeError("Database schema is newer than this application")
             db.execute("PRAGMA journal_mode = WAL")
             db.executescript("""
@@ -101,4 +101,8 @@ class Database:
                     account TEXT PRIMARY KEY, last_success_at TEXT
                 );
             """)
-            db.execute("PRAGMA user_version = 5")
+            for name, declaration in [("rating", "INTEGER CHECK(rating BETWEEN 1 AND 5)"),
+                                      ("media_condition", "TEXT"), ("sleeve_condition", "TEXT")]:
+                if name not in copy_columns:
+                    db.execute(f"ALTER TABLE copies ADD COLUMN {name} {declaration}")
+            db.execute("PRAGMA user_version = 6")

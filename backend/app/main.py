@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Query, Response
 from .database import Database
 from .discogs import CoverStore, DiscogsProvider, fresh, public_images, MAX_AGE, source_key
 from .metadata import MetadataService
-from .models import Record, RecordInput, TagAssignment, ScanInput, PlayInput, FavoriteInput, ReaderStatusInput, CoverSelection, ReleaseLink, SyncAction, ExportRetry
+from .models import Record, RecordInput, TagAssignment, ScanInput, PlayInput, FavoriteInput, ReaderStatusInput, CoverSelection, ReleaseLink, SyncAction, ExportRetry, PersonalFields
 from .listening import ListeningService
 from .sync import DiscogsSync
 from .repository import CollectionRepository
@@ -182,6 +182,13 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     @app.put('/api/records/{record_id}', response_model=Record)
     def update_record(record_id: str, data: RecordInput):
         return public(metadata.save(data, record_id))
+
+    @app.put('/api/records/{record_id}/personal', response_model=Record)
+    def update_personal(record_id: str, data: PersonalFields):
+        record = repository.save_personal(record_id, data)
+        if record['metadata_expires_at'] and not fresh(record['_metadata']):
+            record = metadata.hide_stale(record)
+        return public(record)
 
     @app.post('/api/records/{record_id}/refresh', response_model=Record)
     def refresh_record(record_id: str):
