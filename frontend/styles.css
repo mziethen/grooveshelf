@@ -11,3 +11,5 @@
 .sync-entry{border-top:1px solid var(--line);padding:14px 0}.sync-entry h3{font-size:15px;overflow-wrap:anywhere}.sync-entry p,.sync-notices{font-size:12px;line-height:1.6}.sync-result{color:var(--sage)}.sync-notices{padding-left:20px}.sync-notices li{margin:12px 0}.sync-notices button{font-size:11px;padding:5px 8px}
 
 .personal-summary{display:flex;flex-wrap:wrap;gap:18px 30px;font-size:13px}.personal-summary dt{color:#6b756a;margin-bottom:6px}.personal-summary dd{margin:0}
+
+.wish-entry{border-top:1px solid var(--line);padding:14px 0}.wish-entry h3{font-size:18px;overflow-wrap:anywhere}.wish-entry p{font-size:13px}.wish-entry .notes{max-height:140px;overflow:auto}.wish-entry .actions{justify-content:flex-start;flex-wrap:wrap;font-size:12px}

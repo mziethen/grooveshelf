@@ -55,6 +55,7 @@ export function createDiscogsSearch({ api, escape, onImport }) {
   next.addEventListener('click', () => find(page + 1));
   previous.addEventListener('click', () => find(page - 1));
   return {
+    preview,
     reset(editing) {
       clearTimeout(expiryTimer); generation++; page = 1; query = null; root.hidden = editing;
       output.replaceChildren(); message.textContent = 'Optional: enter an artist or album title, then find matching albums.';

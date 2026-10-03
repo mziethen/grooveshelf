@@ -1,10 +1,11 @@
+import { createWishlist } from './wishlist.js';
 import { createPersonalUI, populatePersonalOptions, personalPayload } from './personal.js';
 import { createDiscogsSync } from './sync.js';
 import { createCoverPicker } from './covers.js';
 import { createListeningUI } from './listening.js';
 import { createDiscogsSearch } from './discogs.js';
 const $ = (selector) => document.querySelector(selector);
-const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, coverImageId: null };
+const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, coverImageId: null, wishId: null };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(path, options = {}) {
   const response = await fetch(`/api${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
@@ -88,7 +89,7 @@ function renderDetails(record) {
     if (!$('#details').open) $('#details').showModal();
 }
 function openEditor(record = null) {
-  state.editing = record; state.masterId = null; state.coverImageId = null;
+  state.wishId = null; state.editing = record; state.masterId = null; state.coverImageId = null;
   discogs.reset(Boolean(record));
   const form = $('#record-form'); form.reset();
   $('#form-error').textContent = '';
@@ -107,12 +108,18 @@ $('#record-form').addEventListener('submit', async event => {
     return separator < 0 ? { position: '', title: line } : { position: line.slice(0, separator).trim(), title: line.slice(separator + 1).trim() };
   });
   try {
-    const record = await api(state.editing ? `/records/${state.editing.id}` : '/records', {method: state.editing ? 'PUT' : 'POST', body: JSON.stringify({...values, discogs_master_id: state.masterId, cover_image_id: state.coverImageId, year: values.year ? Number(values.year) : null, tracks})});
+    const record = await api(state.wishId ? `/wishlist/${state.wishId}/acquire` : state.editing ? `/records/${state.editing.id}` : '/records', {method: state.editing ? 'PUT' : 'POST', body: JSON.stringify({...values, discogs_master_id: state.masterId, cover_image_id: state.coverImageId, year: values.year ? Number(values.year) : null, tracks})});
     $('#editor').close(); await load();
     if (location.hash === `#record/${record.id}`) await route(); else location.hash = `record/${record.id}`;
   } catch (error) { $('#form-error').textContent = error.message; }
   finally { $('#save').disabled = false; }
 });
+createWishlist({api,escape,onAcquire(wish) {
+  openEditor();state.wishId=wish.id;
+  $('#editor-title').textContent='Add your purchased record';
+  for(const name of ['artist','title','notes'])$('#record-form').elements[name].value=wish[name];
+  if(wish.discogs_master_id)discogs.preview(wish.discogs_master_id);
+}});
 populatePersonalOptions($('#record-form'));
 const personal = createPersonalUI({api,escape,currentRecord:()=>state.selected,reload:load,renderCurrent:route});
 const listening = createListeningUI({ api, escape, reload: load, currentRecord: () => state.selected, renderCurrent: route });

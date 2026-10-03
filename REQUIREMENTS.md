@@ -2,7 +2,7 @@
 
 Updated: October 3, 2026. Derived from the completed requirements questionnaire. The original German answers are retained locally as source material.
 
-This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. Discogs metadata import, covers, source attribution and protected manual edits have also been merged. Station sessions, tag associations, history corrections and favorites have also been merged. Cover selection and manual Discogs collection synchronization have been merged. Personal ratings and condition fields are implemented on a feature branch pending review. Physical PN532 integration remains open. Stable IDs are used in GitHub issues.
+This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. Discogs metadata import, covers, source attribution and protected manual edits have also been merged. Station sessions, tag associations, history corrections and favorites have also been merged. Cover selection and manual Discogs collection synchronization have been merged. Personal ratings, condition fields and a separate wishlist are implemented. Physical PN532 integration remains open. Stable IDs are used in GitHub issues.
 
 ## Product goal
 
@@ -150,3 +150,7 @@ The user requested bidirectional collection synchronization. The initial impleme
 ## Personal collection field decisions
 
 Personal ratings use whole stars from 1 to 5; null means not rated. Record and sleeve condition use M, NM, VG+, VG, G+, G, F and P; sleeves also support Generic and No Cover. Null means not graded. The [Discogs grading guide](https://support.discogs.com/hc/en-us/articles/360001566193-How-To-Grade-Items) is linked from the editor. Ratings, conditions and notes belong to the physical copy and remain local during collection sync. A separate editor remains usable during metadata outages.
+
+## Wishlist implementation decisions
+
+Wishes contain personal artist/title/notes and optional Discogs master references, without physical inventory numbers. Reference selection retains the user's wording. Purchasing a wish opens the normal record editor; a successful save atomically creates the copy and marks the wish acquired. Failed or canceled saves retain the wish, and repeated acquisition cannot create duplicate copies. See [wishlist usage](docs/wishlist.md).

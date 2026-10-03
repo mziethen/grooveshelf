@@ -22,7 +22,7 @@ class Database:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 6:
+            if version > 7:
                 raise RuntimeError("Database schema is newer than this application")
             db.execute("PRAGMA journal_mode = WAL")
             db.executescript("""
@@ -105,4 +105,14 @@ class Database:
                                       ("media_condition", "TEXT"), ("sleeve_condition", "TEXT")]:
                 if name not in copy_columns:
                     db.execute(f"ALTER TABLE copies ADD COLUMN {name} {declaration}")
-            db.execute("PRAGMA user_version = 6")
+            db.executescript("""
+                CREATE TABLE IF NOT EXISTS wishlist (
+                    id TEXT PRIMARY KEY,
+                    artist TEXT NOT NULL, title TEXT NOT NULL, notes TEXT NOT NULL DEFAULT '',
+                    discogs_master_id INTEGER,
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                    acquired_copy_id TEXT REFERENCES copies(id) ON DELETE SET NULL,
+                    acquired_at TEXT
+                );
+            """)
+            db.execute("PRAGMA user_version = 7")

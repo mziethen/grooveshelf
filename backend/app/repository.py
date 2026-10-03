@@ -55,7 +55,7 @@ class CollectionRepository:
             raise HTTPException(404, 'Record not found')
         return self.decode(row)
 
-    def save(self, data: RecordInput, copy_id=None, imported=None):
+    def save(self, data: RecordInput, copy_id=None, imported=None, wish_id=None):
         existing = self.get(copy_id) if copy_id else None
         metadata = dict(imported or (existing['_metadata'] if existing else {}))
         if metadata:
@@ -70,6 +70,11 @@ class CollectionRepository:
         now = existing['created_at'] if existing else datetime.now(timezone.utc).isoformat()
         try:
             with self.database.connect() as db:
+                if wish_id:
+                    db.execute('BEGIN IMMEDIATE')
+                    wish = db.execute('SELECT acquired_at FROM wishlist WHERE id=?', (wish_id,)).fetchone()
+                    if not wish or wish['acquired_at']:
+                        raise HTTPException(409, 'This wish was already acquired or removed. Refresh the wishlist.')
                 if data.album_id:
                     album = db.execute('SELECT * FROM albums WHERE id = ?', (data.album_id,)).fetchone()
                     if album is None:
@@ -91,6 +96,9 @@ class CollectionRepository:
                 else:
                     db.execute('INSERT INTO copies (id, album_id, inventory_number, format, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)',
                                (record_id, album_id, data.inventory_number, data.format, data.notes, now))
+                if wish_id:
+                    db.execute('UPDATE wishlist SET acquired_copy_id=?, acquired_at=?, updated_at=? WHERE id=?',
+                               (record_id,now,now,wish_id))
                 for field in ['rating', 'media_condition', 'sleeve_condition']:
                     if not existing or field in data.model_fields_set:
                         db.execute(f'UPDATE copies SET {field}=? WHERE id=?', (getattr(data, field), record_id))
