@@ -2,7 +2,7 @@
 
 Updated: October 3, 2026. Derived from the completed requirements questionnaire. The original German answers are retained locally as source material.
 
-This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. The next implementation adds confirmed Discogs metadata import, covers, source attribution and protected manual edits on `codex/discogs-metadata`; its issues remain open until review and merge. Stable IDs are used in GitHub issues.
+This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. Discogs metadata import, covers, source attribution and protected manual edits have also been merged. Station sessions, tag associations, history corrections and favorites are implemented on `codex/nfc-listening` pending review and merge. Physical PN532 integration remains open. Stable IDs are used in GitHub issues.
 
 ## Product goal
 
@@ -136,3 +136,7 @@ Workflow: Backlog → Ready → In progress → Review → Done. Complete an iss
 ## Discogs implementation decisions
 
 The initial source adapter uses master entries and, when available, label names and notes from their main release. Provider content is refreshed on access after six hours; if unavailable, expired provider fields are hidden while manual corrections remain visible. This does not yet implement user-configurable refresh settings. See [integration details](docs/discogs.md).
+
+## Listening implementation decisions
+
+The user confirmed a ten-minute session, suppression of repeated scans of the current record, and cancellation when a different record is scanned. Hardware is not connected yet; its interface and exact module remain unknown. The initial station is `pi-main`; the Pi browser follows scans in station mode. End a completed session before replaying the same record. Unknown tags do not cancel an existing session. See [listening and hardware status](docs/listening.md).

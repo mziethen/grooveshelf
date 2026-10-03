@@ -17,7 +17,7 @@ docker compose logs -f
 docker compose down
 ```
 
-`docker compose down` keeps the collection volume. `docker compose down -v` deletes it and your collection. Upgrades should be preceded by a backup; the version-1 to version-2 migration is automatic and preserves existing records. A database from a newer application version is rejected; downgrades are not supported.
+`docker compose down` keeps the collection volume. `docker compose down -v` deletes it and your collection. Upgrades should be preceded by a backup; the version-1/version-2 to version-3 migration is automatic and preserves existing records. A database from a newer application version is rejected; downgrades are not supported.
 
 ## Local development without Docker
 
@@ -82,3 +82,7 @@ For local development, export `DISCOGS_TOKEN` in the backend terminal before sta
 When adding a record, enter an artist or title, select **Search Discogs**, choose an album, review the preview and select **Use these details**. You can correct the suggested fields before saving. Saving is the point at which data and the cover are stored. Existing records can be refreshed from their detail view; edited artist/title/year/track fields stay protected.
 
 See [Discogs integration and data handling](discogs.md) for source attribution, cache freshness and unavailable-provider behavior.
+
+## Listening and NFC
+
+See [station mode, test scans and hardware status](listening.md). Physical PN532 setup is still pending. To open the Pi station view use `http://<pi-address>:8080/?station=pi-main`.
