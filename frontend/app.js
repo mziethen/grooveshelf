@@ -1,3 +1,4 @@
+import { createCapture } from './capture.js';
 import { createWishlist } from './wishlist.js';
 import { createPersonalUI, populatePersonalOptions, personalPayload } from './personal.js';
 import { createDiscogsSync } from './sync.js';
@@ -88,7 +89,7 @@ function renderDetails(record) {
     listening.details(record);
     if (!$('#details').open) $('#details').showModal();
 }
-function openEditor(record = null) {
+function openEditor(record = null, after = null) {
   state.wishId = null; state.editing = record; state.masterId = null; state.coverImageId = null;
   discogs.reset(Boolean(record));
   const form = $('#record-form'); form.reset();
@@ -98,28 +99,45 @@ function openEditor(record = null) {
     for (const key of ['inventory_number','artist','title','format','year','notes','rating','media_condition','sleeve_condition']) form.elements[key].value = record[key] ?? '';
     form.elements.tracks.value = record.tracks.map(t => t.position ? `${t.position} | ${t.title}` : t.title).join('\n');
   }
-  $('#editor').showModal();
+  if(!$('#editor').open)$('#editor').showModal();
+  capture.reset(Boolean(record),after);
 }
 $('#record-form').addEventListener('submit', async event => {
-  event.preventDefault(); $('#save').disabled = true; $('#form-error').textContent = '';
+  event.preventDefault(); $('#save').disabled = $('#save-next').disabled = true; $('#form-error').textContent = '';
+  const formSnapshot=JSON.stringify([...new FormData(event.target)]);
+  const addAnother=event.submitter?.id==='save-next'&&!state.editing&&!state.wishId;
+  const keepArtist=$('#keep-artist').checked;
+  const selectedMaster=state.masterId;
   const values = personalPayload(Object.fromEntries(new FormData(event.target)));
   const tracks = values.tracks.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
     const separator = line.indexOf('|');
     return separator < 0 ? { position: '', title: line } : { position: line.slice(0, separator).trim(), title: line.slice(separator + 1).trim() };
   });
   try {
+    if(!await capture.check(!state.editing,true)) {$('#form-error').textContent='Review the existing copies and confirm that you are adding another physical copy.';return;}
+    if(formSnapshot!==JSON.stringify([...new FormData(event.target)])||selectedMaster!==state.masterId){$('#form-error').textContent='Your details changed while checking. Save again to use the current details.';return;}
     const record = await api(state.wishId ? `/wishlist/${state.wishId}/acquire` : state.editing ? `/records/${state.editing.id}` : '/records', {method: state.editing ? 'PUT' : 'POST', body: JSON.stringify({...values, discogs_master_id: state.masterId, cover_image_id: state.coverImageId, year: values.year ? Number(values.year) : null, tracks})});
+    if(addAnother){
+      openEditor(null,record.inventory_number);
+      event.target.elements.format.value=values.format;
+      $('#keep-artist').checked=keepArtist;
+      if(keepArtist)event.target.elements.artist.value=values.artist;
+      $('#capture-status').textContent=`Saved ${record.inventory_number}. Ready for your next record.`;
+      event.target.elements[keepArtist?'title':'artist'].focus();
+      await load();return;
+    }
     $('#editor').close(); await load();
     if (location.hash === `#record/${record.id}`) await route(); else location.hash = `record/${record.id}`;
   } catch (error) { $('#form-error').textContent = error.message; }
-  finally { $('#save').disabled = false; }
+  finally { $('#save').disabled = $('#save-next').disabled = false; }
 });
 createWishlist({api,escape,onAcquire(wish) {
-  openEditor();state.wishId=wish.id;
+  openEditor();state.wishId=wish.id;$('#save-next').hidden=true;$('#capture-next-options').hidden=true;
   $('#editor-title').textContent='Add your purchased record';
   for(const name of ['artist','title','notes'])$('#record-form').elements[name].value=wish[name];
   if(wish.discogs_master_id)discogs.preview(wish.discogs_master_id);
 }});
+const capture=createCapture({api,escape,currentIdentity:()=>({masterId:state.masterId,editingId:state.editing?.id||null})});
 populatePersonalOptions($('#record-form'));
 const personal = createPersonalUI({api,escape,currentRecord:()=>state.selected,reload:load,renderCurrent:route});
 const listening = createListeningUI({ api, escape, reload: load, currentRecord: () => state.selected, renderCurrent: route });
@@ -127,6 +145,7 @@ const discogs = createDiscogsSearch({ api, escape, onImport(data) {
   state.masterId = data.discogs_master_id; state.coverImageId = data.cover_image_id || null;
   const form = $('#record-form');
   for (const key of ['artist', 'title', 'year']) form.elements[key].value = data[key] ?? '';
+  capture.changed();
   form.elements.tracks.value = data.tracks.map(t => t.position ? `${t.position} | ${t.title}` : t.title).join('\n');
 }});
 createDiscogsSync({api, escape, currentRecord: () => state.selected, reload: load, renderCurrent: route});
