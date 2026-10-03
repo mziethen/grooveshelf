@@ -14,6 +14,8 @@ from .wishlist import WishlistService
 from .capture import CaptureService
 from .export import collection_csv
 from .discovery import suggest
+from .statistics import statistics
+from datetime import date
 from typing import Literal
 from .repository import CollectionRepository
 
@@ -176,6 +178,15 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     @app.post('/api/capture/duplicates')
     def possible_duplicates(data: CaptureQuery):
         return capture.duplicates(data)
+
+    @app.get('/api/statistics')
+    def listening_statistics(start: date | None = None, end: date | None = None):
+        records = []
+        for record in repository.list():
+            if record['metadata_expires_at'] and not fresh(record['_metadata']):
+                record = metadata.hide_stale(record)
+            records.append(record)
+        return statistics(database, records, start, end)
 
     @app.get('/api/discovery')
     def discover(mode: Literal['all', 'never', 'least', 'recent'] = 'all',
