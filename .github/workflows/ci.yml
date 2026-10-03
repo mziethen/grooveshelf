@@ -1,0 +1,62 @@
+name: Application checks
+on:
+  push:
+  pull_request:
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: pip install -r backend/requirements-dev.txt
+      - run: PYTHONPATH=backend pytest backend/tests -q
+      - run: npm install --prefix frontend --ignore-scripts
+      - run: cd frontend && npx playwright install --with-deps chromium
+      - name: Browser integration
+        run: |
+          PYTHONPATH=backend GROOVESHELF_DATABASE=/tmp/grooveshelf-ci.sqlite3 uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          python scripts/dev_server.py &
+          for attempt in $(seq 1 30); do
+            if curl --fail http://127.0.0.1:8080/api/health; then break; fi
+            sleep 1
+          done
+          npm test --prefix frontend
+      - run: docker compose config --quiet
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: backend
+          platforms: linux/amd64,linux/arm64
+          push: false
+      - uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          platforms: linux/amd64,linux/arm64
+          push: false
+      - name: Compose runtime smoke test
+        run: |
+          docker compose up --build -d --wait
+          curl --fail http://localhost:8080/api/health
+          curl --fail -X POST http://localhost:8080/api/records -H 'Content-Type: application/json' --data '{"inventory_number":"LP-00001","artist":"CI artist","title":"Persistence check"}'
+          docker compose restart backend
+          for attempt in $(seq 1 30); do
+            if curl --fail http://localhost:8080/api/health; then break; fi
+            sleep 1
+          done
+          curl --fail http://localhost:8080/api/records | python -c 'import json,sys; assert json.load(sys.stdin)[0]["inventory_number"] == "LP-00001"'
+      - name: Container logs
+        if: failure()
+        run: docker compose logs
+      - name: Clean up
+        if: always()
+        run: docker compose down -v

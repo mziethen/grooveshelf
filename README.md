@@ -4,7 +4,7 @@ A calm, mobile-first vinyl collection archive, self-hosted on a Raspberry Pi 5.
 
 ## Project status
 
-GrooveShelf is in the requirements and planning phase. There is no runnable application yet.
+The first implementation is available on `codex/initial-collection-app`: manual record management, collection browsing and search. Automatic metadata and NFC are still planned. See [running and development](docs/development.md).
 
 ## Planned features
 
@@ -17,9 +17,17 @@ GrooveShelf is in the requirements and planning phase. There is no runnable appl
 - Export a portable collection archive, find incomplete entries, discover listening suggestions and view statistics.
 - Add printable inventory labels later; prepare the model for future listening stations.
 
+## Getting started
+
+```sh
+docker compose up --build -d
+```
+
+Open `http://<host>:8080`. See [setup, tests and backup notes](docs/development.md) and [architecture](docs/architecture.md).
+
 ## Technical direction
 
-Python and FastAPI backend, separate frontend and Docker Compose deployment on ARM64. The frontend framework and database remain undecided. Initial deployment targets a private home network.
+Python and FastAPI backend, separate frontend and Docker Compose deployment on ARM64. The initial implementation uses SQLite and browser-native JavaScript modules. Initial deployment targets a private home network.
 
 ## Requirements and progress
 
