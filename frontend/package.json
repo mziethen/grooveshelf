@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "test": "node tests/browser.cjs && node tests/discogs.cjs && node tests/listening.cjs && node tests/heartbeat.cjs && node tests/covers.cjs && node tests/sync.cjs && node tests/personal.cjs && node tests/wishlist.cjs && node tests/capture.cjs && node tests/collection-tools.cjs && node tests/discovery.cjs && node tests/statistics.cjs && node tests/identifiers.cjs && node tests/labels.cjs && node tests/settings.cjs"
+    "test": "node tests/browser.cjs && node tests/discogs.cjs && node tests/listening.cjs && node tests/heartbeat.cjs && node tests/covers.cjs && node tests/sync.cjs && node tests/personal.cjs && node tests/wishlist.cjs && node tests/capture.cjs && node tests/collection-tools.cjs && node tests/discovery.cjs && node tests/statistics.cjs && node tests/identifiers.cjs && node tests/labels.cjs && node tests/settings.cjs && node tests/locations.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"

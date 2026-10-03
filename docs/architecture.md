@@ -29,3 +29,5 @@ Schema version 6 adds nullable per-copy rating and record/sleeve condition. Pers
 Schema version 7 adds a separate wishlist table. Acquired wishes retain an internal copy receipt; acquisition and copy creation commit together under a SQLite write lock. Wishlist references do not store provider metadata snapshots.
 
 Schema version 8 adds persistent boolean metadata settings with enabled defaults. Automatic access refresh is checked in MetadataService; manual refresh and explicitly initiated imports retain their existing paths. Initial preview confirmation is read from the shared settings API, with confirmation enabled on lookup failure.
+
+Schema version 9 adds copies.storage_location with an empty text default. The field is independent of album/provider data, included in collection search and CSV, and preserved when omitted by older update clients.

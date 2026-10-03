@@ -243,7 +243,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         records = [metadata.present(r) for r in repository.list()]
         query = q.strip().casefold()
         return [public(r) for r in records if not query or query in ' '.join(
-            [r['artist'], r['title'], r['inventory_number']] + [t['title'] for t in r['tracks']]).casefold()]
+            [r['artist'], r['title'], r['inventory_number'], r['storage_location']] + [t['title'] for t in r['tracks']]).casefold()]
 
     @app.get('/api/records/{record_id}', response_model=Record)
     def get_record(record_id: str):

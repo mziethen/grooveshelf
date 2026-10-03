@@ -15,7 +15,7 @@ export function createPersonalUI({api,escape,currentRecord,reload,renderCurrent}
   let copyId;
   $('#edit-personal').addEventListener('click',()=>{
     const record=currentRecord();copyId=record.id;
-    for(const name of ['rating','media_condition','sleeve_condition','notes'])form.elements[name].value=record[name]??'';
+    for(const name of ['rating','media_condition','sleeve_condition','notes','storage_location'])form.elements[name].value=record[name]??'';
     $('#personal-error').textContent='';$('#personal-editor').showModal();
   });
   $('#personal-cancel').addEventListener('click',()=>$('#personal-editor').close());
@@ -29,6 +29,6 @@ export function createPersonalUI({api,escape,currentRecord,reload,renderCurrent}
   });
   return {details(record) {
     const label=value=>{const grade=grades.find(([key])=>key===value);return grade?`${grade[1]} (${grade[0]})`:value||'Not graded';};
-    $('#personal-summary').innerHTML=`<h3>Your copy</h3><dl class="personal-summary"><div><dt>Rating</dt><dd>${record.rating?`${'★'.repeat(record.rating)} · ${record.rating}/5`:'Not rated'}</dd></div><div><dt>Record condition</dt><dd>${escape(label(record.media_condition))}</dd></div><div><dt>Sleeve condition</dt><dd>${escape(label(record.sleeve_condition))}</dd></div></dl>`;
+    $('#personal-summary').innerHTML=`<h3>Your copy</h3><dl class="personal-summary"><div><dt>Rating</dt><dd>${record.rating?`${'★'.repeat(record.rating)} · ${record.rating}/5`:'Not rated'}</dd></div><div><dt>Record condition</dt><dd>${escape(label(record.media_condition))}</dd></div><div><dt>Sleeve condition</dt><dd>${escape(label(record.sleeve_condition))}</dd></div><div><dt>Storage location</dt><dd>${escape(record.storage_location)||'Not added'}</dd></div></dl>`;
   }};
 }

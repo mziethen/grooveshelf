@@ -182,3 +182,7 @@ LABEL-01 generates standalone printable HTML using browser printing, with A4 and
 ### Metadata settings decisions
 
 META-04 provides persistent installation settings for automatic refresh of existing records and confirmation before importing details into a draft. Both default to enabled. Disabled refresh hides expired provider content and leaves explicit manual refresh available. Disabled confirmation fills a selected result into the draft without saving it. Manual corrections remain protected; provider expiry remains six hours. See [metadata settings](docs/settings.md).
+
+### Storage location decisions
+
+LATER-04 stores an optional free-text location of up to 200 characters on each physical copy. Locations are displayed, searchable and included in CSV. Personal editing works independently of metadata availability; legacy updates that omit location preserve it. Rapid capture clears the next draft location. No hierarchy, shelf ordering or automatic assignment is introduced. See [storage locations](docs/locations.md).

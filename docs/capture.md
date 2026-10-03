@@ -2,7 +2,7 @@
 
 The record editor suggests the first free inventory number. **Suggest a free LP number** requests another suggestion. Suggestions are not reservations: saving still checks that the number is unique. After **Save and add another**, the editor stays open and suggests the next free number, wrapping around at LP-99999.
 
-The next draft keeps the record format. **Keep artist for the next record** also retains the artist. Album title, year, tracks, Discogs selection, cover selection, rating, condition and notes are cleared. Regular **Save record** opens the saved record as usual. Wishlist acquisition uses regular saving.
+The next draft keeps the record format. **Keep artist for the next record** also retains the artist. Album title, year, tracks, Discogs selection, cover selection, rating, condition, storage location and notes are cleared. Regular **Save record** opens the saved record as usual. Wishlist acquisition uses regular saving.
 
 Possible duplicates appear while entering an artist and title or selecting a Discogs album. Matches use the same Discogs master/release reference, or equal artist and title after ignoring case, punctuation and extra spaces. Matching an album does not establish that two pressings are identical. The panel links to existing LP numbers without discarding the draft.
 
