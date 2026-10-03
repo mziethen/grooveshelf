@@ -166,3 +166,7 @@ EXPORT-01 exports one row per physical copy with personal fields, listening tota
 ### Listening suggestion decisions
 
 DISCOVER-01 selects physical copies uniformly within the selected group. Least-played means the lowest lifetime recorded play count; not-recently-played means at least 30 elapsed days since the latest play and includes never-played copies. Another suggestion avoids the preceding copy when alternatives exist. Suggestions and details navigation do not create plays. See [listening suggestions](docs/discovery.md).
+
+### Listening statistics decisions
+
+STATS-01 ranks physical copies separately. Date filters are inclusive Europe/Berlin calendar dates and month grouping follows that timezone including DST. Never-played uses lifetime history. Removed-copy events remain in monthly totals with an explicit count but not in current-copy rankings. Statistics reflect current persisted event corrections. See [listening statistics](docs/statistics.md).

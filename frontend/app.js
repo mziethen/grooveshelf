@@ -1,3 +1,4 @@
+import { createStatistics } from './statistics.js';
 import { createDiscovery } from './discovery.js';
 import { createCapture } from './capture.js';
 import { createWishlist } from './wishlist.js';
@@ -156,7 +157,8 @@ createCoverPicker({api, escape, currentRecord: () => state.selected, reload: loa
 $('#editor').addEventListener('close', () => discogs.close());
 $('#refresh').addEventListener('click', async () => {
   $('#refresh').disabled = true; $('#detail-error').textContent = '';
-  try { await api(`/records/${state.selected.id}/refresh`, {method: 'POST'}); createDiscovery({api,escape,cover,coverFallbacks,hideExpired,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
+  try { await api(`/records/${state.selected.id}/refresh`, {method: 'POST'}); createStatistics({api,escape,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
+createDiscovery({api,escape,cover,coverFallbacks,hideExpired,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
 await load(); await route(); }
   catch (error) { $('#detail-error').textContent = error.message; }
   finally { $('#refresh').disabled = false; }
@@ -203,5 +205,6 @@ async function pollMetadata() {
 }
 setInterval(pollMetadata, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pollMetadata(); });
+createStatistics({api,escape,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
 createDiscovery({api,escape,cover,coverFallbacks,hideExpired,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
 await load(); await route();
