@@ -1,3 +1,4 @@
+import { createListeningUI } from './listening.js';
 import { createDiscogsSearch } from './discogs.js';
 const $ = (selector) => document.querySelector(selector);
 const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null };
@@ -36,7 +37,7 @@ function render() {
     $('#empty-add')?.addEventListener('click', () => openEditor());
     return;
   }
-  if (state.view === 'grid') target.innerHTML = state.records.map(r => `<article class="record-entry"><button class="record-card" data-record="${escape(r.id)}">${cover(r)}<h3>${escape(r.title)}</h3><p>${escape(r.artist)}</p><div class="record-meta"><span>${escape(r.inventory_number)}</span><span>${escape(r.format)}${r.year ? ` · ${r.year}` : ''}</span></div></button>${attribution(r)}</article>`).join('');
+  if (state.view === 'grid') target.innerHTML = state.records.map(r => `<article class="record-entry"><button class="record-card" data-record="${escape(r.id)}">${cover(r)}<h3>${escape(r.title)}</h3><p>${escape(r.artist)}</p><div class="record-meta"><span>${escape(r.inventory_number)}</span><span>${r.favorite ? '★ ' : ''}${escape(r.format)}${r.year ? ` · ${r.year}` : ''}</span></div></button>${attribution(r)}</article>`).join('');
   else target.innerHTML = `<table><thead><tr><th>Inventory</th><th>Album</th><th>Artist</th><th>Format</th><th>Year</th></tr></thead><tbody>${state.records.map(r => `<tr><td>${escape(r.inventory_number)}</td><td><button data-record="${escape(r.id)}">${escape(r.title)}</button></td><td>${escape(r.artist)}${attribution(r)}</td><td>${escape(r.format)}</td><td>${r.year ?? '—'}</td></tr>`).join('')}</tbody></table>`;
   coverFallbacks(target);
   target.querySelectorAll('[data-record]').forEach(button => button.addEventListener('click', () => { location.hash = `record/${button.dataset.record}`; }));
@@ -69,6 +70,7 @@ function renderDetails(record) {
     $('#edit').disabled = record.metadata_status === 'unavailable';
     $('#detail-content').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2>${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year || 'Release year not added'}</p>${attribution(record)}</div></div>${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">Reference release labels: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => `<li><span>${escape(t.position) || '—'}</span>${escape(t.title)}</li>`).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
     coverFallbacks($('#detail-content'));
+    listening.details(record);
     if (!$('#details').open) $('#details').showModal();
 }
 function openEditor(record = null) {
@@ -97,6 +99,7 @@ $('#record-form').addEventListener('submit', async event => {
   } catch (error) { $('#form-error').textContent = error.message; }
   finally { $('#save').disabled = false; }
 });
+const listening = createListeningUI({ api, escape, reload: load, currentRecord: () => state.selected, renderCurrent: route });
 const discogs = createDiscogsSearch({ api, escape, onImport(data) {
   state.masterId = data.discogs_master_id;
   const form = $('#record-form');

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "test": "node tests/browser.cjs && node tests/discogs.cjs"
+    "test": "node tests/browser.cjs && node tests/discogs.cjs && node tests/listening.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
