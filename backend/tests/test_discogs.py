@@ -178,7 +178,7 @@ def test_migration_preserves_version_one_records(tmp_path):
         assert record['title']=='Legacy Album' and record['notes']=='Keep this'
         assert record['metadata_status']=='manual'
     with sqlite3.connect(path) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0]==5
+        assert db.execute('PRAGMA user_version').fetchone()[0]==6
     Database(path).initialize()  # Migration is repeatable.
 
 

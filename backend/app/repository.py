@@ -91,6 +91,9 @@ class CollectionRepository:
                 else:
                     db.execute('INSERT INTO copies (id, album_id, inventory_number, format, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)',
                                (record_id, album_id, data.inventory_number, data.format, data.notes, now))
+                for field in ['rating', 'media_condition', 'sleeve_condition']:
+                    if not existing or field in data.model_fields_set:
+                        db.execute(f'UPDATE copies SET {field}=? WHERE id=?', (getattr(data, field), record_id))
                 if imported:
                     db.execute('UPDATE copies SET cover_image_id=? WHERE id=?', (data.cover_image_id, record_id))
                 db.execute('DELETE FROM albums WHERE id NOT IN (SELECT album_id FROM copies)')
@@ -99,6 +102,14 @@ class CollectionRepository:
                 raise HTTPException(409, 'This inventory number is already in use') from error
             raise
         return self.get(record_id)
+
+    def save_personal(self, copy_id, data):
+        with self.database.connect() as db:
+            result = db.execute('UPDATE copies SET rating=?,media_condition=?,sleeve_condition=?,notes=? WHERE id=?',
+                                (data.rating,data.media_condition,data.sleeve_condition,data.notes,copy_id))
+            if not result.rowcount:
+                raise HTTPException(404, 'Record not found')
+        return self.get(copy_id)
 
     def select_cover(self, copy_id, image_id):
         with self.database.connect() as db:

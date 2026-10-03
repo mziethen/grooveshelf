@@ -9,7 +9,19 @@ class Track(BaseModel):
     title: str = Field(min_length=1, max_length=300)
 
 
-class RecordInput(BaseModel):
+Condition = Literal["M", "NM", "VG+", "VG", "G+", "G", "F", "P"]
+SleeveCondition = Literal["M", "NM", "VG+", "VG", "G+", "G", "F", "P", "Generic", "No Cover"]
+
+
+class PersonalFields(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    rating: int | None = Field(default=None, ge=1, le=5, strict=True)
+    media_condition: Condition | None = None
+    sleeve_condition: SleeveCondition | None = None
+    notes: str = Field(default="", max_length=10000)
+
+
+class RecordInput(PersonalFields):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     inventory_number: str = Field(pattern=r"^LP-[0-9]{5}$")
     artist: str = Field(min_length=1, max_length=300)
