@@ -121,6 +121,20 @@ class CollectionRepository:
                 db.execute('UPDATE copies SET storage_location=? WHERE id=?', (data.storage_location,copy_id))
         return self.get(copy_id)
 
+    def save_bulk_personal(self, data):
+        changes = data.changes.model_dump(exclude_unset=True)
+        placeholders = ','.join('?' for _ in data.record_ids)
+        with self.database.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            found = db.execute(f'SELECT id FROM copies WHERE id IN ({placeholders})', data.record_ids).fetchall()
+            if len(found) != len(data.record_ids):
+                raise HTTPException(409, 'Some selected records no longer exist. Reload the records and review your selection.')
+            # Field names come only from the validated, extra-forbidden personal changes model.
+            assignments = ','.join(f'{field}=?' for field in changes)
+            db.execute(f'UPDATE copies SET {assignments} WHERE id IN ({placeholders})',
+                       [*changes.values(), *data.record_ids])
+        return {'updated_count': len(data.record_ids), 'record_ids': data.record_ids}
+
     def select_cover(self, copy_id, image_id):
         with self.database.connect() as db:
             if not db.execute('UPDATE copies SET cover_image_id=? WHERE id=?', (image_id, copy_id)).rowcount:

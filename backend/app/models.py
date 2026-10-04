@@ -1,6 +1,6 @@
 from typing import Literal
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Track(BaseModel):
@@ -157,3 +157,36 @@ class MetadataSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     automatic_refresh: bool
     confirm_import: bool
+
+
+class BulkPersonalChanges(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, str_strip_whitespace=True)
+    storage_location: str | None = Field(default=None, max_length=200)
+    rating: int | None = Field(default=None, ge=1, le=5)
+    media_condition: Condition | None = None
+    sleeve_condition: SleeveCondition | None = None
+    favorite: bool | None = None
+
+    @model_validator(mode="after")
+    def valid_changes(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose at least one field to change")
+        for field in ["storage_location", "favorite"]:
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f"{field} cannot be null")
+        return self
+
+
+class BulkPersonalInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    record_ids: list[str] = Field(min_length=1, max_length=500)
+    changes: BulkPersonalChanges
+
+    @field_validator("record_ids")
+    @classmethod
+    def distinct_ids(cls, values):
+        if any(not value or len(value) > 100 for value in values):
+            raise ValueError("Invalid record ID")
+        if len(set(values)) != len(values):
+            raise ValueError("Select each record only once")
+        return values
