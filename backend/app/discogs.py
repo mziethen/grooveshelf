@@ -54,6 +54,49 @@ def public_images(metadata):
             for image in metadata.get('images', [])]
 
 
+def credit_entries(data):
+    """Keep provider scopes as text; do not infer track-range associations."""
+    result = []
+    seen = set()
+    def add(entries, scope=''):
+        if not isinstance(entries, list):
+            return
+        for entry in entries[:300]:
+            if len(result) >= 300:
+                return
+            if not isinstance(entry, dict):
+                continue
+            variant = entry.get('anv')
+            name = variant if isinstance(variant, str) and variant.strip() else entry.get('name')
+            role = entry.get('role')
+            if not isinstance(name, str) or not isinstance(role, str):
+                continue
+            name, role = name.strip()[:300], role.strip()[:500]
+            if not name or not role:
+                continue
+            tracks = entry.get('tracks')
+            tracks = tracks.strip()[:1000] if isinstance(tracks, str) and tracks.strip() else scope
+            key = (name, role, tracks)
+            if key not in seen:
+                seen.add(key); result.append({'name': name, 'role': role, 'tracks': tracks})
+    add(data.get('extraartists'))
+    def walk(items):
+        if not isinstance(items, list):
+            return
+        for item in items:
+            if len(result) >= 300:
+                return
+            if not isinstance(item, dict) or item.get('type_') == 'heading':
+                continue
+            position, title = item.get('position'), item.get('title')
+            scope = position if isinstance(position, str) and position.strip() else title
+            scope = scope.strip()[:1000] if isinstance(scope, str) else ''
+            add(item.get('extraartists'), scope)
+            walk(item.get('sub_tracks'))
+    walk(data.get('tracklist'))
+    return result
+
+
 class DiscogsProvider:
     def __init__(self, token=None, transport=None):
         self.token = os.getenv("DISCOGS_TOKEN", "").strip() if token is None else token
@@ -172,6 +215,8 @@ class DiscogsProvider:
                       "labels": [], "description": "", "reference_release_url": None, "image_url": image.get("uri"),
                       "source_url": f"https://www.discogs.com/{'master' if kind == 'masters' else 'release'}/{master_id}", "source_name": "Discogs",
                       "checked_at": timestamp(), "images": image_choices(images)}
+            result['credits'] = credit_entries(data)
+            result['credits_source_url'] = result['source_url'] if result['credits'] else None
             if kind == 'releases':
                 result['labels'] = list(dict.fromkeys(str(l.get('name', ''))[:200] for l in data.get('labels', []) if l.get('name')))[:30]
                 result['description'] = str(data.get('notes', ''))[:10000]
@@ -182,6 +227,10 @@ class DiscogsProvider:
                     result["reference_release_url"] = f"https://www.discogs.com/release/{release_id}"
                     result["labels"] = list(dict.fromkeys(str(l.get("name", ""))[:200] for l in release.get("labels", []) if l.get("name")))[:30]
                     result["description"] = str(release.get("notes", ""))[:10000]
+                    reference_credits = credit_entries(release)
+                    if reference_credits:
+                        result['credits'] = reference_credits
+                        result['credits_source_url'] = result['reference_release_url']
                 except HTTPException:
                     pass  # A missing main release must not prevent master import.
             if len(self.cache) >= 64:

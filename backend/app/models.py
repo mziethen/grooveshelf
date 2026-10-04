@@ -3,6 +3,13 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, model_serializer
 
 
+class Credit(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    name: str = Field(min_length=1, max_length=300)
+    role: str = Field(min_length=1, max_length=500)
+    tracks: str = Field(default="", max_length=1000)
+
+
 class Track(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     position: str = Field(default="", max_length=20)
@@ -73,6 +80,8 @@ class Record(RecordInput):
     styles: list[str] = Field(default_factory=list)
     labels: list[str] = Field(default_factory=list)
     description: str = ""
+    credits: list[Credit] = Field(default_factory=list, max_length=300)
+    credits_source_url: str | None = None
     metadata_status: str = "manual"
     metadata_expires_at: float | None = None
     protected_fields: list[str] = Field(default_factory=list)

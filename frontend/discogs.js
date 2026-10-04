@@ -1,3 +1,4 @@
+import { creditsMarkup } from './credits.js';
 import { trackMarkup } from './tracks.js';
 import { renderCoverGallery } from './covers.js';
 export function createDiscogsSearch({ api, escape, onImport }) {
@@ -42,7 +43,7 @@ export function createDiscogsSearch({ api, escape, onImport }) {
       if(current!==generation)return;
       if(data.metadata_expires_at && data.metadata_expires_at*1000<=Date.now())throw Error('This preview has expired. Search again to load current details.');
       if(settings?.confirm_import===false){onImport({...data,cover_image_id:null});output.replaceChildren();message.textContent='Details added directly to the draft. Review or edit them, then save your record.';return;}
-      output.innerHTML = `<div class="metadata-preview"><h3>${escape(data.title)}</h3><p>${escape(data.artist)}${data.year ? ` · ${data.year}` : ''}</p><p class="muted">${data.tracks.length} tracks${data.genres.length ? ` · ${escape(data.genres.join(', '))}` : ''}</p><a href="${escape(data.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a><ol class="preview-tracks detail-tracks">${data.tracks.map(t => trackMarkup(t, escape)).join('')}</ol><div id="discogs-cover-gallery"></div><button type="button" id="discogs-use" class="primary">Use these details</button></div>`;
+      output.innerHTML = `<div class="metadata-preview"><h3>${escape(data.title)}</h3><p>${escape(data.artist)}${data.year ? ` · ${data.year}` : ''}</p><p class="muted">${data.tracks.length} tracks${data.genres.length ? ` · ${escape(data.genres.join(', '))}` : ''}</p><a href="${escape(data.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a><ol class="preview-tracks detail-tracks">${data.tracks.map(t => trackMarkup(t, escape)).join('')}</ol>${creditsMarkup(data, escape)}<div id="discogs-cover-gallery"></div><button type="button" id="discogs-use" class="primary">Use these details</button></div>`;
       let selectedCover = null;
       renderCoverGallery(output.querySelector('#discogs-cover-gallery'), {images:data.images || [], escape, onSelect:id => {selectedCover=id;}});
       if (data.metadata_expires_at) expiryTimer = setTimeout(() => {

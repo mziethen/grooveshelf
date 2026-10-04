@@ -29,4 +29,4 @@ Older track objects with only `position` and `title` remain valid. Nonempty dura
 
 JSON and CSV retain durations inside track arrays. Printable HTML catalogs show durations next to track titles. Portable ZIP archives preserve them through verification and restore.
 
-This is the track-duration increment of issue #31. Songwriter, producer and other detailed credits remain planned in that issue.
+Songwriter, producer and other provider-derived credits are available in a separate disclosure; see [album and track credits](credits.md).
