@@ -1,5 +1,5 @@
 class SettingsService:
-    defaults = {'automatic_refresh': True, 'confirm_import': True}
+    defaults = {'automatic_refresh': True, 'confirm_import': True, 'show_expired_metadata': False}
 
     def __init__(self, database):
         self.database = database

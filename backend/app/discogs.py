@@ -280,11 +280,12 @@ class CoverStore:
         self.transport = transport
         self.lock = Lock()
         self.retry_after = 0
+        self.retain_expired = lambda: False
 
     def path(self, master_id):
         return self.directory / f"discogs-master-{master_id}.img"
 
-    def store(self, master_id, url):
+    def store(self, master_id, url, *, retain_expired=False):
         if monotonic() < self.retry_after:
             return False
         if not isinstance(url, str):
@@ -304,10 +305,11 @@ class CoverStore:
                             return False
             if not (content.startswith(b"\xff\xd8\xff") or content.startswith(b"\x89PNG\r\n\x1a\n") or (content.startswith(b"RIFF") and content[8:12] == b"WEBP")):
                 return False
+            retain_expired = retain_expired or self.retain_expired()
             with self.lock:
                 self.directory.mkdir(parents=True, exist_ok=True)
                 for old in self.directory.glob('discogs-master-*.img'):
-                    if timestamp() - old.stat().st_mtime >= MAX_AGE:
+                    if not retain_expired and timestamp() - old.stat().st_mtime >= MAX_AGE:
                         old.unlink(missing_ok=True)
                 path = self.path(master_id)
                 temporary = path.with_suffix(".tmp")
@@ -318,13 +320,15 @@ class CoverStore:
             self.retry_after = monotonic() + 30
             return False
 
-    def image_content(self, key, url, checked_at):
-        # Reuse bytes only within the validated provider snapshot's lifetime.
+    def image_content(self, key, url, checked_at, *, allow_expired=False):
+        # Expired bytes require an explicit installation-level display preference.
         with self.lock:
             path = self.path(key)
-            if path.exists() and checked_at <= path.stat().st_mtime and timestamp() - path.stat().st_mtime < MAX_AGE:
+            if path.exists() and (allow_expired or (checked_at <= path.stat().st_mtime and timestamp() - path.stat().st_mtime < MAX_AGE)):
                 return path.read_bytes()
-        if not self.store(key, url):
+        if allow_expired and timestamp() - checked_at >= MAX_AGE:
+            raise HTTPException(404, "This saved image is not cached. Refresh the record to download it.")
+        if not self.store(key, url, retain_expired=allow_expired):
             raise HTTPException(502, 'Image could not be downloaded. Choose another image or retry later.')
         with self.lock:
             try:

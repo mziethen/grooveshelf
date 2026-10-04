@@ -114,7 +114,7 @@ function renderDetails(record) {
     $('#refresh').hidden = !record.source_url;
     $('#choose-cover').hidden = !record.source_url;
     $('#edit').disabled = record.metadata_status === 'unavailable';
-    $('#detail-overview').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2 id="detail-title">${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year ? 'Saved year: ' + escape(record.year) : 'Saved year not added'}</p>${attribution(record)}</div></div>`;
+    $('#detail-overview').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2 id="detail-title">${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year ? 'Saved year: ' + escape(record.year) : 'Saved year not added'}</p>${attribution(record)}${record.metadata_status === 'stale' ? `<p class="metadata-stale-notice muted">Saved Discogs data · Last checked ${record.metadata_checked_at ? escape(new Date(record.metadata_checked_at * 1000).toLocaleString()) : 'at least six hours ago'}. These details may be outdated. You can refresh them in Manage record.</p>` : ''}</div></div>`;
     $('#detail-content').innerHTML = `${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">${record.discogs_release_id ? 'Selected release labels' : 'Reference release labels'}: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => trackMarkup(t, escape)).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.cover_selection_status === 'missing' ? '<p class="error">Your selected Discogs image is no longer available. Choose another cover.</p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
     $('#detail-content').insertAdjacentHTML('afterbegin', pressingMarkup(record, escape));
     $('#detail-content').insertAdjacentHTML('beforeend', creditsMarkup(record, escape) + streamingLinksMarkup(record, escape));
@@ -226,6 +226,7 @@ for (const view of ['grid','table']) $(`#${view}-view`).addEventListener('click'
 window.addEventListener('hashchange', route);
 function hideExpired(record) {
   if (!record.metadata_expires_at || record.metadata_expires_at * 1000 > Date.now()) return record;
+  if (record.show_expired_metadata) return {...record, metadata_status: 'stale'};
   const result = {...record, metadata_status: 'unavailable', cover_url: null, genres: [], styles: [], labels: [], catalog_numbers: [], original_year: null, pressing_year: null, original_year_source_url: null, country: '', credits: [], credits_source_url: null, description: ''};
   for (const [field, fallback] of [['artist', 'Unknown artist'], ['title', 'Metadata temporarily unavailable'], ['year', null], ['tracks', []]]) {
     if (!record.protected_fields.includes(field)) result[field] = fallback;
@@ -251,7 +252,14 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 createAppearance();
 createRecordQR({currentRecord:()=>state.selected});
 createBulkEditor({api,escape,onSaved:async count=>{await load();$('#message').textContent=`Updated ${count} ${count===1?'record':'records'}.`;}});
-createSettings({api,onSaved:load});
+createSettings({api,onSaved:async settings=>{
+  state.records = state.records.map(record=>hideExpired({...record, show_expired_metadata:settings.show_expired_metadata}));
+  if (state.selected) state.selected = hideExpired({...state.selected, show_expired_metadata:settings.show_expired_metadata});
+  render();
+  if ($('#details').open && state.selected) renderDetails(state.selected);
+  await load();
+  if ($('#details').open) await route();
+}});
 createLabels({api,escape});
 createStatistics({api,escape,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
 createDiscovery({api,escape,cover,coverFallbacks,hideExpired,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});

@@ -74,7 +74,8 @@ def test_import_number_allocation_multiple_copies_and_repeat_sync(setup):
     assert record['cover_url']=='/api/covers/discogs/r100'
     assert client.get(record['cover_url']).status_code==200
     options=client.get('/api/records/'+one['copy_id']+'/cover-options').json()
-    assert '/releases/100/images/' in options['images'][1]['preview_url']
+    assert f"/records/{one['copy_id']}/cover-images/" in options['images'][1]['preview_url']
+    assert client.get(options['images'][1]['preview_url']).status_code == 200
     assert client.get(options['images'][1]['preview_url']).status_code==200
     cover=client.put('/api/records/'+one['copy_id']+'/cover',json={'image_id':options['images'][1]['id']}).json()
     assert client.get(cover['cover_url']).status_code==200

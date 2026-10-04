@@ -15,7 +15,10 @@ class MetadataService:
     def snapshot(self, master_id=None, force=False, release_id=None):
         metadata = self.provider.release(release_id, force=force) if release_id else self.provider.master(master_id, force=force)
         # Do not download until an import is saved or saved content needs refresh.
-        metadata['cover_cached'] = self.covers.store(source_key(metadata), metadata.get('image_url'))
+        retain = self.settings.get()['show_expired_metadata']
+        metadata['cover_cached'] = self.covers.store(source_key(metadata), metadata.get('image_url'), retain_expired=retain)
+        if not metadata['cover_cached'] and retain and self.covers.path(source_key(metadata)).exists():
+            metadata['cover_cached'] = True
         if not metadata['cover_cached']:
             self.covers.clear(source_key(metadata))
         return metadata
@@ -38,23 +41,35 @@ class MetadataService:
         result['metadata_status'] = 'unavailable'
         return result
 
+    def cached(self, record):
+        """Apply display policy without making provider requests."""
+        result = dict(record)
+        result["show_expired_metadata"] = self.settings.get()["show_expired_metadata"]
+        result["metadata_checked_at"] = record["_metadata"].get("checked_at")
+        if record.get("metadata_expires_at") and not fresh(record["_metadata"]):
+            if result["show_expired_metadata"]:
+                result["metadata_status"] = "stale"
+            else:
+                return self.hide_stale(result)
+        return result
+
     def present(self, record):
         metadata = record['_metadata']
         if not (metadata.get('discogs_master_id') or metadata.get('discogs_release_id')) or fresh(metadata):
-            return record
+            return self.cached(record)
         with self.lock:
             # Another request may already have refreshed this album.
             record = self.repository.get(record['id'])
             if fresh(record['_metadata']):
-                return record
+                return self.cached(record)
             if not self.settings.get()['automatic_refresh']:
-                return self.hide_stale(record)
+                return self.cached(record)
             try:
                 snapshot = self.snapshot(metadata.get('discogs_master_id'), release_id=metadata.get('discogs_release_id'))
                 self.repository.refresh_album(record['album_id'], snapshot)
-                return self.repository.get(record['id'])
+                return self.cached(self.repository.get(record['id']))
             except HTTPException:
-                return self.hide_stale(record)
+                return self.cached(record)
 
     def save(self, data, copy_id=None, wish_id=None):
         if (data.discogs_master_id or data.discogs_release_id) and (copy_id or data.album_id):
@@ -94,7 +109,7 @@ class MetadataService:
                 image = next((i for i in record['_metadata'].get('images', []) if i['id'] == image_id), None)
                 if not image:
                     raise HTTPException(409, 'The selected image is no longer available. Choose another cover.')
-                self.covers.image_content(f"{source_key(record['_metadata'])}-{image_id}", image['url'], record['_metadata']['checked_at'])
+                self.covers.image_content(f"{source_key(record['_metadata'])}-{image_id}", image['url'], record['_metadata']['checked_at'], allow_expired=record.get('show_expired_metadata', False))
             return self.repository.select_cover(copy_id, image_id)
 
     def prune_covers(self):

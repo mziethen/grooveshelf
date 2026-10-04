@@ -1,5 +1,5 @@
 export function pressingMarkup(record, escape) {
-  if (record.metadata_status === 'unavailable' || (record.metadata_expires_at && record.metadata_expires_at * 1000 <= Date.now())) return '';
+  if (record.metadata_status === 'unavailable' || (!record.show_expired_metadata && record.metadata_expires_at && record.metadata_expires_at * 1000 <= Date.now())) return '';
   if (!record.discogs_master_id && !record.discogs_release_id) return '';
   const facts = [['Original release year', record.original_year || 'Not available'],
     ['Pressing year', record.discogs_release_id ? (record.pressing_year || 'Not available') : 'Choose a pressing'],

@@ -9,3 +9,5 @@ Opening a search does not log a play, start a listening session, assign an NFC t
 Links use the current saved artist and title, including manual corrections. When provider metadata is unavailable or expired, links are hidden unless both artist and title are protected personal corrections. Empty artist or title values also hide the section. Metadata refreshes and record edits update the search terms automatically.
 
 Qobuz opens its public catalog search through the regional storefront router. The destination may redirect to your regional Qobuz store; it is not a direct web-player or playback link.
+
+Expired saved provider data can remain visible when the installation opts into [displaying saved Discogs snapshots](settings.md). The default still hides expired details.
