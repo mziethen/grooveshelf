@@ -62,6 +62,7 @@ jobs:
           curl --fail http://localhost:8080/vendor/qrcode-generator.js | python -c 'import sys; assert "export default qrcode" in sys.stdin.read()'
           curl --fail http://localhost:8080/streaming.js | python -c 'import sys; assert "export function albumSearchLinks" in sys.stdin.read()'
           curl --fail http://localhost:8080/tracks.js | python -c 'import sys; assert "export function trackLine" in sys.stdin.read()'
+          curl --fail http://localhost:8080/pressings.js | python -c 'import sys; assert "export function pressingMarkup" in sys.stdin.read()'
           curl --fail http://localhost:8080/credits.js | python -c 'import sys; assert "export function creditsMarkup" in sys.stdin.read()'
           curl --fail -X POST http://localhost:8080/api/records -H 'Content-Type: application/json' --data '{"inventory_number":"LP-00001","artist":"CI artist","title":"Persistence check"}'
           docker compose restart backend
