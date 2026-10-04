@@ -1,3 +1,4 @@
+const {openNavigation}=require('./navigation.cjs');
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 const base=process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
@@ -30,7 +31,7 @@ const base=process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
   await page.locator('#release-save').click();await page.locator('#release-dialog').waitFor({state:'hidden'});
   assert(releaseLinked);assert.equal(record.title,'My Album');
   await page.locator('#close-details').click();await page.locator('#details').waitFor({state:'hidden'});
-  await page.locator('#sync-open').click();await page.locator('[data-action="remote"] select').waitFor();
+  await openNavigation(page);await page.locator('#sync-open').click();await page.locator('[data-action="remote"] select').waitFor();
   assert.equal(applied.length,0,'Preview must not write anything');
   await page.locator('[data-action="remote"] select').selectOption('link:sync-copy');
   await page.locator('[data-action="local"] select').selectOption('export');

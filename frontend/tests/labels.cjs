@@ -1,3 +1,4 @@
+const {openNavigation}=require('./navigation.cjs');
 const assert=require('node:assert/strict');const fs=require('node:fs');const {chromium}=require('playwright');const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
 (async()=>{
  const {labelDocument}=await import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync(require('node:path').join(__dirname,'../labels.js'),'utf8')).toString('base64'));
@@ -8,9 +9,9 @@ const assert=require('node:assert/strict');const fs=require('node:fs');const {ch
  assert.equal(labelDocument(numbers,{...values,paper:'Letter'},value=>value).rows,6);
  const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:390,height:844}});const ids=[];const errors=[];page.on('pageerror',e=>errors.push(e.message));
  try{
-  await page.goto(base);await page.locator('#labels-open').click();await page.getByText('Your collection is empty. Add records before printing labels.').waitFor();await page.locator('#labels-close').click();
+  await page.goto(base);await openNavigation(page);await page.locator('#labels-open').click();await page.getByText('Your collection is empty. Add records before printing labels.').waitFor();await page.locator('#labels-close').click();
   for(const inventory_number of ['LP-88441','LP-88442']){const response=await page.request.post(base+'/api/records',{data:{inventory_number,artist:'Label Artist',title:'Label Album'}});assert(response.ok());ids.push((await response.json()).id);}
-  await page.locator('#labels-open').click();await page.getByText('0 selected · 2 visible').waitFor();await page.locator('#labels-filter').fill('88441');await page.locator('#labels-select').click();await page.getByText('1 selected · 1 visible').waitFor();await page.locator('#labels-filter').fill('');await page.locator('#labels-select').click();await page.getByText('2 selected · 2 visible').waitFor();
+  await openNavigation(page);await page.locator('#labels-open').click();await page.getByText('0 selected · 2 visible').waitFor();await page.locator('#labels-filter').fill('88441');await page.locator('#labels-select').click();await page.getByText('1 selected · 1 visible').waitFor();await page.locator('#labels-filter').fill('');await page.locator('#labels-select').click();await page.getByText('2 selected · 2 visible').waitFor();
   await page.locator('#labels-form [name=skip]').fill('1');await page.getByRole('button',{name:'Build preview'}).click();await page.locator('#labels-output').waitFor({state:'visible'});const frame=page.frameLocator('#labels-preview');await frame.getByText('LP-88441',{exact:true}).waitFor();assert.equal(await frame.locator('.label').count(),3);assert.equal(await frame.locator('.label').first().textContent(),'');
   await page.locator('#labels-preview').scrollIntoViewIfNeeded();await page.screenshot({path:'/tmp/grooveshelf-labels-mobile.png'});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   const preview=page.frames().find(f=>f.parentFrame());await preview.evaluate(()=>{window.print=()=>{window.printCalled=true;};});await page.locator('#labels-print').click();assert(await preview.evaluate(()=>window.printCalled));

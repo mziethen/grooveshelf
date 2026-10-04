@@ -55,3 +55,7 @@ Check the corresponding issue before implementing a feature. Completion requires
 ## License
 
 GrooveShelf is available under the [MIT license](LICENSE).
+
+### Appearance
+
+Choose **Gallery**, **Studio**, or **Listening Room** from the appearance menu in the top right. The selection is stored in this browser and restored before the interface paints. Themes share the same collection, controls, and forms. On smaller screens, open the navigation menu for wishlist, discovery, statistics, Discogs sync, labels, exports, and settings. The menu supports keyboard focus, Escape, and touch; reduced-motion preferences are respected.
