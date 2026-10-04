@@ -1,6 +1,6 @@
 # Album and track credits
 
-Record details and the Discogs preview include a collapsed **Album & track credits** section when credits are available. Open it to see credited names, roles and any scope supplied by Discogs. The native disclosure supports keyboard navigation; long text wraps on small screens.
+Record details and the Discogs preview include a collapsed **Album & track credits** section when credits are available. Open it to see credited names, roles and any scope supplied by Discogs. The native disclosure supports keyboard navigation; long text wraps on small screens. An open disclosure and its keyboard focus survive background refreshes while credits remain available.
 
 ## Source and scope
 
