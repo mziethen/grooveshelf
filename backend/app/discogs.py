@@ -5,6 +5,7 @@ from threading import Lock
 from time import monotonic
 from urllib.parse import urlsplit
 import os
+import re
 import hashlib
 import httpx
 from fastapi import HTTPException
@@ -147,8 +148,14 @@ class DiscogsProvider:
                     if item.get("sub_tracks"):
                         flatten(item["sub_tracks"])
                     elif item.get("type_") != "heading" and str(item.get("title", "")).strip():
-                        tracks.append({"position": str(item.get("position", ""))[:20],
-                                       "title": str(item["title"]).strip()[:300]})
+                        track = {"position": str(item.get("position", ""))[:20],
+                                 "title": str(item["title"]).strip()[:300]}
+                        duration = item.get('duration')
+                        if isinstance(duration, str):
+                            duration = duration.strip()
+                            if re.fullmatch(r'[0-9]{1,3}:[0-5][0-9]|[0-9]{1,2}:[0-5][0-9]:[0-5][0-9]', duration):
+                                track['duration'] = duration
+                        tracks.append(track)
             flatten(data.get("tracklist", []))
             artists = data.get("artists", [])
             artist = " ".join((str(a.get("anv") or a.get("name", "")) + " " + str(a.get("join", ""))).strip() for a in artists).strip()

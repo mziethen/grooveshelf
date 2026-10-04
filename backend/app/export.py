@@ -47,7 +47,7 @@ def collection_html(records):
         return escape(str(value)) if value is not None else '—'
     articles = []
     for record in records:
-        tracks = ''.join(f'<li>{text(track.get("position", ""))} — {text(track["title"])}</li>'
+        tracks = ''.join(f'<li>{text(track.get("position", ""))} — {text(track["title"])}{(" · " + text(track["duration"])) if track.get("duration") else ""}</li>'
                          for track in record.get('tracks', []))
         facts = [('Format', record.get('format')), ('Year', record.get('year')),
                  ('Location', record.get('storage_location') or None), ('Rating', record.get('rating')),
