@@ -8,3 +8,14 @@ exports.openNavigation = async page => {
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
   await page.waitForFunction(() => document.querySelector('#nav-toggle').getAttribute('aria-expanded') === 'true');
 };
+
+exports.openRecordTools = async page => {
+  const tools = page.locator('#record-tools');
+  await tools.waitFor();
+  if (!await tools.evaluate(element => element.open)) await tools.locator('summary').click();
+};
+exports.openExports = async page => {
+  await exports.openNavigation(page);
+  const tools = page.locator('#export-options');
+  if (!await tools.evaluate(element => element.open)) await tools.locator('summary').click();
+};

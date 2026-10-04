@@ -1,3 +1,4 @@
+const {openExports}=require('./navigation.cjs');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const {chromium} = require('playwright');
@@ -9,7 +10,7 @@ const base = process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
     await page.goto(base);
     const before = await (await page.request.get(base+'/api/records')).json();
     for (const [label, extension] of [['Export JSON','json'],['Printable catalog','html']]) {
-      const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link',{name:label,exact:true}).click()]);
+      await openExports(page);const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link',{name:label,exact:true}).click()]);
       assert.equal(download.suggestedFilename(), 'grooveshelf-collection.'+extension);
       const content = fs.readFileSync(await download.path(), 'utf8');
       if (extension === 'json') {

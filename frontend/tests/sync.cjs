@@ -1,3 +1,4 @@
+const {openRecordTools}=require('./navigation.cjs');
 const {openNavigation}=require('./navigation.cjs');
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
@@ -25,7 +26,7 @@ const base=process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
  });
  try{
   await page.clock.install();await page.goto(base);
-  await page.getByRole('button',{name:'My Album',exact:false}).click();await page.locator('#link-release').click();
+  await page.getByRole('button',{name:'My Album',exact:false}).click();await openRecordTools(page);await page.locator('#link-release').click();
   await page.locator('#release-id').fill('100');await page.locator('#release-load').click();
   await page.locator('#release-preview').getByRole('heading',{name:'Discogs Album'}).waitFor();assert(!releaseLinked);
   await page.locator('#release-save').click();await page.locator('#release-dialog').waitFor({state:'hidden'});
