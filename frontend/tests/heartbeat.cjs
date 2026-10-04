@@ -1,3 +1,4 @@
+const {openRecordTools}=require('./navigation.cjs');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const base = process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
@@ -48,7 +49,7 @@ const base = process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
     await page.getByRole('button',{name:'Updated Album',exact:true}).click();
     await page.locator('#details').waitFor({state:'visible'});
     for (let i=0;i<2;i++) {
-      await page.locator('#refresh').click();
+      await openRecordTools(page);await page.locator('#refresh').click();
       await page.waitForFunction(() => !document.querySelector('#refresh').disabled);
     }
     const beforeRefresh = reads;

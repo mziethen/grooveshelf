@@ -17,8 +17,11 @@ const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
   await page.locator('#record-form [name=artist]').fill('Timed Artist');
   await page.locator('#record-form [name=title]').fill('Timed Album');
   await page.locator('#record-form [name=tracks]').fill('A1 | Opening song with a deliberately long title that wraps on small screens | 3:45\nB1 | Finale | 1:02:03');
-  await page.locator('#save').click();await page.locator('#show-qr').waitFor();
-  id=(await(await page.request.get(base+'/api/records')).json()).find(r=>r.inventory_number==='LP-88701').id;
+  assert.equal(await page.locator('#record-form [name=inventory_number]').inputValue(),'LP-88701');
+  const savedResponse=page.waitForResponse(response=>response.url()===base+'/api/records'&&response.request().method()==='POST'&&response.status()===201);
+  await page.locator('#save').click();const saved=await(await savedResponse).json();id=saved.id;
+  assert.equal(saved.inventory_number,'LP-88701');
+  await page.locator('#editor').waitFor({state:'hidden'});await page.locator('#details').getByRole('heading',{name:'Timed Album',exact:true}).waitFor();
   const durations=page.locator('#detail-content .track-duration');assert.deepEqual(await durations.allTextContents(),['3:45','1:02:03']);
   for(const theme of ['gallery','studio','listening']){
    await page.evaluate(theme=>document.querySelector(`button[data-theme=${theme}]`).click(),theme);

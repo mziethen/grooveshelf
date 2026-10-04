@@ -19,7 +19,7 @@ export function createAppearance() {
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'){$('.theme-picker').open=false;if(opened){event.preventDefault();close();}}
     if(opened&&event.key==='Tab'){
-      const items=[...$('#app-navigation').querySelectorAll('button,a[href]')].filter(element=>element.getClientRects().length);const first=items[0],last=items.at(-1);
+      const items=[...$('#app-navigation').querySelectorAll('button,a[href],summary')].filter(element=>element.getClientRects().length);const first=items[0],last=items.at(-1);
       if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
     }
   });

@@ -17,7 +17,7 @@ import { createCoverPicker } from './covers.js';
 import { createListeningUI } from './listening.js';
 import { createDiscogsSearch } from './discogs.js';
 const $ = (selector) => document.querySelector(selector);
-const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, releaseId: null, coverImageId: null, wishId: null, routeError: null, trackDraft: [] };
+const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, releaseId: null, coverImageId: null, wishId: null, routeError: null, trackDraft: [], hasLoaded: false, loadError: null };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(path, options = {}) {
   const response = await fetch(`/api${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
@@ -54,11 +54,19 @@ function render() {
   $('#count').textContent = filtered ? `${records.length} of ${state.records.length} records match` : `${records.length} ${records.length === 1 ? 'record' : 'records'}`;
   $('#grid-view').setAttribute('aria-pressed', state.view === 'grid');
   $('#table-view').setAttribute('aria-pressed', state.view === 'table');
+  $('#clear-filters').hidden = !($('#search').value || filtered);
+  $('#retry-load').hidden = !state.loadError;
   const target = $('#collection');
+  if (state.loadError && (!state.hasLoaded || !state.records.length)) {
+    target.className = ''; $('#count').textContent = 'Unavailable';
+    updateCollection(target, '<div class="empty"><h3>Your collection could not be loaded.</h3><p>Your records have not been changed. Check the server connection and use Retry loading.</p></div>');
+    return;
+  }
   target.className = state.view === 'grid' ? 'grid' : 'table-wrap';
   if (!records.length) {
     target.className = '';
-    if (!updateCollection(target, `<div class="empty"><h3>${($('#search').value || filtered) ? 'Nothing here just yet.' : 'Your shelf is waiting.'}</h3><p>${($('#search').value || filtered) ? 'Try different search words or clear the missing-information filters.' : 'Add your first record and start making<br>a little home for your collection.'}</p>${($('#search').value || filtered) ? '' : '<button class="primary" id="empty-add">＋ Add your first record</button>'}</div>`)) return;
+    if (!updateCollection(target, `<div class="empty"><h3>${($('#search').value || filtered) ? 'No matching records.' : 'Your shelf is waiting.'}</h3><p>${($('#search').value || filtered) ? 'Try different search words or clear the missing-information filters.' : 'Add your first record and start making<br>a little home for your collection.'}</p>${($('#search').value || filtered) ? '<button id="empty-clear">Clear search &amp; filters</button>' : '<button class="primary" id="empty-add">＋ Add your first record</button>'}</div>`)) return;
+    $('#empty-clear')?.addEventListener('click', clearFilters);
     $('#empty-add')?.addEventListener('click', () => openEditor());
     return;
   }
@@ -75,8 +83,9 @@ async function load() {
   try {
     const records = await api(`/records?q=${encodeURIComponent($('#search').value)}`);
     if (request !== state.request) return;
+    state.hasLoaded = true; state.loadError = null;
     state.records = records.map(hideExpired); $('#message').textContent = state.routeError || ''; render();
-  } catch (error) { if (request === state.request) { state.records = state.records.map(hideExpired); render(); $('#message').textContent = `${error.message} Check that the server is available.`; } }
+  } catch (error) { if (request === state.request) { state.loadError = error.message; state.records = state.records.map(hideExpired); render(); $('#message').textContent = `${error.message} Check that the server is available.`; } }
 }
 async function route() {
   const match = location.hash.match(/^#record\/([a-zA-Z0-9-]+)$/);
@@ -105,12 +114,16 @@ function renderDetails(record) {
     $('#refresh').hidden = !record.source_url;
     $('#choose-cover').hidden = !record.source_url;
     $('#edit').disabled = record.metadata_status === 'unavailable';
-    $('#detail-content').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2>${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year ? 'Saved year: ' + escape(record.year) : 'Saved year not added'}</p>${attribution(record)}</div></div>${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">${record.discogs_release_id ? 'Selected release labels' : 'Reference release labels'}: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => trackMarkup(t, escape)).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.cover_selection_status === 'missing' ? '<p class="error">Your selected Discogs image is no longer available. Choose another cover.</p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
-    $('#detail-content').insertAdjacentHTML('beforeend', pressingMarkup(record, escape) + creditsMarkup(record, escape) + streamingLinksMarkup(record, escape));
+    $('#detail-overview').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2 id="detail-title">${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year ? 'Saved year: ' + escape(record.year) : 'Saved year not added'}</p>${attribution(record)}</div></div>`;
+    $('#detail-content').innerHTML = `${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">${record.discogs_release_id ? 'Selected release labels' : 'Reference release labels'}: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => trackMarkup(t, escape)).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.cover_selection_status === 'missing' ? '<p class="error">Your selected Discogs image is no longer available. Choose another cover.</p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
+    $('#detail-content').insertAdjacentHTML('afterbegin', pressingMarkup(record, escape));
+    $('#detail-content').insertAdjacentHTML('beforeend', creditsMarkup(record, escape) + streamingLinksMarkup(record, escape));
+    if (!sameRecord) { $('#record-tools').open = false; $('#details').scrollTop = 0; }
     const currentCredits = $('#detail-content .album-credits');
     if (currentCredits) currentCredits.open = creditsOpen;
     if (creditsFocused) (currentCredits?.querySelector('summary') || $('#close-details')).focus({preventScroll:true});
     $('#details').dataset.recordId = record.id;
+    coverFallbacks($('#detail-overview'));
     coverFallbacks($('#detail-content'));
     personal.details(record);
     listening.details(record);
@@ -198,8 +211,17 @@ $('#confirm-delete-button').addEventListener('click', async () => {
   finally { button.disabled = false; }
 });
 let timer;
+async function clearFilters() {
+  clearTimeout(timer);
+  $('#search').value = '';
+  for (const name of ['cover','tracks','nfc']) $('#missing-'+name).checked = false;
+  $('#search').focus();
+  await load();
+}
+$('#clear-filters').addEventListener('click', clearFilters);
+$('#retry-load').addEventListener('click', load);
 for (const name of ['cover','tracks','nfc']) $('#missing-'+name).addEventListener('change',render);
-$('#search').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(load, 200); });
+$('#search').addEventListener('input', () => { $('#clear-filters').hidden = !($('#search').value || ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked)); clearTimeout(timer); timer = setTimeout(load, 200); });
 for (const view of ['grid','table']) $(`#${view}-view`).addEventListener('click', () => { state.view = view; localStorage.setItem('grooveshelf-view', view); render(); });
 window.addEventListener('hashchange', route);
 function hideExpired(record) {

@@ -1,3 +1,4 @@
+const {openRecordTools}=require('./navigation.cjs');
 const assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const {join}=require('node:path');
@@ -28,7 +29,7 @@ const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
    }
   }
   await page.setViewportSize({width:390,height:844});await section.scrollIntoViewIfNeeded();await page.locator('#details').screenshot({path:'/tmp/grooveshelf-pressings-mobile.png'});
-  await page.locator('#link-release').click();
+  await openRecordTools(page);await page.locator('#link-release').click();
   await page.route('**/api/metadata/discogs/releases/100',route=>route.fulfill({json:{...metadata,title:'Pressing Album',artist:'Pressing Artist',is_vinyl:true,year:2008,source_url:'https://www.discogs.com/release/100'}}));
   await page.locator('#release-id').fill('100');await page.locator('#release-load').click();await page.locator('#release-preview .pressing-details').waitFor();
   assert((await page.locator('#release-preview').textContent()).includes('1995'));assert(!await page.locator('#release-save').isDisabled());
