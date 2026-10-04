@@ -165,6 +165,7 @@ $('#refresh').addEventListener('click', async () => {
   finally { $('#refresh').disabled = false; }
 });
 $('#add').addEventListener('click', () => openEditor());
+$('#add').disabled = false;
 document.querySelectorAll('.close-editor').forEach(button => button.addEventListener('click', () => $('#editor').close()));
 $('#close-details').addEventListener('click', () => { location.hash = ''; });
 $('#details').addEventListener('cancel', () => { location.hash = ''; });
