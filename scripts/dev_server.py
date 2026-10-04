@@ -43,6 +43,11 @@ class Handler(SimpleHTTPRequestHandler):
     do_DELETE = proxy
 
 
+class DevelopmentServer(ThreadingHTTPServer):
+    # Browsers open many connections together when loading ES module imports.
+    request_queue_size = 64
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=8080)
@@ -50,4 +55,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     Handler.backend_url = args.backend_url.rstrip('/')
     print(f'GrooveShelf frontend: http://127.0.0.1:{args.port}', flush=True)
-    ThreadingHTTPServer(('127.0.0.1', args.port), Handler).serve_forever()
+    DevelopmentServer(('127.0.0.1', args.port), Handler).serve_forever()
