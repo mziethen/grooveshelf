@@ -1,7 +1,7 @@
 const {openNavigation}=require('./navigation.cjs');
 const assert=require('node:assert/strict');const fs=require('node:fs');const {chromium}=require('playwright');const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
 (async()=>{
- const {labelDocument}=await import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync(require('node:path').join(__dirname,'../labels.js'),'utf8')).toString('base64'));
+ const {labelDocument}=await import(require('node:url').pathToFileURL(require('node:path').join(__dirname,'../labels.js')).href);
  const values={paper:'A4',columns:3,width:63.5,height:38.1,margin_x:7,margin_y:15,gap_x:2,gap_y:0,skip:0};
  const numbers=Array.from({length:22},(_,n)=>`LP-${String(n+1).padStart(5,'0')}`);
  const document=labelDocument(numbers,values,value=>value);assert.equal(document.capacity,21);assert.equal(document.pages,2);assert.equal(labelDocument(numbers.slice(0,21),{...values,skip:1},value=>value).pages,2);

@@ -2,7 +2,7 @@
 
 Updated: October 4, 2026. Derived from the completed requirements questionnaire. The original German answers are retained locally as source material.
 
-This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. Discogs metadata import, covers, source attribution and protected manual edits have also been merged. Station sessions, tag associations, history corrections and favorites have also been merged. Cover selection and manual Discogs collection synchronization have been merged. Personal ratings, condition fields and a separate wishlist are implemented. Rapid capture, identifier lookup, labels, portable archives, storage locations, statistics, discovery, metadata settings, three appearance themes, and reviewed bulk editing of personal fields are also implemented. Physical PN532 integration remains open. Stable IDs are used in GitHub issues; [the mapping](docs/requirement-issues.json) preserves traceability. GitHub issues are the source of current work status.
+This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. Discogs metadata import, covers, source attribution and protected manual edits have also been merged. Station sessions, tag associations, history corrections and favorites have also been merged. Cover selection and manual Discogs collection synchronization have been merged. Personal ratings, condition fields and a separate wishlist are implemented. Rapid capture, identifier lookup, labels, portable archives, storage locations, statistics, discovery, metadata settings, three appearance themes, and reviewed bulk editing of personal fields and QR record links are also implemented. Physical PN532 integration remains open. Stable IDs are used in GitHub issues; [the mapping](docs/requirement-issues.json) preserves traceability. GitHub issues are the source of current work status.
 
 ## Product goal
 
@@ -177,7 +177,7 @@ CAPTURE-03 searches Discogs releases by typed barcode or catalog number. Barcode
 
 ### Inventory label decisions
 
-LABEL-01 generates standalone printable HTML using browser printing, with A4 and Letter page sizes, configurable millimeter dimensions, columns, symmetric margins, gaps and skipped first-sheet positions. Labels contain only LP numbers. Defaults are editable starting dimensions; users should test alignment at actual size on plain paper. QR codes remain dependent on LATER-05. See [inventory labels](docs/labels.md).
+LABEL-01 generates standalone printable HTML using browser printing, with A4 and Letter page sizes, configurable millimeter dimensions, columns, symmetric margins, gaps and skipped first-sheet positions. Plain labels contain LP numbers; optional QR labels add links based on stable copy IDs. Defaults are editable starting dimensions; users should test alignment at actual size on plain paper. LATER-05 supplies optional QR links with configurable collection addresses and print-size checks. See [inventory labels](docs/labels.md).
 
 ### Metadata settings decisions
 
@@ -190,3 +190,5 @@ LATER-04 stores an optional free-text location of up to 200 characters on each p
 ### Portable archive and backup decisions
 
 EXPORT-02 and OPS-02 use a versioned ZIP containing a SQLite snapshot and local cover files with checksums. Live browser export and offline export/verification are available. Restore validates input and publishes only a new data directory; it never replaces or merges an existing collection. Pending sessions are canceled and readers reset on transfer. Environment files and secrets are excluded; credentials and hardware setup must be configured separately. Backup destination is a user-chosen file, copied off the Pi; frequency is manual after significant changes and before upgrades. See [portable archives](docs/archives.md).
+
+LATER-05 provides locally generated QR links in copy details and optional printable labels. Links use stable copy IDs and retain their identity after renumbering. Opening a code does not start listening or change NFC assignments. See [QR record links](docs/qr-codes.md).

@@ -12,7 +12,7 @@ A self-hosted vinyl collection archive for Raspberry Pi and your home network. K
 - **Discogs:** reviewed metadata imports, protected manual corrections, locally cached covers with image selection, and manually confirmed collection import, matching, and export.
 - **Listening:** NFC tag associations, station scans, ten-minute listening sessions, editable play history, statistics, and record suggestions.
 - **Wishlist:** desired albums, search, editing, and acquisition into the collection.
-- **Tools:** reviewed bulk editing of personal copy fields, printable inventory labels, missing-data filters, CSV export, and validated portable archives with cached covers and listening history.
+- **Tools:** reviewed bulk editing of personal copy fields, printable inventory labels with optional QR links, missing-data filters, CSV export, and validated portable archives with cached covers and listening history.
 - **Appearance:** Gallery, Studio, and Listening Room themes, saved per browser, with responsive navigation and keyboard controls.
 
 The NFC workflow is implemented in software. The physical PN532 driver and wiring are still pending. Discogs synchronization is manually initiated; automatic synchronization and advanced conflict handling remain on the roadmap. See [open issues](https://github.com/mziethen/grooveshelf/issues).
@@ -46,6 +46,7 @@ For Discogs configuration, token updates, local development, and troubleshooting
 | NFC stations and listening sessions | [Listening and NFC](docs/listening.md) |
 | Consecutive entry and identifiers | [Rapid capture](docs/capture.md), [barcode and catalog lookup](docs/identifier-search.md) |
 | Wishlist and storage locations | [Wishlist](docs/wishlist.md), [locations](docs/locations.md) |
+| QR identifiers and printable record links | [QR codes](docs/qr-codes.md) |
 | Editing several copies at once | [Bulk edit](docs/bulk-edit.md) |
 | Labels, CSV, incomplete records | [Inventory labels](docs/labels.md), [collection tools](docs/collection-tools.md) |
 | Suggestions and play history analysis | [Discovery](docs/discovery.md), [statistics](docs/statistics.md) |
@@ -72,4 +73,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, validation, and issue-linked p
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). Bundled component licenses are listed in [third-party notices](THIRD_PARTY_NOTICES.md).
