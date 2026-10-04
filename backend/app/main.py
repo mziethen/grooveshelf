@@ -17,7 +17,7 @@ from .listening import ListeningService
 from .sync import DiscogsSync
 from .wishlist import WishlistService
 from .capture import CaptureService
-from .export import collection_csv
+from .export import collection_csv, collection_json, collection_html
 from .discovery import suggest
 from .statistics import statistics
 from .settings import SettingsService
@@ -246,14 +246,30 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
                             background=BackgroundTask(shutil.rmtree, directory),
                             headers={'X-Content-Type-Options': 'nosniff'})
 
-    @app.get('/api/export/collection.csv')
-    def export_collection():
+    def export_records():
         records = []
         for record in repository.list():
             if record['metadata_expires_at'] and not fresh(record['_metadata']):
                 record = metadata.hide_stale(record)
             records.append(public(record))
-        return Response(collection_csv(records), media_type='text/csv; charset=utf-8',
+        return records
+
+    @app.get('/api/export/collection.json')
+    def export_json():
+        return Response(collection_json(export_records()), media_type='application/json',
+                        headers={'Content-Disposition': 'attachment; filename="grooveshelf-collection.json"',
+                                 'X-Content-Type-Options': 'nosniff'})
+
+    @app.get('/api/export/collection.html')
+    def export_html():
+        return Response(collection_html(export_records()), media_type='text/html; charset=utf-8',
+                        headers={'Content-Disposition': 'attachment; filename="grooveshelf-collection.html"',
+                                 'X-Content-Type-Options': 'nosniff',
+                                 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'"})
+
+    @app.get('/api/export/collection.csv')
+    def export_collection():
+        return Response(collection_csv(export_records()), media_type='text/csv; charset=utf-8',
                         headers={'Content-Disposition': 'attachment; filename="grooveshelf-collection.csv"',
                                  'X-Content-Type-Options': 'nosniff'})
 

@@ -22,3 +22,56 @@ def collection_csv(records):
                 row[field] = "'" + value
         writer.writerow(row)
     return ('\ufeff' + output.getvalue()).encode('utf-8')
+
+
+def collection_json(records):
+    from datetime import datetime, timezone
+    from .models import Record
+    # Explicit public schema prevents cache internals from entering the download.
+    allowed = Record.model_fields
+    payload = {
+        'format': 'grooveshelf-collection', 'format_version': 1,
+        'exported_at': datetime.now(timezone.utc).isoformat(),
+        'record_count': len(records),
+        'records': [Record.model_validate({key: value for key, value in record.items()
+                                            if key in allowed}).model_dump(mode='json')
+                    for record in records],
+    }
+    return (json.dumps(payload, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+
+
+def collection_html(records):
+    from datetime import datetime, timezone
+    from html import escape
+    def text(value):
+        return escape(str(value)) if value is not None else '—'
+    articles = []
+    for record in records:
+        tracks = ''.join(f'<li>{text(track.get("position", ""))} — {text(track["title"])}</li>'
+                         for track in record.get('tracks', []))
+        facts = [('Format', record.get('format')), ('Year', record.get('year')),
+                 ('Location', record.get('storage_location') or None), ('Rating', record.get('rating')),
+                 ('Media condition', record.get('media_condition')), ('Sleeve condition', record.get('sleeve_condition')),
+                 ('Favorite', 'Yes' if record.get('favorite') else 'No'), ('Plays', record.get('play_count', 0)),
+                 ('Last played', record.get('last_played_at')), ('NFC tag', record.get('nfc_uid')),
+                 ('Metadata', record.get('metadata_status'))]
+        details = ''.join(f'<dt>{text(label)}</dt><dd>{text(value)}</dd>' for label, value in facts)
+        articles.append(f'<article><p class="inventory">{text(record["inventory_number"])}</p>'
+                        f'<h2>{text(record["title"])}</h2><p>{text(record["artist"])}</p><dl>{details}</dl>'
+                        f'<h3>Tracks</h3><ol>{tracks}</ol><h3>Personal notes</h3>'
+                        f'<p class="notes">{text(record.get("notes", ""))}</p></article>')
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+    document = '''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<title>GrooveShelf collection catalog</title><style>
+*{box-sizing:border-box}body{margin:0 auto;padding:32px;max-width:900px;color:#242420;background:#fff;font:16px/1.5 system-ui,sans-serif}
+h1,h2{font-family:Georgia,serif}h1{font-size:36px}h2{margin:0;font-size:26px}h3{font-size:16px}
+article{border-top:1px solid #aaa;padding:24px 0;overflow-wrap:anywhere}.inventory{font-weight:700;letter-spacing:.08em}
+dl{display:grid;grid-template-columns:140px 1fr;gap:4px 16px}dt{font-weight:600}dd{margin:0}.notes{white-space:pre-wrap}
+@media(max-width:480px){body{padding:16px}dl{grid-template-columns:110px 1fr}}
+@media print{body{max-width:none;padding:0;font-size:11pt}h2,h3{break-after:avoid}li,dt,dd{break-inside:avoid}article{padding:16px 0}}
+</style></head><body><h1>GrooveShelf</h1>'''
+    document += f'<p>Collection catalog · {len(records)} records · Exported {timestamp}</p>'
+    document += ''.join(articles) or '<p>Your collection is empty.</p>'
+    return (document + '</body></html>\n').encode('utf-8')

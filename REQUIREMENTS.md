@@ -92,7 +92,7 @@ M1 prioritizes adding records, viewing details and browsing the collection. Meta
 | [LATER-08](https://github.com/mziethen/grooveshelf/issues/37) | Link to streaming services | Define scope and acceptance criteria before implementation; implement and document the feature. |
 | [LATER-09](https://github.com/mziethen/grooveshelf/issues/38) | Add authentication and multiple user accounts | Define scope and acceptance criteria before implementation; implement and document the feature. |
 | [LATER-10](https://github.com/mziethen/grooveshelf/issues/39) | Support optional paid metadata providers | Define scope and acceptance criteria before implementation; implement and document the feature. |
-| [LATER-11](https://github.com/mziethen/grooveshelf/issues/40) | Add further export formats | Define scope and acceptance criteria before implementation; implement and document the feature. |
+| [LATER-11](https://github.com/mziethen/grooveshelf/issues/40) | Add further export formats | Implemented: versioned JSON and printable standalone HTML catalog; see [export formats](docs/exports.md). |
 | [LATER-12](https://github.com/mziethen/grooveshelf/issues/41) | Write NFC tags if required by the selected workflow | Define scope and acceptance criteria before implementation; implement and document the feature. |
 
 ## Accepted additions
