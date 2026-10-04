@@ -39,6 +39,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     do_POST = proxy
     do_PUT = proxy
+    do_PATCH = proxy
     do_DELETE = proxy
 
 

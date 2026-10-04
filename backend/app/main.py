@@ -21,7 +21,7 @@ from .export import collection_csv
 from .discovery import suggest
 from .statistics import statistics
 from .settings import SettingsService
-from .models import MetadataSettings
+from .models import MetadataSettings, BulkPersonalInput
 from datetime import date
 from typing import Literal
 from .repository import CollectionRepository
@@ -256,6 +256,10 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         return Response(collection_csv(records), media_type='text/csv; charset=utf-8',
                         headers={'Content-Disposition': 'attachment; filename="grooveshelf-collection.csv"',
                                  'X-Content-Type-Options': 'nosniff'})
+
+    @app.patch('/api/records/bulk-personal')
+    def update_bulk_personal(data: BulkPersonalInput):
+        return repository.save_bulk_personal(data)
 
     @app.get('/api/records', response_model=list[Record])
     def list_records(q: str = Query(default='', max_length=300)):
