@@ -1,12 +1,24 @@
 # Contributing to GrooveShelf
 
-The project is in the planning phase. Discuss major changes in the corresponding issue first.
+Discuss substantial changes in a GitHub issue before implementation. Raspberry Pi 5 is the primary deployment target; keep frontend, API, persistence, metadata providers, and hardware integration separate.
 
-1. Reference the requirement ID in issues and pull requests.
-2. Follow acceptance criteria and resolve relevant open decisions.
-3. Update implementation and documentation together.
-4. Describe relevant validation and remaining limitations in the pull request.
+## Development
 
-Keep backend, frontend and hardware integration separate and extensible. Raspberry Pi 5 is the primary deployment target. Do not commit secrets, access tokens or private collection data.
+Follow [local setup and isolated browser verification](docs/development.md). Python 3.12 and Node 24 are used in CI. Node is needed for browser tests, not for the deployed frontend.
 
-Write project documentation, issue titles and descriptions, and pull request descriptions in English.
+Run backend tests from the repository root:
+
+```sh
+.venv/bin/pytest -q
+```
+
+Install browser dependencies with `npm ci --prefix frontend`, then install Chromium and run the browser suite against a disposable backend as described in the setup guide. Never run the integration suite against a personal collection.
+
+## Pull requests
+
+- Link the relevant issue in commits (`Refs #123`) and use `Closes #123` in the pull request when its acceptance criteria are met. Include a requirement ID when applicable.
+- Update code and documentation together. Keep changes focused; avoid unrelated formatting or moves.
+- Describe the user-visible result, relevant validation, and remaining limitations. CI runs backend and browser tests, ARM64/AMD64 builds, and a Compose persistence check.
+- Preserve migration compatibility and protected manual metadata. Include migration tests for schema changes.
+- Write documentation, issue titles, pull requests, and code-facing text in English.
+- Do not commit access tokens, environment files, databases, cached covers, backups, or private collection details. Report reproducible issues with synthetic data.

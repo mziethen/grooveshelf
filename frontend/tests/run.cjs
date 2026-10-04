@@ -1,0 +1,18 @@
+// Keep workflows sequential: they share one disposable backend database.
+const {spawnSync} = require('node:child_process');
+const {join} = require('node:path');
+const workflows = [
+  'browser', 'discogs', 'listening', 'heartbeat', 'covers', 'sync',
+  'personal', 'wishlist', 'capture', 'collection-tools', 'discovery',
+  'statistics', 'identifiers', 'labels', 'settings', 'locations',
+  'archive', 'appearance',
+];
+for (const workflow of workflows) {
+  const result = spawnSync(process.execPath, [join(__dirname, `${workflow}.cjs`)], {
+    stdio: 'inherit',
+    env: process.env,
+  });
+  if (result.error) console.error(result.error);
+  if (result.status !== 0) process.exit(result.status || 1);
+}
+console.log(`${workflows.length} browser workflows passed.`);

@@ -1,61 +1,74 @@
 # GrooveShelf
 
-A calm, mobile-first vinyl collection archive, self-hosted on a Raspberry Pi 5.
+[![Application checks](https://github.com/mziethen/grooveshelf/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mziethen/grooveshelf/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## Project status
+A self-hosted vinyl collection archive for Raspberry Pi and your home network. Keep each physical copy under an `LP-XXXXX` inventory number, browse your covers, enrich albums with Discogs, and connect your collection to NFC listening sessions.
 
-The application supports manual record management, collection browsing, search and opt-in Discogs lookup with confirmed metadata import and local cover storage, per-record Discogs cover selection and manual collection synchronization. Software NFC associations, station sessions, listening history and favorites are available; the physical PN532 driver and wiring remain pending. See [running and development](docs/development.md).
+## Features
 
-## Features and roadmap
+- **Collection:** cover grid and table, album details and track lists, search, favorites, ratings, media/sleeve condition, notes, and storage locations.
+- **Capture:** suggested inventory numbers, consecutive entry, duplicate warnings, and Discogs lookup by artist, album, barcode, or catalog number.
+- **Discogs:** reviewed metadata imports, protected manual corrections, locally cached covers with image selection, and manually confirmed collection import, matching, and export.
+- **Listening:** NFC tag associations, station scans, ten-minute listening sessions, editable play history, statistics, and record suggestions.
+- **Wishlist:** desired albums, search, editing, and acquisition into the collection.
+- **Tools:** printable inventory labels, missing-data filters, CSV export, and validated portable archives with cached covers and listening history.
+- **Appearance:** Gallery, Studio, and Listening Room themes, saved per browser, with responsive navigation and keyboard controls.
 
-- Manage physical vinyl copies with inventory numbers from `LP-00001` to `LP-99999`.
-- Browse cover grids and tables and open album details.
-- Import or match Discogs collection copies and explicitly add local copies to Discogs. See [manual collection sync](docs/discogs-sync.md).
-- Retrieve metadata and covers from Discogs while preserving manual corrections. See [connecting Discogs](docs/development.md#connecting-discogs).
-- Associate NFC UIDs and follow station scans on the Raspberry Pi screen; physical PN532 reading remains pending. See [listening and NFC](docs/listening.md).
-- Export a [complete portable archive](docs/archives.md), validate it and restore it into a fresh installation, including cached covers and listening history.
-- Track [storage locations](docs/locations.md) per physical copy, find records by location and include locations in CSV export.
-- Configure [automatic metadata refresh and import confirmation](docs/settings.md) with persistent installation settings.
-- Generate [inventory labels](docs/labels.md) with configurable paper, label dimensions, margins, gaps and first-sheet offsets. Preview, print or download a standalone document.
-- View [listening statistics](docs/statistics.md) with per-copy rankings, monthly play totals, date filters and lifetime never-played records.
-- Get [listening suggestions](docs/discovery.md) from all, never-played, least-played or not-recently-played owned records.
-- Download the owned collection as CSV and [find incomplete records](docs/collection-tools.md) with combined missing-cover, missing-track and missing-NFC filters.
-- Find [Discogs releases by barcode or catalog number](docs/identifier-search.md), preview them and explicitly import their details.
-- Use [rapid entry](docs/capture.md) to add records consecutively with free LP-number suggestions and possible-duplicate warnings.
-- View and correct listening history, track play counts and mark favorites. Personal ratings, record and sleeve condition, and notes can be edited per copy. A separate [wishlist](docs/wishlist.md) tracks desired albums and supports acquiring them into the collection.
-- Cancel pending plays and receive tag-assignment, timer and reader-status feedback.
-- Export a portable collection archive, find incomplete entries, discover listening suggestions and view statistics.
-- Add printable inventory labels later; prepare the model for future listening stations.
+The NFC workflow is implemented in software. The physical PN532 driver and wiring are still pending. Discogs synchronization is manually initiated; automatic synchronization and advanced conflict handling remain on the roadmap. See [open issues](https://github.com/mziethen/grooveshelf/issues).
 
-## Getting started
+## Quick start
+
+You need Docker Engine with Docker Compose on a 64-bit system. Raspberry Pi 5 is the primary deployment target; CI checks Linux ARM64 and AMD64 images.
 
 ```sh
+git clone https://github.com/mziethen/grooveshelf.git
+cd grooveshelf
+cp .env.example .env
+# Optional: add your Discogs personal access token to .env.
 docker compose up --build -d
 ```
 
-Open `http://<host>:8080`. See [setup, tests and backup notes](docs/development.md) and [architecture](docs/architecture.md).
+Open **http://localhost:8080**, or **http://<pi-address>:8080** from another device. To use another port, set `GROOVESHELF_PORT` in `.env`. Open `http://<pi-address>:8080/?station=pi-main` for the listening station screen.
 
-## Technical direction
+Collection data lives in a persistent Docker volume. `docker compose down` keeps it; `docker compose down -v` deletes it. Export a portable archive before upgrading and keep a copy outside the Pi. This version has no user authentication and is intended for a trusted home network.
 
-Python and FastAPI backend, separate frontend and Docker Compose deployment on ARM64. The initial implementation uses SQLite and browser-native JavaScript modules. Initial deployment targets a private home network.
+For Discogs configuration, token updates, local development, and troubleshooting, see the [setup guide](docs/development.md).
 
-## Requirements and progress
+## Documentation
 
-- [Requirements and milestones](REQUIREMENTS.md)
-- [GitHub issues](https://github.com/mziethen/grooveshelf/issues)
-- [Milestones](https://github.com/mziethen/grooveshelf/milestones)
-- [Requirement-to-issue mapping](planning/github-issue-links.json)
+| Topic | Guide |
+| --- | --- |
+| Installation, updates, development, tests | [Running GrooveShelf](docs/development.md) |
+| Portable export, verification, restore | [Archives and backups](docs/archives.md) |
+| Metadata, cover handling, freshness | [Discogs integration](docs/discogs.md) |
+| Collection import, matching, export | [Discogs synchronization](docs/discogs-sync.md) |
+| NFC stations and listening sessions | [Listening and NFC](docs/listening.md) |
+| Consecutive entry and identifiers | [Rapid capture](docs/capture.md), [barcode and catalog lookup](docs/identifier-search.md) |
+| Wishlist and storage locations | [Wishlist](docs/wishlist.md), [locations](docs/locations.md) |
+| Labels, CSV, incomplete records | [Inventory labels](docs/labels.md), [collection tools](docs/collection-tools.md) |
+| Suggestions and play history analysis | [Discovery](docs/discovery.md), [statistics](docs/statistics.md) |
+| Metadata preferences | [Settings](docs/settings.md) |
+| Design and implementation boundaries | [Architecture](docs/architecture.md) |
+| Planned behavior and issue traceability | [Requirements](REQUIREMENTS.md), [requirement-to-issue mapping](docs/requirement-issues.json) |
 
-Stable requirement IDs connect the plan to GitHub issues. Project documentation, issues and templates are maintained in English.
+## Repository layout
+
+```text
+backend/       FastAPI API, SQLite persistence, services, and backend tests
+frontend/      HTML, CSS, JavaScript modules, and browser tests
+scripts/       Local frontend proxy, NFC bridge, and archive CLI entry point
+docs/          Setup, architecture, and feature guides
+.github/       CI workflow, issue templates, and pull request template
+compose.yaml   Persistent two-container deployment
+```
+
+The frontend has no production Node dependency or build step. Nginx serves it and proxies `/api` to FastAPI. SQLite separates albums from physical copies and migrates existing data on startup.
 
 ## Contributing
 
-Check the corresponding issue before implementing a feature. Completion requires meeting its acceptance criteria. See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, validation, and issue-linked pull requests. Project documentation, issues, and code-facing text are maintained in English. Track planned work in [GitHub issues](https://github.com/mziethen/grooveshelf/issues) and [milestones](https://github.com/mziethen/grooveshelf/milestones).
 
 ## License
 
-GrooveShelf is available under the [MIT license](LICENSE).
-
-### Appearance
-
-Choose **Gallery**, **Studio**, or **Listening Room** from the appearance menu in the top right. The selection is stored in this browser and restored before the interface paints. Themes share the same collection, controls, and forms. On smaller screens, open the navigation menu for wishlist, discovery, statistics, Discogs sync, labels, exports, and settings. The menu supports keyboard focus, Escape, and touch; reduced-motion preferences are respected.
+[MIT](LICENSE).
