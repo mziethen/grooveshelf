@@ -82,6 +82,11 @@ class Record(RecordInput):
     description: str = ""
     credits: list[Credit] = Field(default_factory=list, max_length=300)
     credits_source_url: str | None = None
+    original_year: int | None = Field(default=None, ge=1900, le=2100)
+    original_year_source_url: str | None = None
+    pressing_year: int | None = Field(default=None, ge=1900, le=2100)
+    country: str = Field(default='', max_length=100)
+    catalog_numbers: list[str] = Field(default_factory=list, max_length=30)
     metadata_status: str = "manual"
     metadata_expires_at: float | None = None
     protected_fields: list[str] = Field(default_factory=list)

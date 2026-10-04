@@ -82,7 +82,7 @@ M1 prioritizes adding records, viewing details and browsing the collection. Meta
 
 | ID | Feature / issue | Acceptance criteria |
 | --- | --- | --- |
-| [LATER-01](https://github.com/mziethen/grooveshelf/issues/30) | Track exact pressings and distinguish original and pressing years | Define scope and acceptance criteria before implementation; implement and document the feature. |
+| [LATER-01](https://github.com/mziethen/grooveshelf/issues/30) | Track exact pressings and distinguish original and pressing years | Implemented: reviewed release linking, separate original and pressing years, country and catalog numbers with source attribution. See [pressing details](docs/pressings.md). |
 | [LATER-02](https://github.com/mziethen/grooveshelf/issues/31) | Add track durations, songwriters, producers and detailed credits | Implemented: optional track durations and provider-derived songwriter, producer and other credits with source/scope attribution. See [tracks](docs/tracks.md) and [credits](docs/credits.md). |
 | [LATER-03](https://github.com/mziethen/grooveshelf/issues/32) | Upload personal cover, back cover, label and matrix photos | Define scope and acceptance criteria before implementation; implement and document the feature. |
 | [LATER-04](https://github.com/mziethen/grooveshelf/issues/33) | Track storage locations | Define scope and acceptance criteria before implementation; implement and document the feature. |

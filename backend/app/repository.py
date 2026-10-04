@@ -17,10 +17,11 @@ class CollectionRepository:
         result['tracks'] = json.loads(result['tracks'])
         metadata = json.loads(result.pop('metadata'))
         result['_metadata'] = metadata
-        for field in ['source_url', 'source_name', 'discogs_master_id', 'discogs_release_id', 'reference_release_url', 'credits_source_url']:
+        for field in ['source_url', 'source_name', 'discogs_master_id', 'discogs_release_id', 'reference_release_url', 'credits_source_url', 'original_year', 'original_year_source_url', 'pressing_year']:
             result[field] = metadata.get(field)
-        for field in ['genres', 'styles', 'labels', 'protected_fields', 'credits']:
+        for field in ['genres', 'styles', 'labels', 'protected_fields', 'credits', 'catalog_numbers']:
             result[field] = metadata.get(field, [])
+        result['country'] = metadata.get('country', '')
         result['description'] = metadata.get('description', '')
         mid = source_key(metadata) if metadata.get('discogs_master_id') or metadata.get('discogs_release_id') else None
         result['cover_url'] = f'/api/covers/discogs/{mid}' if metadata.get('cover_cached') else None

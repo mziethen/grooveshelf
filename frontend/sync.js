@@ -1,3 +1,4 @@
+import { pressingMarkup } from './pressings.js';
 export function createDiscogsSync({api, escape, reload, currentRecord, renderCurrent}) {
   const $ = selector => document.querySelector(selector);
   let plan = null;
@@ -114,7 +115,7 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
     try {
       const data = await api(`/metadata/discogs/releases/${id}`);
       if (current !== releaseGeneration) return;
-      $('#release-preview').innerHTML = `<h3>${escape(data.title)}</h3><p>${escape(data.artist)} · ${escape(data.year || '')}</p><a class="attribution" href="${escape(data.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a><p class="muted">Confirm that this is your exact pressing. Your local album details, LP number, tag and listening history will be retained.</p>`;
+      $('#release-preview').innerHTML = `<h3>${escape(data.title)}</h3><p>${escape(data.artist)} · ${escape(data.year || '')}</p><a class="attribution" href="${escape(data.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a>${pressingMarkup(data, escape)}<p class="muted">Confirm that this is your exact pressing. Your local album details, LP number, tag and listening history will be retained.</p>`;
       if (!data.is_vinyl) throw new Error('This is not a Vinyl release. Choose your vinyl pressing.');
       releaseId = id; $('#release-save').disabled = false;
       if (data.metadata_expires_at) releaseExpiry = setTimeout(() => {

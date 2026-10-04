@@ -44,6 +44,7 @@ For Discogs configuration, token updates, local development, and troubleshooting
 | Spotify, YouTube and Qobuz searches | [Streaming links](docs/streaming.md) |
 | Collection download formats | [CSV, JSON and printable catalog](docs/exports.md) |
 | Portable export, verification, restore | [Archives and backups](docs/archives.md) |
+| Original year, pressing year, country and catalog numbers | [Pressing details](docs/pressings.md) |
 | Songwriter, producer and other credits | [Album and track credits](docs/credits.md) |
 | Track lists and optional durations | [Track durations](docs/tracks.md) |
 | Metadata, cover handling, freshness | [Discogs integration](docs/discogs.md) |

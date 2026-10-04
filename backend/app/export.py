@@ -5,7 +5,7 @@ import json
 FIELDS = ['inventory_number', 'artist', 'title', 'format', 'year', 'rating',
           'media_condition', 'sleeve_condition', 'storage_location', 'notes', 'favorite', 'play_count',
           'last_played_at', 'nfc_uid', 'tracks', 'discogs_master_id',
-          'discogs_release_id', 'source_url', 'metadata_status', 'credits', 'credits_source_url']
+          'discogs_release_id', 'source_url', 'metadata_status', 'credits', 'credits_source_url', 'original_year', 'original_year_source_url', 'pressing_year', 'country', 'catalog_numbers']
 
 
 def collection_csv(records):
@@ -16,6 +16,7 @@ def collection_csv(records):
         row = {field: record.get(field) for field in FIELDS}
         row['tracks'] = json.dumps(record.get('tracks', []), ensure_ascii=False)
         row['credits'] = json.dumps(record.get('credits', []), ensure_ascii=False)
+        row['catalog_numbers'] = json.dumps(record.get('catalog_numbers', []), ensure_ascii=False)
         row['favorite'] = 'true' if record.get('favorite') else 'false'
         # Quoting alone does not stop spreadsheet formula evaluation.
         for field, value in row.items():
@@ -50,7 +51,11 @@ def collection_html(records):
     for record in records:
         tracks = ''.join(f'<li>{text(track.get("position", ""))} — {text(track["title"])}{(" · " + text(track["duration"])) if track.get("duration") else ""}</li>'
                          for track in record.get('tracks', []))
-        facts = [('Format', record.get('format')), ('Year', record.get('year')),
+        facts = [('Format', record.get('format')), ('Saved year', record.get('year')),
+                 ('Original release year', record.get('original_year')), ('Pressing year', record.get('pressing_year')),
+                 ('Country', record.get('country') or None),
+                 ('Catalog numbers', ' · '.join(record.get('catalog_numbers', [])) or None),
+                 ('Original year source', record.get('original_year_source_url')),
                  ('Location', record.get('storage_location') or None), ('Rating', record.get('rating')),
                  ('Media condition', record.get('media_condition')), ('Sleeve condition', record.get('sleeve_condition')),
                  ('Favorite', 'Yes' if record.get('favorite') else 'No'), ('Plays', record.get('play_count', 0)),

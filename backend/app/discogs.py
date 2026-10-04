@@ -14,6 +14,27 @@ MAX_AGE = 6 * 60 * 60
 USER_AGENT = "GrooveShelf/0.2.0 +https://github.com/mziethen/grooveshelf"
 
 
+def release_year(value):
+    return value if type(value) is int and 1900 <= value <= 2100 else None
+
+
+def pressing_details(data):
+    labels = data.get('labels') or []
+    numbers = []
+    for label in labels[:100]:
+        if not isinstance(label, dict):
+            continue
+        number = label.get('catno')
+        if isinstance(number, str) and number.strip() and number.strip().lower() not in {'none', 'no cat#', 'n/a'}:
+            number = number.strip()[:200]
+            if number not in numbers:
+                numbers.append(number)
+    country = data.get('country')
+    return {'pressing_year': release_year(data.get('year')),
+            'country': country.strip()[:100] if isinstance(country, str) else '',
+            'catalog_numbers': numbers[:30]}
+
+
 def timestamp():
     return datetime.now(timezone.utc).timestamp()
 
@@ -215,6 +236,20 @@ class DiscogsProvider:
                       "labels": [], "description": "", "reference_release_url": None, "image_url": image.get("uri"),
                       "source_url": f"https://www.discogs.com/{'master' if kind == 'masters' else 'release'}/{master_id}", "source_name": "Discogs",
                       "checked_at": timestamp(), "images": image_choices(images)}
+            result.update(original_year=release_year(year) if kind == 'masters' else None,
+                          original_year_source_url=result['source_url'] if kind == 'masters' and release_year(year) else None,
+                          pressing_year=None, country='', catalog_numbers=[])
+            if kind == 'releases':
+                result.update(pressing_details(data))
+                mid = data.get('master_id')
+                if type(mid) is int and mid > 0:
+                    try:
+                        original = self.request(f'/masters/{mid}')
+                        result['original_year'] = release_year(original.get('year'))
+                        if result['original_year']:
+                            result['original_year_source_url'] = f'https://www.discogs.com/master/{mid}'
+                    except HTTPException:
+                        pass  # Optional original-year lookup must not block a pressing import.
             result['credits'] = credit_entries(data)
             result['credits_source_url'] = result['source_url'] if result['credits'] else None
             if kind == 'releases':
