@@ -1,3 +1,4 @@
+import { createRecordQR } from './qr.js';
 import { createBulkEditor } from './bulk.js';
 import { createAppearance } from './appearance.js';
 import { createSettings } from './settings.js';
@@ -12,7 +13,7 @@ import { createCoverPicker } from './covers.js';
 import { createListeningUI } from './listening.js';
 import { createDiscogsSearch } from './discogs.js';
 const $ = (selector) => document.querySelector(selector);
-const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, releaseId: null, coverImageId: null, wishId: null };
+const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, releaseId: null, coverImageId: null, wishId: null, routeError: null };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(path, options = {}) {
   const response = await fetch(`/api${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
@@ -70,18 +71,23 @@ async function load() {
   try {
     const records = await api(`/records?q=${encodeURIComponent($('#search').value)}`);
     if (request !== state.request) return;
-    state.records = records.map(hideExpired); $('#message').textContent = ''; render();
+    state.records = records.map(hideExpired); $('#message').textContent = state.routeError || ''; render();
   } catch (error) { if (request === state.request) { state.records = state.records.map(hideExpired); render(); $('#message').textContent = `${error.message} Check that the server is available.`; } }
 }
 async function route() {
   const match = location.hash.match(/^#record\/([a-zA-Z0-9-]+)$/);
   if (!match) { if ($('#details').open) $('#details').close(); return; }
+  state.routeError = null;
   try {
     const record = await api(`/records/${match[1]}`);
     if (location.hash !== `#record/${match[1]}`) return;
     state.selected = record;
+    $('#message').textContent = '';
     renderDetails(record);
-  } catch (error) { $('#message').textContent = error.message; location.hash = ''; }
+  } catch (error) {
+    // Keep missing-link feedback visible through background collection refreshes.
+    state.routeError = error.message; $('#message').textContent = state.routeError; location.hash = '';
+  }
 }
 function renderDetails(record) {
     record = hideExpired(record);
@@ -209,6 +215,7 @@ async function pollMetadata() {
 setInterval(pollMetadata, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pollMetadata(); });
 createAppearance();
+createRecordQR({currentRecord:()=>state.selected});
 createBulkEditor({api,escape,onSaved:async count=>{await load();$('#message').textContent=`Updated ${count} ${count===1?'record':'records'}.`;}});
 createSettings({api,onSaved:load});
 createLabels({api,escape});

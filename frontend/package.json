@@ -6,9 +6,12 @@
     "test": "node tests/run.cjs"
   },
   "devDependencies": {
-    "playwright": "1.62.1"
+    "playwright": "1.62.1",
+    "jsqr": "1.4.0",
+    "pngjs": "7.0.0"
   },
   "engines": {
     "node": ">=24"
-  }
+  },
+  "type": "module"
 }
