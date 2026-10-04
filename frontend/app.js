@@ -1,3 +1,4 @@
+import { trackLine, parseTracks, trackMarkup } from './tracks.js';
 import { streamingLinksMarkup } from './streaming.js';
 import { createRecordQR } from './qr.js';
 import { createBulkEditor } from './bulk.js';
@@ -14,7 +15,7 @@ import { createCoverPicker } from './covers.js';
 import { createListeningUI } from './listening.js';
 import { createDiscogsSearch } from './discogs.js';
 const $ = (selector) => document.querySelector(selector);
-const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, releaseId: null, coverImageId: null, wishId: null, routeError: null };
+const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, releaseId: null, coverImageId: null, wishId: null, routeError: null, trackDraft: [] };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(path, options = {}) {
   const response = await fetch(`/api${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
@@ -98,7 +99,7 @@ function renderDetails(record) {
     $('#refresh').hidden = !record.source_url;
     $('#choose-cover').hidden = !record.source_url;
     $('#edit').disabled = record.metadata_status === 'unavailable';
-    $('#detail-content').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2>${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year || 'Release year not added'}</p>${attribution(record)}</div></div>${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">Reference release labels: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => `<li><span>${escape(t.position) || '—'}</span>${escape(t.title)}</li>`).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.cover_selection_status === 'missing' ? '<p class="error">Your selected Discogs image is no longer available. Choose another cover.</p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
+    $('#detail-content').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2>${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year || 'Release year not added'}</p>${attribution(record)}</div></div>${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">Reference release labels: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => trackMarkup(t, escape)).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.cover_selection_status === 'missing' ? '<p class="error">Your selected Discogs image is no longer available. Choose another cover.</p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
     $('#detail-content').insertAdjacentHTML('beforeend', streamingLinksMarkup(record, escape));
     coverFallbacks($('#detail-content'));
     personal.details(record);
@@ -106,6 +107,7 @@ function renderDetails(record) {
     if (!$('#details').open) $('#details').showModal();
 }
 function openEditor(record = null, after = null) {
+  state.trackDraft = record?.tracks || [];
   state.wishId = null; state.editing = record; state.masterId = null; state.releaseId = null; state.coverImageId = null;
   discogs.reset(Boolean(record));
   const form = $('#record-form'); form.reset();
@@ -113,7 +115,7 @@ function openEditor(record = null, after = null) {
   $('#editor-title').textContent = record ? 'Edit your record' : 'Add a record';
   if (record) {
     for (const key of ['inventory_number','artist','title','format','year','notes','rating','media_condition','sleeve_condition','storage_location']) form.elements[key].value = record[key] ?? '';
-    form.elements.tracks.value = record.tracks.map(t => t.position ? `${t.position} | ${t.title}` : t.title).join('\n');
+    form.elements.tracks.value = record.tracks.map(trackLine).join('\n');
   }
   if(!$('#editor').open)$('#editor').showModal();
   capture.reset(Boolean(record),after);
@@ -125,11 +127,8 @@ $('#record-form').addEventListener('submit', async event => {
   const keepArtist=$('#keep-artist').checked;
   const selectedMaster=state.masterId;const selectedRelease=state.releaseId;
   const values = personalPayload(Object.fromEntries(new FormData(event.target)));
-  const tracks = values.tracks.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
-    const separator = line.indexOf('|');
-    return separator < 0 ? { position: '', title: line } : { position: line.slice(0, separator).trim(), title: line.slice(separator + 1).trim() };
-  });
   try {
+    const tracks = parseTracks(values.tracks, state.trackDraft);
     if(!await capture.check(!state.editing,true)) {$('#form-error').textContent='Review the existing copies and confirm that you are adding another physical copy.';return;}
     if(formSnapshot!==JSON.stringify([...new FormData(event.target)])||selectedMaster!==state.masterId||selectedRelease!==state.releaseId){$('#form-error').textContent='Your details changed while checking. Save again to use the current details.';return;}
     const record = await api(state.wishId ? `/wishlist/${state.wishId}/acquire` : state.editing ? `/records/${state.editing.id}` : '/records', {method: state.editing ? 'PUT' : 'POST', body: JSON.stringify({...values, discogs_master_id: state.masterId, discogs_release_id:state.releaseId, cover_image_id: state.coverImageId, year: values.year ? Number(values.year) : null, tracks})});
@@ -158,11 +157,12 @@ populatePersonalOptions($('#record-form'));
 const personal = createPersonalUI({api,escape,currentRecord:()=>state.selected,reload:load,renderCurrent:route});
 const listening = createListeningUI({ api, escape, reload: load, currentRecord: () => state.selected, renderCurrent: route });
 const discogs = createDiscogsSearch({ api, escape, onImport(data) {
+  state.trackDraft = data.tracks;
   state.masterId = data.discogs_master_id || null; state.releaseId=data.discogs_release_id || null; state.coverImageId = data.cover_image_id || null;
   const form = $('#record-form');
   for (const key of ['artist', 'title', 'year']) form.elements[key].value = data[key] ?? '';
   capture.changed();
-  form.elements.tracks.value = data.tracks.map(t => t.position ? `${t.position} | ${t.title}` : t.title).join('\n');
+  form.elements.tracks.value = data.tracks.map(trackLine).join('\n');
 }});
 createDiscogsSync({api, escape, currentRecord: () => state.selected, reload: load, renderCurrent: route});
 createCoverPicker({api, escape, currentRecord: () => state.selected, reload: load, renderCurrent: route});

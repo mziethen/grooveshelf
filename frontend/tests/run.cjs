@@ -5,7 +5,7 @@ const workflows = [
   'browser', 'discogs', 'listening', 'heartbeat', 'covers', 'sync',
   'personal', 'wishlist', 'capture', 'collection-tools', 'discovery',
   'statistics', 'identifiers', 'labels', 'settings', 'locations',
-  'archive', 'appearance', 'bulk', 'qr', 'exports', 'streaming',
+  'archive', 'appearance', 'bulk', 'qr', 'exports', 'streaming', 'tracks',
 ];
 for (const workflow of workflows) {
   const result = spawnSync(process.execPath, [join(__dirname, `${workflow}.cjs`)], {

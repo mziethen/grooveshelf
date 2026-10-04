@@ -1,12 +1,21 @@
 from typing import Literal
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, model_serializer
 
 
 class Track(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     position: str = Field(default="", max_length=20)
     title: str = Field(min_length=1, max_length=300)
+    duration: str = Field(default="", max_length=10,
+                          pattern=r"^$|^[0-9]{1,3}:[0-5][0-9]$|^[0-9]{1,2}:[0-5][0-9]:[0-5][0-9]$")
+
+    @model_serializer(mode="wrap")
+    def serialize_track(self, handler):
+        result = handler(self)
+        if not self.duration:
+            result.pop('duration', None)
+        return result
 
 
 Condition = Literal["M", "NM", "VG+", "VG", "G+", "G", "F", "P"]
