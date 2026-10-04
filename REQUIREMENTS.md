@@ -89,7 +89,7 @@ M1 prioritizes adding records, viewing details and browsing the collection. Meta
 | [LATER-05](https://github.com/mziethen/grooveshelf/issues/34) | Add QR codes as an alternative identifier | Define scope and acceptance criteria before implementation; implement and document the feature. |
 | [LATER-06](https://github.com/mziethen/grooveshelf/issues/35) | Display estimated market values | Define scope and acceptance criteria before implementation; implement and document the feature. |
 | [LATER-07](https://github.com/mziethen/grooveshelf/issues/36) | Support bulk editing | Define scope and acceptance criteria before implementation; implement and document the feature. |
-| [LATER-08](https://github.com/mziethen/grooveshelf/issues/37) | Link to streaming services | Define scope and acceptance criteria before implementation; implement and document the feature. |
+| [LATER-08](https://github.com/mziethen/grooveshelf/issues/37) | Link to streaming services | Implemented: explicit Spotify and YouTube album searches; see [streaming links](docs/streaming.md). |
 | [LATER-09](https://github.com/mziethen/grooveshelf/issues/38) | Add authentication and multiple user accounts | Define scope and acceptance criteria before implementation; implement and document the feature. |
 | [LATER-10](https://github.com/mziethen/grooveshelf/issues/39) | Support optional paid metadata providers | Define scope and acceptance criteria before implementation; implement and document the feature. |
 | [LATER-11](https://github.com/mziethen/grooveshelf/issues/40) | Add further export formats | Implemented: versioned JSON and printable standalone HTML catalog; see [export formats](docs/exports.md). |

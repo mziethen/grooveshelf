@@ -12,6 +12,7 @@ A self-hosted vinyl collection archive for Raspberry Pi and your home network. K
 - **Discogs:** reviewed metadata imports, protected manual corrections, locally cached covers with image selection, and manually confirmed collection import, matching, and export.
 - **Listening:** NFC tag associations, station scans, ten-minute listening sessions, editable play history, statistics, and record suggestions.
 - **Wishlist:** desired albums, search, editing, and acquisition into the collection.
+- **Album discovery:** Spotify and YouTube search links in record details.
 - **Tools:** reviewed bulk editing of personal copy fields, printable inventory labels with optional QR links, missing-data filters, CSV and JSON exports, a printable offline catalog, and validated portable archives with cached covers and listening history.
 - **Appearance:** Gallery, Studio, and Listening Room themes, saved per browser, with responsive navigation and keyboard controls.
 
@@ -40,6 +41,7 @@ For Discogs configuration, token updates, local development, and troubleshooting
 | Topic | Guide |
 | --- | --- |
 | Installation, updates, development, tests | [Running GrooveShelf](docs/development.md) |
+| Spotify and YouTube searches | [Streaming links](docs/streaming.md) |
 | Collection download formats | [CSV, JSON and printable catalog](docs/exports.md) |
 | Portable export, verification, restore | [Archives and backups](docs/archives.md) |
 | Metadata, cover handling, freshness | [Discogs integration](docs/discogs.md) |
