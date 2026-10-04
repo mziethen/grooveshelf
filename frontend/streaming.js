@@ -9,9 +9,12 @@ export function albumSearchLinks(record) {
   const query = `${artist} ${title}`;
   const youtube = new URL('https://www.youtube.com/results');
   youtube.searchParams.set('search_query', query);
+  const qobuz = new URL('https://www.qobuz.com/store-router/search');
+  qobuz.searchParams.set('q', query);
   return [
     {label:'Search Spotify', url:`https://open.spotify.com/search/${encodeURIComponent(query)}`},
     {label:'Search YouTube', url:youtube.href},
+    {label:'Search Qobuz', url:qobuz.href},
   ];
 }
 
