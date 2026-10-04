@@ -1,3 +1,4 @@
+import { createAppearance } from './appearance.js';
 import { createSettings } from './settings.js';
 import { createLabels } from './labels.js';
 import { createStatistics } from './statistics.js';
@@ -205,6 +206,7 @@ async function pollMetadata() {
 }
 setInterval(pollMetadata, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pollMetadata(); });
+createAppearance();
 createSettings({api,onSaved:load});
 createLabels({api,escape});
 createStatistics({api,escape,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
