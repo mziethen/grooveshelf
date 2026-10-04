@@ -65,7 +65,7 @@ docker compose cp backend:/data/. ./backups/
 docker compose start backend
 ```
 
-This is a stopped-database snapshot, not the complete portable archive requested in EXPORT-02. Backups may contain multiple SQLite files; keep the complete directory. To restore, stop the backend, retain a copy of the current data, copy the snapshot directory contents back to `/data` and ensure ownership remains UID 10001 before restarting. Automated restore validation remains open.
+This is a stopped-database snapshot, not the complete portable archive requested in EXPORT-02. Backups may contain multiple SQLite files; keep the complete directory. To restore, stop the backend, retain a copy of the current data, copy the snapshot directory contents back to `/data` and ensure ownership remains UID 10001 before restarting. For a validated portable export and restore, use the [archive workflow](archives.md).
 
 ## Connecting Discogs
 
