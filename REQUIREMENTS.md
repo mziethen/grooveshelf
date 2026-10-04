@@ -1,12 +1,12 @@
 # GrooveShelf — Requirements and development plan
 
-Updated: October 3, 2026. Derived from the completed requirements questionnaire. The original German answers are retained locally as source material.
+Updated: October 4, 2026. Derived from the completed requirements questionnaire. The original German answers are retained locally as source material.
 
-This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. Discogs metadata import, covers, source attribution and protected manual edits have also been merged. Station sessions, tag associations, history corrections and favorites have also been merged. Cover selection and manual Discogs collection synchronization have been merged. Personal ratings, condition fields and a separate wishlist are implemented. Physical PN532 integration remains open. Stable IDs are used in GitHub issues.
+This document specifies desired behavior. Manual copy management, collection browsing and search have been merged. Discogs metadata import, covers, source attribution and protected manual edits have also been merged. Station sessions, tag associations, history corrections and favorites have also been merged. Cover selection and manual Discogs collection synchronization have been merged. Personal ratings, condition fields and a separate wishlist are implemented. Rapid capture, identifier lookup, labels, portable archives, storage locations, statistics, discovery, metadata settings, and three appearance themes are also implemented. Physical PN532 integration remains open. Stable IDs are used in GitHub issues; [the mapping](docs/requirement-issues.json) preserves traceability. GitHub issues are the source of current work status.
 
 ## Product goal
 
-A private, self-hosted web application archives physical vinyl copies, retrieves album information and later supports NFC listening history. Initial collection: approximately 300 records, growing by about three per month. Used by a household on Mac, phones and tablets. Design: minimal, modern, calm and mobile first. Capture primarily takes place at a desk.
+A private, self-hosted web application archives physical vinyl copies, retrieves album information and supports NFC listening history, with physical reader integration pending. Initial collection: approximately 300 records, growing by about three per month. Used by a household on Mac, phones and tablets. Design: minimal, modern, calm and mobile first. Capture primarily takes place at a desk.
 
 Project name: **GrooveShelf**. Public repository: [mziethen/grooveshelf](https://github.com/mziethen/grooveshelf).
 
