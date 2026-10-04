@@ -19,6 +19,7 @@ const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
  });
  try{
   await page.clock.install();await page.goto(base);
+  assert.deepEqual(await page.evaluate(()=>{const ids=[...document.querySelectorAll('[id]')].map(e=>e.id);return ids.filter((id,i)=>ids.indexOf(id)!==i);}),[],'Element IDs must remain unique for accessible dialog names and event handlers');
   await page.getByRole('heading',{name:'Your collection could not be loaded.'}).waitFor();
   assert.equal(await page.locator('#empty-add').count(),0);assert.equal(await page.locator('#count').textContent(),'Unavailable');
   offline=false;await page.locator('#retry-load').click();await page.locator('[data-record]').waitFor();assert(!await page.locator('#retry-load').isVisible());
