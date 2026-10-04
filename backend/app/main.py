@@ -34,6 +34,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     covers = covers or CoverStore(Path(database.path).parent / 'covers')
     metadata = MetadataService(repository, provider, covers)
     settings = SettingsService(database)
+    covers.retain_expired = lambda: settings.get()["show_expired_metadata"]
     capture = CaptureService(repository)
     wishlist = WishlistService(database, repository, metadata)
     sync = DiscogsSync(repository, provider, metadata)
@@ -70,7 +71,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         return response
 
     def public(record):
-        return {key: value for key, value in listening.decorate(record).items() if not key.startswith('_')}
+        return {key: value for key, value in listening.decorate(metadata.cached(record)).items() if not key.startswith('_')}
 
     @app.get('/api/health')
     def health():
@@ -84,7 +85,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
 
     @app.put('/api/settings', response_model=MetadataSettings)
     def save_settings(data: MetadataSettings):
-        return settings.save(data.model_dump())
+        return settings.save(data.model_dump(exclude_unset=True))
 
     @app.get('/api/metadata/discogs/status')
     def discogs_status():
@@ -168,8 +169,23 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
             if not settings.get()['automatic_refresh']:
                 raise HTTPException(503, 'Refresh this record manually before loading images.')
             record = metadata.refresh(record_id)
-        return {'images': public_images(record['_metadata']), 'source_url': record['source_url'],
-                'metadata_expires_at': record['metadata_expires_at'], 'selected_id': record['cover_image_id'], 'selection_status': record['cover_selection_status']}
+        images = public_images(record['_metadata'])
+        for image in images:
+            image['preview_url'] = f"/api/records/{record_id}/cover-images/{image['id']}"
+        return {'images': images, 'source_url': record['source_url'],
+                'metadata_expires_at': record['metadata_expires_at'], 'show_expired_metadata': settings.get()['show_expired_metadata'], 'selected_id': record['cover_image_id'], 'selection_status': record['cover_selection_status']}
+
+    @app.get('/api/records/{record_id}/cover-images/{image_id}')
+    def saved_cover_image(record_id: str, image_id: str):
+        record = metadata.present(repository.get(record_id))
+        if record['metadata_status'] == 'unavailable':
+            raise HTTPException(404, 'Cover not available.')
+        image = next((i for i in record['_metadata'].get('images', []) if i['id'] == image_id), None)
+        if not image:
+            raise HTTPException(404, 'Image not available.')
+        key = f"{source_key(record['_metadata'])}-{image_id}"
+        return image_response(covers.image_content(key, image['url'], record['_metadata']['checked_at'],
+                                                   allow_expired=record.get('show_expired_metadata', False)))
 
     @app.put('/api/records/{record_id}/cover', response_model=Record)
     def select_cover(record_id: str, data: CoverSelection):
@@ -179,20 +195,20 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     def selected_cover(master_id: str, image_id: str):
         records = [metadata.present(r) for r in repository.list()
                    if (r['discogs_master_id'] or r.get('discogs_release_id')) and source_key(r['_metadata']) == master_id and r.get('cover_image_id') == image_id]
-        record = next((r for r in records if fresh(r['_metadata']) and r['cover_url']), None)
+        record = next((r for r in records if r['cover_url'] and (fresh(r['_metadata']) or r.get('show_expired_metadata'))), None)
         if not record:
             raise HTTPException(404, 'Cover not available.')
         image = next((i for i in record['_metadata'].get('images', []) if i['id'] == image_id), None)
         key = f'{master_id}-{image_id}'
         if not image:
             raise HTTPException(404, 'Selected image is no longer available.')
-        return image_response(covers.image_content(key, image['url'], record['_metadata']['checked_at']))
+        return image_response(covers.image_content(key, image['url'], record['_metadata']['checked_at'], allow_expired=record.get('show_expired_metadata', False)))
 
     @app.get('/api/covers/discogs/{master_id}')
     def get_cover(master_id: str):
         records = [r for r in repository.list() if (r['discogs_master_id'] or r.get('discogs_release_id')) and source_key(r['_metadata']) == master_id]
         records = [metadata.present(r) for r in records]
-        if not any(r['cover_url'] and fresh(r['_metadata']) for r in records) or not covers.path(master_id).exists():
+        if not any(r['cover_url'] and (fresh(r['_metadata']) or r.get('show_expired_metadata')) for r in records) or not covers.path(master_id).exists():
             raise HTTPException(404, 'Cover not available.')
         with covers.lock:
             try:
@@ -211,21 +227,13 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
 
     @app.get('/api/statistics')
     def listening_statistics(start: date | None = None, end: date | None = None):
-        records = []
-        for record in repository.list():
-            if record['metadata_expires_at'] and not fresh(record['_metadata']):
-                record = metadata.hide_stale(record)
-            records.append(record)
+        records = [metadata.cached(record) for record in repository.list()]
         return statistics(database, records, start, end)
 
     @app.get('/api/discovery')
     def discover(mode: Literal['all', 'never', 'least', 'recent'] = 'all',
                  previous: str | None = Query(default=None, max_length=100)):
-        records = []
-        for record in repository.list():
-            if record['metadata_expires_at'] and not fresh(record['_metadata']):
-                record = metadata.hide_stale(record)
-            records.append(public(record))
+        records = [public(record) for record in repository.list()]
         result = suggest(records, mode, previous)
         if result['record']:
             result['record'] = Record.model_validate(result['record']).model_dump()
@@ -247,11 +255,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
                             headers={'X-Content-Type-Options': 'nosniff'})
 
     def export_records():
-        records = []
-        for record in repository.list():
-            if record['metadata_expires_at'] and not fresh(record['_metadata']):
-                record = metadata.hide_stale(record)
-            records.append(public(record))
+        records = [public(record) for record in repository.list()]
         return records
 
     @app.get('/api/export/collection.json')
@@ -301,8 +305,6 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     @app.put('/api/records/{record_id}/personal', response_model=Record)
     def update_personal(record_id: str, data: PersonalFields):
         record = repository.save_personal(record_id, data)
-        if record['metadata_expires_at'] and not fresh(record['_metadata']):
-            record = metadata.hide_stale(record)
         return public(record)
 
     @app.post('/api/records/{record_id}/refresh', response_model=Record)

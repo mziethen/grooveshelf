@@ -38,13 +38,13 @@ export function createCoverPicker({api, escape, currentRecord, reload, renderCur
       const data = await api(`/records/${recordId}/cover-options`);
       if (current !== generation) return;
       selected = data.selected_id;
-      $('#cover-picker-status').textContent = data.selection_status === 'missing' ? 'Your selected image is no longer available. Choose another image or use the default cover.' : 'Your choice applies only to this record.';
+      $('#cover-picker-status').textContent = data.selection_status === 'missing' ? 'Your selected image is no longer available. Choose another image or use the default cover.' : (data.show_expired_metadata && data.metadata_expires_at * 1000 <= Date.now() ? 'Saved images may be outdated. Only cached images are available; refresh this record to download missing images.' : 'Your choice applies only to this record.');
       $('#cover-picker-source').href = data.source_url;
       $('#cover-picker-source').hidden = false;
       renderCoverGallery($('#cover-picker-gallery'), {images:data.images, selected, escape, onSelect:id => {selected=id;}});
       $('#cover-picker-save').disabled = false;
       clearTimeout(expiryTimer);
-      if (data.metadata_expires_at) expiryTimer = setTimeout(() => {
+      if (data.metadata_expires_at && !data.show_expired_metadata) expiryTimer = setTimeout(() => {
         $('#cover-picker-gallery').replaceChildren();
         $('#cover-picker-save').disabled = true;
         $('#cover-picker-status').textContent = 'These images have expired. Close and reopen the picker to refresh them.';

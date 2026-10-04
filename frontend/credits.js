@@ -1,5 +1,5 @@
 export function creditsMarkup(record, escape) {
-  const expired = record.metadata_expires_at && record.metadata_expires_at * 1000 <= Date.now();
+  const expired = !record.show_expired_metadata && record.metadata_expires_at && record.metadata_expires_at * 1000 <= Date.now();
   const credits = record.credits || [];
   if (!credits.length || expired || record.metadata_status === 'unavailable') return '';
   const source = record.credits_source_url || '';

@@ -2,7 +2,7 @@
 export function albumSearchLinks(record) {
   const artist = String(record.artist ?? '').trim();
   const title = String(record.title ?? '').trim();
-  const expired = record.metadata_expires_at && record.metadata_expires_at * 1000 <= Date.now();
+  const expired = !record.show_expired_metadata && record.metadata_expires_at && record.metadata_expires_at * 1000 <= Date.now();
   const protectedFields = record.protected_fields || [];
   if (!artist || !title || ((expired || record.metadata_status === 'unavailable') &&
       !['artist', 'title'].every(field => protectedFields.includes(field)))) return [];

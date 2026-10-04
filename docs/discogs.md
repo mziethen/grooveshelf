@@ -12,9 +12,9 @@ Every view of imported data includes a **Data provided by Discogs** link. This a
 
 Discogs API content and images have their own terms and are not licensed by GrooveShelf's MIT license. Review the [API Terms of Use](https://support.discogs.com/hc/en-us/articles/360009334593-API-Terms-of-Use) and any image rights that apply to your deployment.
 
-Imported source snapshots and covers are refreshed on access once they reach six hours. Preview snapshots are reused for at most five minutes. The browser checks deadlines, polls once a minute while visible and checks again on returning to the page. Expired provider fields and images are hidden if refresh fails, while protected manual edits and personal notes remain visible. The user can retry a refresh. API responses and cover responses disable browser caching.
+By default, imported source snapshots and covers are refreshed on access once they reach six hours. Preview snapshots are reused for at most five minutes. The browser checks deadlines, polls once a minute while visible and checks again on returning to the page. By default, expired provider fields and images are hidden if refresh fails, while protected manual edits and personal notes remain visible. The user can retry a refresh. API responses and cover responses disable browser caching.
 
-This is freshness handling required for imported content, not the full configurable refresh feature in META-04. An already open draft form is a user-editable draft; saving rechecks its selected master and preserves differences as manual corrections.
+[Metadata settings](settings.md) let users independently disable automatic refresh or opt into displaying saved expired snapshots. The latter is off by default and includes a terms notice and a visible last-check label. An already open draft form is a user-editable draft; saving rechecks its selected master and preserves differences as manual corrections.
 
 ## Manual edits
 
@@ -34,6 +34,6 @@ Automated fixtures cover search/preview without saving, confirmation payloads, l
 
 The import preview offers a thumbnail gallery and a larger preview. Choose an image before **Use these details**, or leave **Use default cover** selected. Existing Discogs records have a **Choose cover** action in their details. Previewing or canceling does not change the saved selection; **Save cover** confirms it.
 
-The preference belongs to the physical copy, not the shared album. Stable image identifiers retain the preference when Discogs changes signed image URLs. Refreshes preserve the choice; a removed image is reported as missing without silently substituting another image. Resetting to the default uses the provider's primary image. Cached previews expire after six hours and gallery dialogs stop displaying expired images. Credentials and original image URLs are not returned by the gallery API.
+The preference belongs to the physical copy, not the shared album. Stable image identifiers retain the preference when Discogs changes signed image URLs. Refreshes preserve the choice; a removed image is reported as missing without silently substituting another image. Resetting to the default uses the provider's primary image. Import previews expire after six hours. Saved-record galleries use the installation’s display preference; opted-in expired galleries serve cached images without refreshing the provider snapshot. Credentials and original image URLs are not returned by the gallery API.
 
 The gallery uses the linked exact release when one is selected, otherwise the album master. See [release linking and collection sync](discogs-sync.md). Some Discogs entries have no accessible images, especially without authenticated API access.

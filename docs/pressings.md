@@ -11,3 +11,5 @@ Missing values are labeled explicitly. A selected release without a master has n
 Provider fields are read-only and cached with the existing metadata policy. Older imports acquire them at their next Discogs refresh. Expired provider facts disappear until refreshed, independently of protected saved-year corrections. No database migration is required; schema version 9 and old archives remain compatible.
 
 Public records and JSON exports include `original_year`, `original_year_source_url`, `pressing_year`, `country` and `catalog_numbers`. CSV appends these columns, encoding catalog numbers as a JSON array. Printable catalogs include the facts and original-year source. ZIP archives retain the metadata for full restore.
+
+Expired saved provider data can remain visible when the installation opts into [displaying saved Discogs snapshots](settings.md). The default still hides expired details.

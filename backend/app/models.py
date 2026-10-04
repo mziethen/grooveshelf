@@ -89,6 +89,8 @@ class Record(RecordInput):
     catalog_numbers: list[str] = Field(default_factory=list, max_length=30)
     metadata_status: str = "manual"
     metadata_expires_at: float | None = None
+    metadata_checked_at: float | None = None
+    show_expired_metadata: bool = False
     protected_fields: list[str] = Field(default_factory=list)
     favorite: bool = False
     play_count: int = 0
@@ -180,6 +182,7 @@ class MetadataSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     automatic_refresh: bool
     confirm_import: bool
+    show_expired_metadata: bool = False
 
 
 class BulkPersonalChanges(BaseModel):
