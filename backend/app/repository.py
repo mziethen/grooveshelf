@@ -17,9 +17,9 @@ class CollectionRepository:
         result['tracks'] = json.loads(result['tracks'])
         metadata = json.loads(result.pop('metadata'))
         result['_metadata'] = metadata
-        for field in ['source_url', 'source_name', 'discogs_master_id', 'discogs_release_id', 'reference_release_url']:
+        for field in ['source_url', 'source_name', 'discogs_master_id', 'discogs_release_id', 'reference_release_url', 'credits_source_url']:
             result[field] = metadata.get(field)
-        for field in ['genres', 'styles', 'labels', 'protected_fields']:
+        for field in ['genres', 'styles', 'labels', 'protected_fields', 'credits']:
             result[field] = metadata.get(field, [])
         result['description'] = metadata.get('description', '')
         mid = source_key(metadata) if metadata.get('discogs_master_id') or metadata.get('discogs_release_id') else None

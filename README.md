@@ -9,7 +9,7 @@ A self-hosted vinyl collection archive for Raspberry Pi and your home network. K
 
 - **Collection:** cover grid and table, album details and track lists, search, favorites, ratings, media/sleeve condition, notes, and storage locations.
 - **Capture:** suggested inventory numbers, consecutive entry, duplicate warnings, and Discogs lookup by artist, album, barcode, or catalog number.
-- **Discogs:** reviewed metadata imports, protected manual corrections, locally cached covers with image selection, optional track durations, and manually confirmed collection import, matching, and export.
+- **Discogs:** reviewed metadata imports, protected manual corrections, locally cached covers with image selection, optional track durations and source-attributed album/track credits, and manually confirmed collection import, matching, and export.
 - **Listening:** NFC tag associations, station scans, ten-minute listening sessions, editable play history, statistics, and record suggestions.
 - **Wishlist:** desired albums, search, editing, and acquisition into the collection.
 - **Album discovery:** Spotify, YouTube and Qobuz search links in record details.
@@ -44,6 +44,7 @@ For Discogs configuration, token updates, local development, and troubleshooting
 | Spotify, YouTube and Qobuz searches | [Streaming links](docs/streaming.md) |
 | Collection download formats | [CSV, JSON and printable catalog](docs/exports.md) |
 | Portable export, verification, restore | [Archives and backups](docs/archives.md) |
+| Songwriter, producer and other credits | [Album and track credits](docs/credits.md) |
 | Track lists and optional durations | [Track durations](docs/tracks.md) |
 | Metadata, cover handling, freshness | [Discogs integration](docs/discogs.md) |
 | Collection import, matching, export | [Discogs synchronization](docs/discogs-sync.md) |

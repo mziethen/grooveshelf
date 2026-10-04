@@ -13,7 +13,7 @@ Choose a download in the sidebar's **Export** group. Downloads include the entir
 
 `grooveshelf-collection.json` is UTF-8 with a versioned envelope: `format` (`grooveshelf-collection`), `format_version` (`1`), `exported_at` (UTC), `record_count`, and `records`.
 
-Each record contains the public record fields, including its stable copy and album IDs, inventory number, personal fields, NFC UID, play count, last played timestamp, metadata status, and track array (including optional durations). Booleans, numbers and nulls retain their JSON types. Cover URLs are references to the running GrooveShelf server; image files are included in ZIP archives instead.
+Each record contains the public record fields, including its stable copy and album IDs, inventory number, personal fields, NFC UID, play count, last played timestamp, metadata status, track array (including optional durations), and source-attributed album/track credits. Booleans, numbers and nulls retain their JSON types. Cover URLs are references to the running GrooveShelf server; image files are included in ZIP archives instead.
 
 JSON is a data export, not a restore format. It does not include the wishlist, individual listening events, sync receipts, settings, credentials or private provider cache objects. Use the ZIP archive to restore an installation.
 

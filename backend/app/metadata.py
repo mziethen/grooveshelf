@@ -28,8 +28,9 @@ class MetadataService:
                                 ('year', None), ('tracks', [])]:
             if field not in protected:
                 result[field] = fallback
-        for field in ['genres', 'styles', 'labels']:
+        for field in ['genres', 'styles', 'labels', 'credits']:
             result[field] = []
+        result['credits_source_url'] = None
         result['description'] = ''
         result['cover_url'] = None
         result['metadata_status'] = 'unavailable'
