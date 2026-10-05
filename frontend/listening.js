@@ -71,21 +71,74 @@ export function createListeningUI({ api, escape, reload, currentRecord, renderCu
   let observedSequence = -1;
   let observedStatus = '';
   let polling = false;
+  let stationAvailable = false;
+  let stationRecords = [];
+  let assignmentNotice = null;
+  let assignmentGeneration = 0;
+  let assignmentScanSequence = null;
+  let assignmentSaving = false;
+  function setText(selector, text) {
+    const element = $(selector);
+    if (element.textContent !== text) element.textContent = text;
+  }
+  function readerFeedback(status) {
+    const messages = {
+      connected: 'Reader connected. Ready to scan.',
+      simulation: 'Test scan mode. This test does not use a physical reader.',
+      disconnected: 'Reader disconnected. Check the cable and restart the reader bridge. Existing listening sessions continue.',
+      error: 'Reader error. Check the reader and restart its bridge. Existing listening sessions continue.'
+    };
+    const text = messages[status] || 'Reader status is not available.';
+    for (const selector of ['#station-reader-state', '#detail-reader-state']) {
+      const element = $(selector); element.hidden = false; element.dataset.state = status || 'unknown';
+      setText(selector, text);
+    }
+  }
+  function scanFeedback(text) {
+    for (const selector of ['#station-feedback', '#detail-station-feedback']) {
+      $(selector).hidden = !text; setText(selector, text);
+    }
+  }
+  function stationSelection(resetReplacement = true) {
+    const record = stationRecords.find(record => record.id === $('#station-record').value);
+    if (resetReplacement) $('#station-tag-replace').checked = false;
+    $('#station-tag-replace-label').hidden = !record?.nfc_uid;
+    $('#station-tag-save').disabled = assignmentSaving || !record;
+    $('#station-tag-summary').textContent = record
+      ? `${record.inventory_number} · ${record.artist} · ${record.title}. ${record.nfc_uid ? `Existing tag: ${record.nfc_uid}. Confirm replacement to remove its association.` : 'This record has no tag yet.'}`
+      : 'No matching records. Change your search to choose a record.';
+  }
+  function filterStationRecords() {
+    const query = $('#station-record-search').value.trim().toLocaleLowerCase();
+    const previous = $('#station-record').value;
+    const matches = stationRecords.filter(record => `${record.inventory_number} ${record.artist} ${record.title}`.toLocaleLowerCase().includes(query));
+    $('#station-record').innerHTML = matches.map(record => `<option value="${escape(record.id)}">${escape(record.inventory_number)} · ${escape(record.artist)} · ${escape(record.title)}</option>`).join('');
+    if (matches.some(record => record.id === previous)) $('#station-record').value = previous;
+    $('#station-record-count').textContent = `${matches.length} of ${stationRecords.length} records`;
+    stationSelection();
+  }
+  $('#station-record-search').addEventListener('input', filterStationRecords);
+  $('#station-record').addEventListener('change', () => stationSelection());
+  $('#station-tag-editor').addEventListener('close', () => { assignmentGeneration++; });
   async function pollStation() {
     if (!stationId || document.hidden || polling) return;
     polling=true;
     $('#station-panel').hidden=false;
     try {
       const station=await api(`/stations/${encodeURIComponent(stationId)}`);
-      latestStation=station;
+      latestStation=station; stationAvailable=true;
+      $('#station-retry').hidden=true; $('#detail-station-retry').hidden=true;
+      $('#station-assign').disabled=false; $('#detail-assign-unknown').disabled=false;
+      readerFeedback(station.reader_status);
+      if (assignmentNotice && assignmentNotice.sequence !== station.scan_sequence) assignmentNotice=null;
+      scanFeedback(assignmentNotice?.text || (station.unknown_uid ? 'Unknown tag scanned. Choose a record to assign it.' : station.session && ['pending','completed'].includes(station.session.status) ? 'Tag recognized. This record is linked to the listening session.' : ''));
       const session=station.session;
       let text='Listening station is ready. Waiting for scans.';
       if(session?.status==='pending') text=`${station.name} · Listening in progress · ${Math.floor(session.remaining_seconds/60)}:${String(session.remaining_seconds%60).padStart(2,'0')} until this play is recorded`;
       else if(session?.status==='completed') text='Play recorded. End this session before listening to the same record again.';
       else if(session?.status==='canceled') text='Listening session canceled. No play was recorded.';
       else if(session?.status==='ended') text='Session ended. Ready for your next record.';
-      const readerMessage = station.reader_status === 'error' ? 'Reader reported an error. ' : station.reader_status === 'disconnected' ? 'No reader heartbeat. ' : station.reader_status === 'simulation' ? 'Test scan mode. ' : '';
-      text = readerMessage + text;
+      if (station.unknown_uid && !session) text='Waiting for tag assignment. No listening session has started.';
       $('#station-status').textContent=text;
       $('#station-unknown').hidden=!station.unknown_uid;
       $('#station-uid').textContent=station.unknown_uid || '';
@@ -108,9 +161,19 @@ export function createListeningUI({ api, escape, reload, currentRecord, renderCu
         }
         await reload();
       }
-    } catch(error){$('#station-status').textContent=`Station unavailable: ${error.message}`;}
+    } catch(error){
+      stationAvailable=false;
+      const text=`Station unavailable: ${error.message}. Check the server connection; automatic checks continue.`;
+      for (const selector of ['#station-reader-state','#detail-reader-state']) {
+        $(selector).hidden=false; $(selector).dataset.state='error'; setText(selector,text);
+      }
+      $('#station-retry').hidden=false; $('#detail-station-retry').hidden=false;
+      $('#station-assign').disabled=true; $('#detail-assign-unknown').disabled=true;
+    }
     finally{polling=false;}
   }
+  $('#station-retry').addEventListener('click', pollStation);
+  $('#detail-station-retry').addEventListener('click', pollStation);
   $('#detail-assign-unknown').addEventListener('click',()=>$('#station-assign').click());
   $('#detail-station-end').addEventListener('click',()=>$('#station-end').click());
   $('#station-end').addEventListener('click',async()=>{
@@ -120,23 +183,47 @@ export function createListeningUI({ api, escape, reload, currentRecord, renderCu
     finally{$('#station-end').disabled=false;}
   });
   $('#station-assign').addEventListener('click',async()=>{
+    if (!stationAvailable || !latestStation?.unknown_uid || $('#station-tag-editor').open) return;
+    const generation=++assignmentGeneration;
     $('#station-tag-error').textContent='';
+    assignmentScanSequence=latestStation.scan_sequence;
+    $('#station-tag-uid').textContent=latestStation.unknown_uid;
+    stationRecords=[];
+    $('#station-record-search').value=''; $('#station-record').replaceChildren();
+    $('#station-tag-summary').textContent='Loading your records…';
+    $('#station-record-count').textContent='';
+    $('#station-tag-replace').checked=false; $('#station-tag-replace-label').hidden=true;
+    $('#station-tag-save').disabled=true; $('#station-tag-editor').showModal();
     try {
       const all=await api('/records');
-      $('#station-record').innerHTML=all.map(record=>`<option value="${escape(record.id)}">${escape(record.inventory_number)} · ${escape(record.title)}</option>`).join('');
-      if(!all.length)throw new Error('Add a record before assigning a tag.');
-      $('#station-tag-uid').textContent=latestStation.unknown_uid;
-      $('#station-tag-replace').checked=false;$('#station-tag-editor').showModal();
-    }catch(error){$('#station-status').textContent=error.message;}
+      if (generation!==assignmentGeneration) return;
+      stationRecords=all; filterStationRecords();
+      if(!all.length) $('#station-tag-summary').textContent='Add a record before assigning this tag.';
+    }catch(error){if(generation===assignmentGeneration) $('#station-tag-error').textContent=error.message;}
   });
   $('#station-tag-form').addEventListener('submit',async event=>{
-    event.preventDefault();$('#station-tag-save').disabled=true;
+    event.preventDefault();
+    if (assignmentSaving || $('#station-tag-save').disabled) return;
+    const selected=stationRecords.find(record=>record.id===$('#station-record').value);
+    if (!selected) return;
+    const uid=$('#station-tag-uid').textContent;
+    const generation=assignmentGeneration;
+    const sequence=assignmentScanSequence;
+    assignmentSaving=true;
+    $('#station-tag-save').disabled=true; $('#station-tag-error').textContent='';
+    for (const selector of ['#station-record-search','#station-record','#station-tag-replace']) $(selector).disabled=true;
     try {
-      await api(`/tags/${encodeURIComponent($('#station-tag-uid').textContent)}`,{method:'PUT',body:JSON.stringify({copy_id:$('#station-record').value,replace:$('#station-tag-replace').checked})});
-      $('#station-tag-editor').close();await reload();await pollStation();
-      $('#station-status').textContent='Tag assigned. Remove and scan it again to start listening.';
-    }catch(error){$('#station-tag-error').textContent=error.message;}
-    finally{$('#station-tag-save').disabled=false;}
+      await api(`/tags/${encodeURIComponent(uid)}`,{method:'PUT',body:JSON.stringify({copy_id:selected.id,replace:$('#station-tag-replace').checked})});
+      assignmentNotice={sequence,text:`Tag ${uid} assigned to ${selected.inventory_number} · ${selected.title}. Remove and scan it again to start listening.`};
+      scanFeedback(assignmentNotice.text);
+      if(generation===assignmentGeneration) $('#station-tag-editor').close();
+      await reload();await pollStation();
+    }catch(error){if(generation===assignmentGeneration) $('#station-tag-error').textContent=error.message;}
+    finally{
+      assignmentSaving=false;
+      for (const selector of ['#station-record-search','#station-record','#station-tag-replace']) $(selector).disabled=false;
+      if ($('#station-tag-editor').open) stationSelection(false);
+    }
   });
   $('#station-tag-cancel').addEventListener('click',()=>$('#station-tag-editor').close());
   if(stationId) { setInterval(pollStation,1000);pollStation(); }

@@ -468,3 +468,10 @@ dialog:has(.dialog-top) {
   .record-card p,.record-card .record-location { font-size:13px; }
   .record-meta { font-size:11px; margin-top:8px; }
 }
+
+/* Station feedback changes on events; countdowns remain quiet. */
+.reader-state {font-size:14px;line-height:1.6;padding:12px 16px;border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow-wrap:anywhere;}
+.reader-state[data-state="error"], .reader-state[data-state="disconnected"] {border-left:4px solid var(--accent);}
+#station-feedback, #detail-station-feedback, #station-tag-summary {font-size:14px;line-height:1.6;overflow-wrap:anywhere;}
+#station-tag-form code {overflow-wrap:anywhere;}
+#station-tag-editor select, #station-tag-editor input[type="search"] {width:100%;min-width:0;}
