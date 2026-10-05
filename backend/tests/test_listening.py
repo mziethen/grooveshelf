@@ -202,3 +202,21 @@ def test_background_worker_records_due_play_without_browser_requests(tmp_path):
             if count:break
             time.sleep(0.05)
         assert count==1
+
+
+def test_assignment_retry_is_idempotent_and_preserves_active_session(setup):
+    client, clock, path, a, b = setup
+    session = scan(client).json()['session']['id']
+    uid = '04000000000000'
+    assert client.put('/api/tags/'+uid, json={'copy_id':b['id']}).status_code == 409
+    assert client.get('/api/records/'+b['id']).json()['nfc_uid'] == '04778899AABBCC'
+    for _ in range(2):
+        assert client.put('/api/tags/'+uid, json={'copy_id':b['id'], 'replace':True}).status_code == 200
+    assert client.put('/api/tags/'+uid, json={'copy_id':a['id'], 'replace':True}).status_code == 409
+    assert client.get('/api/stations/pi-main').json()['session']['id'] == session
+    with sqlite3.connect(path) as db:
+        assert db.execute('SELECT COUNT(*) FROM nfc_tags WHERE uid=?', (uid,)).fetchone()[0] == 1
+    client.post('/api/stations/pi-main/reader', json={'status':'error'})
+    clock.advance(600)
+    assert count(client,a) == 1 and count(client,b) == 0
+    assert client.get('/api/stations/pi-main').json()['session']['id'] == session

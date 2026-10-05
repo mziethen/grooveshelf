@@ -27,7 +27,7 @@ Open the station URL in the Pi browser:
 http://<pi-address>:8080/?station=pi-main
 ```
 
-The station page polls once per second. Incoming known scans open the record details and show a countdown in the detail dialog. Unknown tags can be assigned from the station panel or detail dialog. Scans do not interrupt an open editing/assignment dialog; navigation catches up afterward. Normal collection browsers without the station query parameter do not follow scans.
+The station page polls once per second. Incoming known scans open the record details and show a countdown in the detail dialog. Unknown tags can be assigned from the station panel or detail dialog. The selector searches inventory number, artist and album, shows the existing tag, and requires explicit replacement confirmation. Failed saves retain the draft for retry; saving alone does not start a listening event. A successful assignment identifies the record and remains visible through idle heartbeats until another scan. New scans never change the UID already being confirmed in an open dialog. Scans do not interrupt an open editing/assignment dialog; navigation catches up afterward. Normal collection browsers without the station query parameter do not follow scans.
 
 `pi-main` is the initial stable station ID. Timers and events are scoped by station. Only one station is configured for users; registration and management of more stations remain future work.
 
@@ -59,7 +59,7 @@ def read_uid(timeout: float) -> bytes | str | None:
     ...
 ```
 
-The bridge can then run with `--reader module:factory`. It reports a heartbeat every five seconds, emits scans on tag-presence edges, and reports reader failures. The server marks a connected reader disconnected if heartbeats stop for over fifteen seconds. Reader disconnects do not cancel a previously started listening session. The adapter and its dependencies must be chosen after identifying the physical PN532 module; the supplied bridge alone is not a PN532 driver.
+The bridge can then run with `--reader module:factory`. It reports a heartbeat every five seconds, emits scans on tag-presence edges, and reports reader failures. The server marks a connected reader disconnected if heartbeats stop for over fifteen seconds. Connected, test mode, disconnected and reader-error states have separate accessible feedback. Status announcements change on events rather than every countdown tick. Disconnection and read errors ask users to check the cable/reader and restart the bridge; the bridge does not automatically recover from reader exceptions. Station API failures disable stale scan-assignment controls and offer **Check station again**, alongside the existing automatic checks. Recovery restores those controls without a page reload. Reader disconnects do not cancel a previously started listening session. The adapter and its dependencies must be chosen after identifying the physical PN532 module; the supplied bridge alone is not a PN532 driver.
 
 ## History and favorites
 
@@ -72,3 +72,5 @@ Deleting a physical copy removes its tag association and sessions. Historical ev
 Schema version 3 migrates both versions 1 and 2 while preserving records, notes and Discogs metadata. The timer worker runs once per second; API reads also reconcile due sessions. SQLite transactions and a unique session-to-event constraint prevent duplicate events across worker retries or restarts.
 
 Automated tests use a controlled clock to check the exact ten-minute boundary, repeated scans, switching, cancellation, restart recovery, history correction, tag replacement, station isolation, heartbeats, favorites and inventory-number reuse. Browser fixtures verify station navigation and editing controls without touching hardware.
+
+NFC-04’s guided assignment and reader feedback are implemented and tested at the software boundary. Physical PN532 compatibility remains unverified under NFC-01. Browser regression tests cover searchable selection, confirmation, replacement conflicts, failed-save retries, persistent assignment feedback, API recovery, captured scan UID, active sessions, all themes and mobile/Pi layouts.
