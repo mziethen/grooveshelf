@@ -12,7 +12,13 @@ Choose an appearance in the top bar. The choice is remembered in the browser and
 
 ## Layout and interaction
 
-Covers have a subtle sleeve border and shadow. Collection metadata uses fine dividing lines rather than heavy card containers. Filters are compact chips with explicit selection states. The decorative record rings appear only on roomy desktop screens. Compact Pi layouts retain four covers per row and reachable settings; phones use two covers per row and a navigation drawer.
+The top bar provides three workspaces: **Collection**, a centered cover wall; **Archive**, the searchable inventory table; and **Listening**, a large album sleeve, artist, copy details and expandable track list. Gallery, Studio and Listening Room apply to all three workspaces. Search and filters survive workspace changes. The table/grid controls also switch between Archive and Collection.
+
+The tools drawer is available at every screen size through the navigation button. It contains wishlist, discovery, statistics, Discogs sync, labels, bulk editing, exports and settings. Escape returns focus to the opener; background content is inert while the drawer is open.
+
+Listening lets you select an owned copy and open its existing details. Recognized NFC scans update the album directly while Listening is active; in other workspaces they retain the record-detail workflow. The station banner provides real reader feedback and countdowns. Selecting an album or opening Listening does not create a listening event. Missing covers retain a record placeholder, and metadata visibility follows the same expiry settings as the collection.
+
+Covers have a subtle sleeve shadow, expressive titles and quiet copy metadata. Desktop uses four columns, compact screens use three, and phones use two. No remote font service or new image dependency is required.
 
 Dialogs share the same surface, typography and corner treatment. Touch actions retain a minimum 44-pixel height, form text remains readable, and focus outlines remain visible in every theme. Theme changes update button backgrounds immediately to avoid temporarily mismatching dark text with the previous theme’s color. Reduced-motion preferences disable transitions and cover zoom.
 

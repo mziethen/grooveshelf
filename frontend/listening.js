@@ -1,4 +1,4 @@
-export function createListeningUI({ api, escape, reload, currentRecord, renderCurrent }) {
+export function createListeningUI({ api, escape, reload, currentRecord, renderCurrent, onStationRecord }) {
   const $ = selector => document.querySelector(selector);
   let history = [];
   let eventToEdit = null;
@@ -156,7 +156,8 @@ export function createListeningUI({ api, escape, reload, currentRecord, renderCu
       if(!blocked && changed) {
         observedSequence=station.scan_sequence;observedStatus=sessionStatus;
         if(session && ['pending','completed'].includes(session.status) && !station.unknown_uid) {
-          if(location.hash!==`#record/${session.copy_id}`) location.hash=`record/${session.copy_id}`;
+          if (await onStationRecord?.(session.copy_id)) { /* Album view handles the recognized copy. */ }
+          else if(location.hash!==`#record/${session.copy_id}`) location.hash=`record/${session.copy_id}`;
           else await renderCurrent();
         }
         await reload();

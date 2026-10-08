@@ -38,7 +38,7 @@ const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
     await page.setViewportSize(viewport);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     assert(await page.locator('#missing-nfc').locator('..').evaluate(e=>e.getBoundingClientRect().height>=44));
     assert(await page.locator('#search').evaluate(e=>parseFloat(getComputedStyle(e).fontSize)>=16));
-    if(viewport.width===1024){assert(await page.locator('#settings-open').evaluate(e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}));}
+    if(viewport.width===1024){await openNavigation(page);assert(await page.locator('#settings-open').evaluate(e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}));await page.keyboard.press('Escape');}
    }
   }
   await page.setViewportSize({width:390,height:844});await openNavigation(page);
