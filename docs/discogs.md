@@ -18,7 +18,7 @@ By default, imported source snapshots and covers are refreshed on access once th
 
 ## Manual edits
 
-Artist, title, year and track list differences are tracked as protected fields. Refresh updates only unprotected fields. Notes are personal data and never populated from provider album notes. Editing one copy's album metadata creates a separate album association if necessary, preserving other copies. There is currently no interface to clear protection or change the Discogs source of an existing copy.
+Artist, title, year and track list differences are tracked as protected fields. Refresh updates only unprotected fields. Notes are personal data and never populated from provider album notes. Editing one copy's album metadata creates a separate album association if necessary, preserving other copies. [Review metadata corrections](metadata-corrections.md) compares protected fields with saved Discogs values and explicitly removes protection for fields you adopt. Exact release linking can change the source of an existing copy through the [collection sync workflow](discogs-sync.md).
 
 ## Storage and failures
 

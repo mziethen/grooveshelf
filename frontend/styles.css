@@ -475,3 +475,14 @@ dialog:has(.dialog-top) {
 #station-feedback, #detail-station-feedback, #station-tag-summary {font-size:14px;line-height:1.6;overflow-wrap:anywhere;}
 #station-tag-form code {overflow-wrap:anywhere;}
 #station-tag-editor select, #station-tag-editor input[type="search"] {width:100%;min-width:0;}
+
+.correction-field {border:1px solid var(--line);border-radius:10px;padding:18px;margin:24px 0;min-width:0;}
+.correction-field legend {font-size:18px;font-weight:600;padding:0 8px;}
+.correction-comparison {display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.correction-comparison section {min-width:0;overflow-wrap:anywhere;}
+.correction-comparison h3 {font-size:14px;color:var(--muted);}
+.correction-comparison p,.correction-comparison li {font-size:15px;line-height:1.6;white-space:pre-wrap;}
+.correction-comparison ol {padding-left:24px;max-height:240px;overflow:auto;}
+.correction-field input[type=radio] {width:18px;height:18px;min-height:0;flex:none;margin:0;accent-color:var(--accent);}
+.corrections-actions {position:sticky;bottom:-32px;background:var(--surface);margin-bottom:-32px;padding:18px 0 24px;}
+@media(max-width:600px){.correction-comparison {grid-template-columns:1fr;gap:8px;}.corrections-actions{bottom:-20px;margin-bottom:-20px;}}

@@ -216,3 +216,9 @@ class BulkPersonalInput(BaseModel):
         if len(set(values)) != len(values):
             raise ValueError("Select each record only once")
         return values
+
+
+class CorrectionChoices(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    revision: str = Field(pattern=r"^[a-f0-9]{64}$")
+    choices: dict[Literal['artist', 'title', 'year', 'tracks'], Literal['keep', 'provider']] = Field(min_length=1, max_length=4)
