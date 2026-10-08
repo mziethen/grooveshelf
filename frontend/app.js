@@ -43,6 +43,57 @@ function attribution(record, referenceRelease = false) {
 function coverFallbacks(root) {
   root.querySelectorAll('.cover img').forEach(img => img.addEventListener('error', () => img.remove(), {once: true}));
 }
+let workspaceMode = state.view === 'table' ? 'archive' : 'collection';
+let listeningRecord = null, listeningMarkup = '', listeningRequest = 0;
+function setWorkspace(mode) {
+  workspaceMode = mode;
+  document.body.dataset.workspace = mode;
+  $('#library-screen').hidden = mode === 'listening';
+  $('#listening-screen').hidden = mode !== 'listening';
+  for (const name of ['collection','archive','listening']) $('#mode-'+name).setAttribute('aria-pressed', name === mode);
+  $('.intro h1').innerHTML = mode === 'archive' ? 'Everything <em>in its place</em><span>.</span>' : mode === 'listening' ? 'A moment <em>to listen</em><span>.</span>' : 'Your <em>collection</em><span>.</span>';
+  $('.intro-description').textContent = mode === 'archive' ? 'Every copy. Every detail. All together.' : mode === 'listening' ? 'Scan your record. Let the album take the room.' : 'The records you love. A place of their own.';
+  if (mode !== 'listening') { state.view = mode === 'archive' ? 'table' : 'grid'; localStorage.setItem('grooveshelf-view', state.view); render(); }
+}
+async function chooseListening(id) {
+  const generation = ++listeningRequest;
+  $('#listening-view-error').textContent = '';
+  try {
+    const record = await api(`/records/${id}`);
+    if (generation !== listeningRequest) return;
+    listeningRecord = hideExpired(record);
+    renderListening(); scheduleExpiry();
+  } catch(error) { if (generation === listeningRequest) $('#listening-view-error').textContent = error.message; }
+}
+function renderListening() {
+  if (!listeningRecord) return;
+  listeningRecord = hideExpired(listeningRecord);
+  const r = listeningRecord;
+  const markup = `<div class="listening-art">${cover(r)}</div><div class="listening-copy"><p class="eyebrow">SELECTED FROM YOUR SHELF</p><h2>${escape(r.title)}</h2><p class="listening-artist">${escape(r.artist)}</p><p class="muted">${escape(r.inventory_number)} · ${escape(r.format)}${r.year ? ` · ${escape(r.year)}` : ''}</p>${attribution(r)}${r.metadata_status === 'stale' ? `<p class="metadata-stale-notice muted">Saved Discogs data · Last checked ${r.metadata_checked_at ? escape(new Date(r.metadata_checked_at * 1000).toLocaleString()) : 'at least six hours ago'}. These details may be outdated.</p>` : ''}<p class="listening-note">A record to spend time with.</p><details class="listening-tracklist"><summary>Track list · ${(r.tracks || []).length} tracks</summary><ol class="tracks">${(r.tracks || []).map(t=>trackMarkup(t,escape)).join('')}</ol>${r.tracks?.length ? '' : '<p class="muted">No saved tracks for this album.</p>'}</details><p class="muted">Album view only. Plays are recorded through your listening station or the record’s listening history.</p></div>`;
+  if (markup !== listeningMarkup) {
+    const open = $('#listening-album details')?.open;
+    const focused = document.activeElement === $('#listening-album summary');
+    listeningMarkup = markup; $('#listening-album').innerHTML = markup; coverFallbacks($('#listening-album'));
+    $('#listening-album details').open = Boolean(open);
+    if (focused) $('#listening-album summary').focus();
+  }
+  $('#listening-details-open').hidden = false;
+  $('#listening-choice').value = r.id;
+}
+async function enterListening() {
+  setWorkspace('listening');
+  try {
+    const records = await api('/records');
+    if (workspaceMode !== 'listening') return;
+    $('#listening-choice').innerHTML = '<option value="">Select from your collection</option>' + records.map(r=>`<option value="${escape(r.id)}">${escape(r.inventory_number)} · ${escape(hideExpired(r).title)}</option>`).join('');
+    const selected = listeningRecord || state.selected;
+    if (selected && records.some(r=>r.id===selected.id)) await chooseListening(selected.id);
+  } catch(error) { $('#listening-view-error').textContent = error.message; }
+}
+for (const mode of ['collection','archive','listening']) $('#mode-'+mode).addEventListener('click',()=>mode==='listening' ? enterListening() : setWorkspace(mode));
+$('#listening-choice').addEventListener('change',event=>{if(event.target.value)chooseListening(event.target.value);else {++listeningRequest;listeningRecord=null;listeningMarkup='';$('#listening-album').innerHTML='<div class="empty"><h2>Make room for a record.</h2><p>Choose an album, or scan its NFC tag at your listening station.</p></div>';$('#listening-details-open').hidden=true;}});
+$('#app-navigation .nav-item.active').addEventListener('click',()=>setWorkspace('collection'));
+$('#listening-details-open').addEventListener('click',()=>{if(listeningRecord)location.hash=`record/${listeningRecord.id}`;});
 let collectionMarkup;
 function updateCollection(target, markup) {
   if (collectionMarkup === markup) return false;
@@ -100,6 +151,7 @@ async function route() {
     state.selected = record;
     $('#message').textContent = '';
     renderDetails(record);
+    if (workspaceMode === 'listening') { listeningRecord = hideExpired(record); renderListening(); }
   } catch (error) {
     // Keep missing-link feedback visible through background collection refreshes.
     state.routeError = error.message; $('#message').textContent = state.routeError; location.hash = '';
@@ -189,7 +241,7 @@ createWishlist({api,escape,onAcquire(wish) {
 const capture=createCapture({api,escape,currentIdentity:()=>({masterId:state.masterId,releaseId:state.releaseId,editingId:state.editing?.id||null})});
 populatePersonalOptions($('#record-form'));
 const personal = createPersonalUI({api,escape,currentRecord:()=>state.selected,reload:load,renderCurrent:route});
-const listening = createListeningUI({ api, escape, reload: load, currentRecord: () => state.selected, renderCurrent: route });
+const listening = createListeningUI({ api, escape, reload: load, currentRecord: () => state.selected, renderCurrent: route, onStationRecord: async id => { if (workspaceMode !== 'listening') return false; await chooseListening(id); return true; } });
 const discogs = createDiscogsSearch({ api, escape, onImport(data) {
   state.trackDraft = data.tracks;
   state.masterId = data.discogs_master_id || null; state.releaseId=data.discogs_release_id || null; state.coverImageId = data.cover_image_id || null;
@@ -233,7 +285,7 @@ $('#clear-filters').addEventListener('click', clearFilters);
 $('#retry-load').addEventListener('click', load);
 for (const name of ['cover','tracks','nfc']) $('#missing-'+name).addEventListener('change',render);
 $('#search').addEventListener('input', () => { $('#clear-filters').hidden = !($('#search').value || ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked)); clearTimeout(timer); timer = setTimeout(load, 200); });
-for (const view of ['grid','table']) $(`#${view}-view`).addEventListener('click', () => { state.view = view; localStorage.setItem('grooveshelf-view', view); render(); });
+for (const view of ['grid','table']) $(`#${view}-view`).addEventListener('click', () => { setWorkspace(view === 'table' ? 'archive' : 'collection'); });
 window.addEventListener('hashchange', route);
 function hideExpired(record) {
   if (!record.metadata_expires_at || record.metadata_expires_at * 1000 > Date.now()) return record;
@@ -247,15 +299,16 @@ function hideExpired(record) {
 let expiryTimer;
 function scheduleExpiry() {
   clearTimeout(expiryTimer);
-  const deadlines = [...state.records, ...(state.selected ? [state.selected] : [])]
+  const deadlines = [...state.records, ...(state.selected ? [state.selected] : []), ...(listeningRecord ? [listeningRecord] : [])]
     .map(r => r.metadata_expires_at * 1000).filter(deadline => deadline > Date.now());
   if (deadlines.length) expiryTimer = setTimeout(pollMetadata, Math.max(1, Math.min(...deadlines) - Date.now() + 1));
 }
 async function pollMetadata() {
   if (document.hidden) return;
-  state.records = state.records.map(hideExpired); render();
+  state.records = state.records.map(hideExpired); render(); renderListening();
   if ($('#details').open && state.selected) renderDetails(state.selected);
   await load();
+  if (workspaceMode === 'listening' && listeningRecord) await chooseListening(listeningRecord.id);
   if ($('#details').open) await route();
 }
 setInterval(pollMetadata, 60000);
@@ -268,12 +321,15 @@ createBulkEditor({api,escape,onSaved:async count=>{await load();$('#message').te
 createSettings({api,onSaved:async settings=>{
   state.records = state.records.map(record=>hideExpired({...record, show_expired_metadata:settings.show_expired_metadata}));
   if (state.selected) state.selected = hideExpired({...state.selected, show_expired_metadata:settings.show_expired_metadata});
+  if (listeningRecord) { listeningRecord = hideExpired({...listeningRecord, show_expired_metadata:settings.show_expired_metadata}); renderListening(); }
   render();
   if ($('#details').open && state.selected) renderDetails(state.selected);
   await load();
+  if (workspaceMode === 'listening' && listeningRecord) await chooseListening(listeningRecord.id);
   if ($('#details').open) await route();
 }});
 createLabels({api,escape});
 createStatistics({api,escape,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
 createDiscovery({api,escape,cover,coverFallbacks,hideExpired,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
+setWorkspace(workspaceMode);
 await load(); await route();
