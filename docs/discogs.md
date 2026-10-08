@@ -37,3 +37,5 @@ The import preview offers a thumbnail gallery and a larger preview. Choose an im
 The preference belongs to the physical copy, not the shared album. Stable image identifiers retain the preference when Discogs changes signed image URLs. Refreshes preserve the choice; a removed image is reported as missing without silently substituting another image. Resetting to the default uses the provider's primary image. Import previews expire after six hours. Saved-record galleries use the installation’s display preference; opted-in expired galleries serve cached images without refreshing the provider snapshot. Credentials and original image URLs are not returned by the gallery API.
 
 The gallery uses the linked exact release when one is selected, otherwise the album master. See [release linking and collection sync](discogs-sync.md). Some Discogs entries have no accessible images, especially without authenticated API access.
+
+Available release notes are shown in previews and record details with pressing/reference attribution. See [release notes](release-notes.md).

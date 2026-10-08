@@ -63,6 +63,7 @@ jobs:
           curl --fail http://localhost:8080/streaming.js | python -c 'import sys; assert "export function albumSearchLinks" in sys.stdin.read()'
           curl --fail http://localhost:8080/tracks.js | python -c 'import sys; assert "export function trackLine" in sys.stdin.read()'
           curl --fail http://localhost:8080/pressings.js | python -c 'import sys; assert "export function pressingMarkup" in sys.stdin.read()'
+          curl --fail http://localhost:8080/release-notes.js | python -c 'import sys; assert "export function releaseNotesMarkup" in sys.stdin.read()'
           curl --fail http://localhost:8080/credits.js | python -c 'import sys; assert "export function creditsMarkup" in sys.stdin.read()'
           curl --fail http://localhost:8080/corrections.js | python -c 'import sys; assert "export function createCorrections" in sys.stdin.read()'
           curl --fail http://localhost:8080/photos.js | python -c 'import sys; assert "export function createPhotos" in sys.stdin.read()'
