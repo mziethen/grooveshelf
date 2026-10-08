@@ -7,7 +7,7 @@ const base=process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
  const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:390,height:844}});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const record={id:'sync-copy',album_id:'album',inventory_number:'LP-00001',artist:'My Artist',title:'My Album',format:'LP',year:1990,tracks:[],notes:'Keep my notes',genres:[],styles:[],labels:[],description:'',protected_fields:[],metadata_status:'manual'};
- let imported=null;let applied=[];let releaseLinked=false;
+ let imported=null;let applied=[];let releaseLinked=false;let detached=false;let detachAttempts=0;
  await page.route('**/api/**',async route=>{
   const path=new URL(route.request().url()).pathname;let body;
   if(path==='/api/records')body=imported?[record,imported]:[record];
@@ -16,9 +16,16 @@ const base=process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
   else if(path==='/api/metadata/discogs/releases/100')body={title:'Discogs Album',artist:'Discogs Artist',year:2000,is_vinyl:true,source_url:'https://www.discogs.com/release/100'};
   else if(path.endsWith('/discogs-release')){assert.equal(route.request().postDataJSON().release_id,100);record.discogs_release_id=100;releaseLinked=true;body=record;}
   else if(path==='/api/discogs/sync/preview')body={plan_id:'plan',username:'owner',remote_count:1,last_success_at:null,expires_in_seconds:600,
-   actions:applied.length?[]:[{id:'remote',kind:'remote',instance_id:11,release_id:100,artist:'Remote Artist',title:'Remote Album',source_url:'https://www.discogs.com/release/100',matches:[{id:record.id,inventory_number:record.inventory_number,title:record.title}]},{id:'local',kind:'local',copy_id:'local-copy',inventory_number:'LP-00002',title:'Outbound Album',release_id:200,source_url:'https://www.discogs.com/release/200'}],notices:[]};
+   actions:applied.length?[]:[{id:'remote',kind:'remote',instance_id:11,release_id:100,artist:'Remote Artist',title:'Remote Album',source_url:'https://www.discogs.com/release/100',matches:[{id:record.id,inventory_number:record.inventory_number,title:record.title}]},{id:'local',kind:'local',copy_id:'local-copy',inventory_number:'LP-00002',title:'Outbound Album',release_id:200,source_url:'https://www.discogs.com/release/200'}],notices:applied.length && !detached ? [{kind:'remote_missing',copy_id:record.id,action_id:'missing',inventory_number:record.inventory_number,message:'LP-00001: linked Discogs copy is missing.'}] : []};
   else if(path==='/api/discogs/sync/apply'){
-   const action=route.request().postDataJSON();applied.push(action);
+   const action=route.request().postDataJSON();
+   if(action.choice==='detach'){
+    assert.equal(action.confirmed,true);detachAttempts++;
+    if(detachAttempts===1){await route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({detail:'The Discogs copy is present again. Refresh the preview.'})});return;}
+    detached=true;body={status:'detached',copy_id:record.id};
+    await route.fulfill({contentType:'application/json',body:JSON.stringify(body)});return;
+   }
+   applied.push(action);
    if(action.choice==='link'){assert.equal(action.copy_id,record.id);body={status:'linked',copy_id:record.id};}
    else{body={status:'exported',copy_id:'local-copy'};}
   }else body={};
@@ -42,7 +49,18 @@ const base=process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
   await page.locator('#sync-apply').click();await page.getByText('Copies matched.',{exact:true}).waitFor();
   await page.getByText('Added to Discogs.',{exact:true}).waitFor();assert.equal(applied.length,2);
   await page.locator('#sync-preview').click();await page.getByText('No additions are ready to synchronize.').waitFor();
-  assert(await page.locator('#sync-apply').isDisabled());assert.deepEqual(errors,[]);
+  assert(await page.locator('#sync-apply').isDisabled());
+  await page.getByRole('button',{name:'Review missing link'}).click();
+  await page.locator('#missing-link-cancel').click();assert.equal(detachAttempts,0);
+  await page.getByRole('button',{name:'Review missing link'}).click();
+  await page.locator('#missing-link-confirm').click();assert.equal(detachAttempts,0,'Confirmation checkbox is required');
+  await page.locator('#missing-link-check').check();await page.locator('#missing-link-confirm').click();
+  await page.locator('#missing-link-error').getByText('The Discogs copy is present again. Refresh the preview.').waitFor();
+  assert(await page.locator('#missing-link-check').isChecked());
+  assert.equal(detachAttempts,1);await page.locator('#missing-link-confirm').click();
+  await page.locator('#missing-link-dialog').waitFor({state:'hidden'});
+  await page.getByRole('button',{name:'Review missing link'}).waitFor({state:'hidden'});
+  assert(detached);assert.equal(record.inventory_number,'LP-00001');assert.equal(applied.length,2);assert.deepEqual(errors,[]);
   console.log('Sync browser flow passed: pressing confirmation, read-only preview, explicit matching/export, progress and repeat preview.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

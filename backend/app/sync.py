@@ -33,14 +33,20 @@ class DiscogsSync:
     def collection(self, username):
         entries = {}
         page = 1
+        expected_pages = None
         while page <= 1000:
             data = self.provider.request(f'/users/{quote(username, safe="")}/collection/folders/0/releases',
                                          {'page': page, 'per_page': 100})
-            for item in data.get('releases', []):
+            releases = data.get('releases')
+            if not isinstance(releases, list):
+                raise HTTPException(502, 'The Discogs collection response is incomplete.')
+            for item in releases:
                 info = item.get('basic_information', {})
                 iid, rid = item.get('instance_id'), info.get('id')
                 if not isinstance(iid, int) or iid < 1 or not isinstance(rid, int) or rid < 1:
                     raise HTTPException(502, 'Discogs returned a collection entry without valid copy/release IDs.')
+                if iid in entries:
+                    raise HTTPException(502, 'The Discogs collection changed during pagination. Refresh the preview.')
                 entries[iid] = {'instance_id': iid, 'release_id': rid,
                                 'is_vinyl':any(item.get('name') == 'Vinyl' for item in info.get('formats', [])),
                                 'title': str(info.get('title', 'Untitled'))[:300],
@@ -48,6 +54,11 @@ class DiscogsSync:
                                 'source_url': f'https://www.discogs.com/release/{rid}'}
             pages = data.get('pagination', {}).get('pages')
             if not isinstance(pages, int) or pages < 0 or pages > 1000:
+                raise HTTPException(502, 'The Discogs collection pagination could not be verified.')
+            if expected_pages is not None and pages != expected_pages:
+                raise HTTPException(502, 'The Discogs collection changed during pagination. Refresh the preview.')
+            expected_pages = pages
+            if pages == 0 and releases:
                 raise HTTPException(502, 'The Discogs collection pagination could not be verified.')
             if page >= pages:
                 return entries
@@ -106,7 +117,7 @@ class DiscogsSync:
             linked_copies = {link['copy_id'] for link in links if link['copy_id']}
             linked_instances = {link['instance_id'] for link in links if link['account'] == account}
             uncertain = {item['copy_id']: item for item in exports if item['copy_id']}
-            actions, notices = [], []
+            actions, notices, resolutions = [], [], []
             for entry in remote.values():
                 if not entry['is_vinyl'] or entry['instance_id'] in linked_instances:
                     continue
@@ -131,16 +142,22 @@ class DiscogsSync:
                         notices.append({'kind':'account','message':'A local copy is linked to a different Discogs account and will not be exported here.'})
                     continue
                 if link['copy_id'] is None:
-                    notices.append({'kind':'local_missing','message':f"Discogs instance {link['instance_id']}: its GrooveShelf copy was deleted. The remote copy is retained; it will not be reimported automatically."})
+                    if link['instance_id'] not in remote:
+                        continue
+                    notices.append({'kind':'local_missing','message':f"Discogs instance {link['instance_id']}: no local copy is associated with this remembered instance. The remote copy is retained; it will not be reimported automatically."})
                 elif link['instance_id'] not in remote:
-                    notices.append({'kind':'remote_missing','copy_id':link['copy_id'],'message':f"{by_copy[link['copy_id']]['inventory_number']}: linked Discogs copy is missing. GrooveShelf retains the record; no deletion or re-addition will happen automatically."})
+                    resolution = {'id':str(uuid4()), 'kind':'missing', **link}
+                    resolutions.append(resolution)
+                    notices.append({'kind':'remote_missing','copy_id':link['copy_id'],'action_id':resolution['id'],
+                                    'inventory_number':by_copy[link['copy_id']]['inventory_number'],
+                                    'message':f"{by_copy[link['copy_id']]['inventory_number']}: linked Discogs copy is missing. GrooveShelf retains the record; no deletion or re-addition will happen automatically."})
                 elif remote[link['instance_id']]['release_id'] != link['release_id']:
                     notices.append({'kind':'conflict','copy_id':link['copy_id'],'message':'A linked Discogs instance has a different release. Review the association before synchronizing.'})
             self.plans = {key:value for key,value in self.plans.items() if value['expires'] > monotonic()}
             if len(self.plans) >= 16:
                 self.plans.pop(next(iter(self.plans)))
             plan_id = str(uuid4())
-            self.plans[plan_id] = {'account':account,'username':username,'actions':{action['id']:action for action in actions},'expires':monotonic()+600}
+            self.plans[plan_id] = {'account':account,'username':username,'actions':{action['id']:action for action in actions + resolutions},'expires':monotonic()+600}
             return {'plan_id':plan_id,'username':username,'remote_count':len(remote),'actions':actions,'notices':notices,
                     'last_success_at':state['last_success_at'] if state else None,'expires_in_seconds':600}
 
@@ -156,7 +173,11 @@ class DiscogsSync:
             if account != plan['account']:
                 raise HTTPException(409, 'The connected Discogs account changed. Load a new preview.')
             remote = self.collection(username)
-            if action['kind'] == 'remote':
+            if action['kind'] == 'missing':
+                if request.choice != 'detach' or request.confirmed is not True:
+                    raise HTTPException(422, 'Confirm removal of the missing local link.')
+                result = self.detach_missing(account, action, remote)
+            elif action['kind'] == 'remote':
                 entry = remote.get(action['instance_id'])
                 if not entry or entry['release_id'] != action['release_id']:
                     raise HTTPException(409, 'This Discogs copy changed since the preview. Load a new preview.')
@@ -174,6 +195,25 @@ class DiscogsSync:
                 db.execute('INSERT INTO discogs_sync_state(account,last_success_at) VALUES(?,?) ON CONFLICT(account) DO UPDATE SET last_success_at=excluded.last_success_at', (account, now()))
             del plan['actions'][request.action_id]
             return result
+
+    def detach_missing(self, account, action, remote):
+        if action['instance_id'] in remote:
+            raise HTTPException(409, 'The Discogs copy is present again. Refresh the preview.')
+        with self.database.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            link = db.execute('SELECT * FROM discogs_links WHERE account=? AND instance_id=?',
+                              (account, action['instance_id'])).fetchone()
+            if not link or link['copy_id'] != action['copy_id'] or link['release_id'] != action['release_id']:
+                raise HTTPException(409, 'The local association changed. Refresh the preview.')
+            receipt = db.execute('SELECT * FROM discogs_exports WHERE copy_id=?', (action['copy_id'],)).fetchone()
+            if receipt and (receipt['status'] != 'resolved' or receipt['account'] != account or receipt['release_id'] != action['release_id']):
+                raise HTTPException(409, 'An export still needs review before this link can be removed.')
+            # Retain the old instance as a tombstone; never recreate it automatically.
+            db.execute('UPDATE discogs_links SET copy_id=NULL WHERE account=? AND instance_id=?',
+                       (account, action['instance_id']))
+            if receipt:
+                db.execute('DELETE FROM discogs_exports WHERE id=?', (receipt['id'],))
+        return {'status':'detached', 'copy_id':action['copy_id']}
 
     def link(self, account, entry, copy_id):
         if not copy_id:
