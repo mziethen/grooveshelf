@@ -206,3 +206,10 @@ body[data-workspace=listening] .intro {padding:28px 0 30px;}
 body[data-workspace=listening] .intro h1 {font-size:clamp(42px,4vw,60px);margin:14px 0;}
 body[data-workspace=listening] .intro>.primary {display:none;}
 .intro>.primary {max-width:none;white-space:nowrap;}
+.browse-controls {display:grid;grid-template-columns:1.2fr 1fr 1fr auto;align-items:end;gap:16px;border:0;padding:16px 0 6px;margin:0;min-width:0;}
+.browse-controls legend {position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+.browse-controls label {min-width:0;}
+.browse-controls select {width:100%;text-overflow:ellipsis;}
+.browse-favorites {display:flex;align-items:center;gap:9px;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:5px;white-space:nowrap;}
+@media(max-width:700px) {.browse-controls {grid-template-columns:1fr 1fr;gap:12px;}.browse-controls select {font-size:16px;padding:10px 8px;}}
+.browse-favorites input[type=checkbox] {width:18px;height:18px;min-height:0;margin:0;flex:none;}
