@@ -15,7 +15,7 @@ from .repository import CollectionRepository
 from .models import Record
 
 FORMAT_VERSION = 1
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 MAX_DATABASE = 256 * 1024 * 1024
 MAX_COVER = 5 * 1024 * 1024
 MAX_TOTAL = 512 * 1024 * 1024
@@ -39,13 +39,16 @@ def connect(path):
 
 def validate_database(path):
     with connect(path) as source, tempfile.TemporaryDirectory() as work:
-        if source.execute('PRAGMA user_version').fetchone()[0] != SCHEMA_VERSION:
+        version = source.execute('PRAGMA user_version').fetchone()[0]
+        if version not in (9, SCHEMA_VERSION):
             raise ValueError('Archive database schema is incompatible with this application.')
         if source.execute('PRAGMA integrity_check').fetchone()[0] != 'ok' or source.execute('PRAGMA foreign_key_check').fetchone():
             raise ValueError('Archive database integrity or relationships are invalid.')
         template = Database(str(Path(work)/'template.sqlite3')); template.initialize()
         with template.connect() as reference:
             expected = {row[0] for row in reference.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+            if version == 9:
+                expected.discard('photos')
             actual = {row[0] for row in source.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
             if actual != expected or source.execute("SELECT 1 FROM sqlite_master WHERE type IN ('view','trigger')").fetchone():
                 raise ValueError('Archive database contains unsupported tables, views or triggers.')
@@ -56,6 +59,9 @@ def validate_database(path):
                     raise ValueError('Archive database relationships are incompatible.')
                 if existing != columns or any(row[6] for row in source.execute(f'PRAGMA table_xinfo("{table}")')):
                     raise ValueError('Archive database columns are incompatible.')
+        if version == 10:
+            from .photos import validate_photos
+            validate_photos(source)
         for row in source.execute('SELECT played_at FROM play_events'):
             if not isinstance(row[0], (int,float)) or not math.isfinite(row[0]) or not 0 <= row[0] < 253402300800:
                 raise ValueError('Archive contains an invalid listening timestamp.')
@@ -75,6 +81,8 @@ def export_archive(database_path, output):
         with connect(database_path) as source, closing(sqlite3.connect(snapshot)) as target:
             source.backup(target)
         validate_database(snapshot)
+        with connect(snapshot) as database:
+            schema_version = database.execute('PRAGMA user_version').fetchone()[0]
         content = {'collection.sqlite3': snapshot.read_bytes()}
         covers = database_path.parent/'covers'
         if covers.exists():
@@ -85,7 +93,7 @@ def export_archive(database_path, output):
                     content['covers/'+path.name] = path.read_bytes()
         if len(content['collection.sqlite3']) > MAX_DATABASE or sum(map(len,content.values())) > MAX_TOTAL or len(content)>20000:
             raise ValueError('The collection exceeds archive size limits.')
-        manifest = {'format':'grooveshelf-archive','version':FORMAT_VERSION,'schema_version':SCHEMA_VERSION,
+        manifest = {'format':'grooveshelf-archive','version':FORMAT_VERSION,'schema_version':schema_version,
                     'created_at':datetime.now(timezone.utc).isoformat(),
                     'files':{name:{'size':len(data),'sha256':digest(data)} for name,data in content.items()}}
         archive = Path(work)/'archive.zip'
@@ -105,7 +113,7 @@ def verified_files(archive):
         if 'manifest.json' not in names or source.getinfo('manifest.json').file_size>1024*1024:
             raise ValueError('Archive manifest is missing or too large.')
         manifest = json.loads(source.read('manifest.json'))
-        if manifest.get('format')!='grooveshelf-archive' or manifest.get('version')!=FORMAT_VERSION or manifest.get('schema_version')!=SCHEMA_VERSION:
+        if manifest.get('format')!='grooveshelf-archive' or manifest.get('version')!=FORMAT_VERSION or manifest.get('schema_version') not in (9, SCHEMA_VERSION):
             raise ValueError('Archive version is incompatible.')
         listed = manifest.get('files')
         if not isinstance(listed,dict) or 'collection.sqlite3' not in listed or set(names)!=set(listed)|{'manifest.json'}:
@@ -133,6 +141,9 @@ def verify_archive(archive):
     with tempfile.TemporaryDirectory() as work:
         path=Path(work)/'collection.sqlite3';path.write_bytes(content['collection.sqlite3'])
         validate_database(path)
+        with connect(path) as database:
+            if database.execute('PRAGMA user_version').fetchone()[0] != manifest['schema_version']:
+                raise ValueError('Archive manifest and database schema disagree.')
     return manifest
 
 
@@ -144,6 +155,9 @@ def restore_archive(archive, destination):
     with tempfile.TemporaryDirectory(dir=destination.parent) as work:
         root=Path(work);source_path=root/'source.sqlite3';source_path.write_bytes(content['collection.sqlite3'])
         tables=validate_database(source_path)
+        with connect(source_path) as source:
+            if source.execute('PRAGMA user_version').fetchone()[0] != manifest['schema_version']:
+                raise ValueError('Archive manifest and database schema disagree.')
         staged=root/'restored';staged.mkdir();database=Database(str(staged/'grooveshelf.sqlite3'));database.initialize()
         # Copy data into application-owned schema instead of trusting uploaded SQL definitions.
         with connect(source_path) as source, database.connect() as target:

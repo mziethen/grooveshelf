@@ -12,9 +12,17 @@ class Handler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(Path(__file__).resolve().parents[1] / 'frontend'), **kwargs)
 
     def proxy(self):
-        content = self.rfile.read(int(self.headers.get('Content-Length', 0)))
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+        except ValueError:
+            self.send_error(400, 'Invalid content length')
+            return
+        if not 0 <= length <= 6 * 1024 * 1024:
+            self.send_error(413, 'Request body exceeds the 6 MiB proxy limit')
+            return
+        content = self.rfile.read(length)
         request = Request(self.backend_url + self.path, data=content if content else None,
-                          method=self.command, headers={'Content-Type': 'application/json'})
+                          method=self.command, headers={'Content-Type': self.headers.get('Content-Type', 'application/json')})
         try:
             result = urlopen(request, timeout=60)
         except HTTPError as error:

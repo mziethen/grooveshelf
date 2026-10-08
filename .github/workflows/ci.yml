@@ -65,13 +65,27 @@ jobs:
           curl --fail http://localhost:8080/pressings.js | python -c 'import sys; assert "export function pressingMarkup" in sys.stdin.read()'
           curl --fail http://localhost:8080/credits.js | python -c 'import sys; assert "export function creditsMarkup" in sys.stdin.read()'
           curl --fail http://localhost:8080/corrections.js | python -c 'import sys; assert "export function createCorrections" in sys.stdin.read()'
+          curl --fail http://localhost:8080/photos.js | python -c 'import sys; assert "export function createPhotos" in sys.stdin.read()'
           curl --fail -X POST http://localhost:8080/api/records -H 'Content-Type: application/json' --data '{"inventory_number":"LP-00001","artist":"CI artist","title":"Persistence check"}'
+          python - <<'PYPHOTO'
+          import random, struct, zlib
+          from pathlib import Path
+          pixels = random.Random(0).randbytes(700 * 700 * 3)
+          raw = b''.join(b'\0' + pixels[offset:offset+2100] for offset in range(0, len(pixels), 2100))
+          def chunk(kind, data):
+              return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data))
+          png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 700, 700, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
+          assert len(png) > 1024 * 1024
+          Path('/tmp/grooveshelf-smoke-photo.png').write_bytes(png)
+          PYPHOTO
+          photo_copy_id=$(curl --fail http://localhost:8080/api/records | python -c 'import json,sys; print(json.load(sys.stdin)[0]["id"])')
+          curl --fail -X POST "http://localhost:8080/api/records/$photo_copy_id/photos?kind=cover" -H 'Content-Type: image/png' --data-binary @/tmp/grooveshelf-smoke-photo.png | python -c 'import json,sys; photo=json.load(sys.stdin); assert photo["width"] == 700 and photo["height"] == 700'
           docker compose restart backend
           for attempt in $(seq 1 30); do
             if curl --fail http://localhost:8080/api/health; then break; fi
             sleep 1
           done
-          curl --fail http://localhost:8080/api/records | python -c 'import json,sys; assert json.load(sys.stdin)[0]["inventory_number"] == "LP-00001"'
+          curl --fail http://localhost:8080/api/records | python -c 'import json,sys; record=json.load(sys.stdin)[0]; assert record["inventory_number"] == "LP-00001" and record["photo_count"] == 1'
       - name: Container logs
         if: failure()
         run: docker compose logs

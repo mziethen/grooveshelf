@@ -22,7 +22,7 @@ class Database:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 9:
+            if version > 10:
                 raise RuntimeError("Database schema is newer than this application")
             db.execute("PRAGMA journal_mode = WAL")
             db.executescript("""
@@ -116,4 +116,17 @@ class Database:
                 );
             """)
             db.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value INTEGER NOT NULL CHECK(value IN (0,1)))")
-            db.execute("PRAGMA user_version = 9")
+            db.executescript("""
+                CREATE TABLE IF NOT EXISTS photos (
+                    id TEXT PRIMARY KEY,
+                    copy_id TEXT NOT NULL REFERENCES copies(id) ON DELETE CASCADE,
+                    kind TEXT NOT NULL CHECK(kind IN ('cover','back','label','matrix')),
+                    caption TEXT NOT NULL DEFAULT '', content BLOB NOT NULL,
+                    width INTEGER NOT NULL, height INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    is_cover INTEGER NOT NULL DEFAULT 0 CHECK(is_cover IN (0,1))
+                );
+                CREATE INDEX IF NOT EXISTS photos_copy ON photos(copy_id);
+                CREATE UNIQUE INDEX IF NOT EXISTS photos_cover ON photos(copy_id) WHERE is_cover=1;
+            """)
+            db.execute("PRAGMA user_version = 10")

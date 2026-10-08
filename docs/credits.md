@@ -20,6 +20,6 @@ After provider metadata expires, credits and their source field are hidden until
 
 Public records expose `credits`, an array of objects with `name`, `role` and `tracks` (scope text, empty for unspecified scope), and `credits_source_url`. JSON exports retain these fields. CSV appends a JSON-encoded `credits` column and a `credits_source_url` column to the previous fields. Printable HTML catalogs include the credit list and source as text, with all collection content escaped.
 
-Credits are stored in the existing album metadata. Schema version 9 and old records remain compatible; older records expose an empty credit list. Portable ZIP archives preserve credits through verification and restore.
+Credits are stored in the existing album metadata. Schema versions 9 and 10 and old records remain compatible; older records expose an empty credit list. Portable ZIP archives preserve credits through verification and restore.
 
 Expired saved provider data can remain visible when the installation opts into [displaying saved Discogs snapshots](settings.md). The default still hides expired details.
