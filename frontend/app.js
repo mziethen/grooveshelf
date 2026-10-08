@@ -1,3 +1,4 @@
+import { releaseNotesMarkup } from './release-notes.js';
 import { pressingMarkup } from './pressings.js';
 import { creditsMarkup } from './credits.js';
 import { trackLine, parseTracks, trackMarkup } from './tracks.js';
@@ -106,6 +107,9 @@ async function route() {
 }
 function renderDetails(record) {
     const sameRecord = $('#details').open && $('#details').dataset.recordId === record.id;
+    const previousNotes = $('#detail-content .release-notes');
+    const notesOpen = sameRecord && Boolean(previousNotes?.open);
+    const notesFocused = sameRecord && document.activeElement === previousNotes?.querySelector('summary');
     const previousCredits = $('#detail-content .album-credits');
     const creditsOpen = sameRecord && Boolean(previousCredits?.open);
     const creditsFocused = sameRecord && document.activeElement === previousCredits?.querySelector('summary');
@@ -119,10 +123,13 @@ function renderDetails(record) {
     $('#edit').disabled = record.metadata_status === 'unavailable';
     $('#manage-photos').textContent = `Manage photos${record.photo_count ? ` (${record.photo_count})` : ''}`;
     $('#detail-overview').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2 id="detail-title">${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year ? 'Saved year: ' + escape(record.year) : 'Saved year not added'}</p>${record.personal_cover_url ? '<p class="muted">Your personal cover photo</p>' : ''}${attribution(record)}${record.metadata_status === 'stale' ? `<p class="metadata-stale-notice muted">Saved Discogs data · Last checked ${record.metadata_checked_at ? escape(new Date(record.metadata_checked_at * 1000).toLocaleString()) : 'at least six hours ago'}. These details may be outdated. You can refresh them in Manage record.</p>` : ''}</div></div>`;
-    $('#detail-content').innerHTML = `${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">${record.discogs_release_id ? 'Selected release labels' : 'Reference release labels'}: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => trackMarkup(t, escape)).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.cover_selection_status === 'missing' ? '<p class="error">Your selected Discogs image is no longer available. Choose another cover.</p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
+    $('#detail-content').innerHTML = `${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">${record.discogs_release_id ? 'Selected release labels' : 'Reference release labels'}: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => trackMarkup(t, escape)).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.cover_selection_status === 'missing' ? '<p class="error">Your selected Discogs image is no longer available. Choose another cover.</p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
     $('#detail-content').insertAdjacentHTML('afterbegin', pressingMarkup(record, escape));
-    $('#detail-content').insertAdjacentHTML('beforeend', creditsMarkup(record, escape) + streamingLinksMarkup(record, escape));
+    $('#detail-content').insertAdjacentHTML('beforeend', releaseNotesMarkup(record, escape) + creditsMarkup(record, escape) + streamingLinksMarkup(record, escape));
     if (!sameRecord) { $('#record-tools').open = false; $('#details').scrollTop = 0; }
+    const currentNotes = $('#detail-content .release-notes');
+    if (currentNotes) currentNotes.open = notesOpen;
+    if (notesFocused) (currentNotes?.querySelector('summary') || $('#close-details')).focus({preventScroll:true});
     const currentCredits = $('#detail-content .album-credits');
     if (currentCredits) currentCredits.open = creditsOpen;
     if (creditsFocused) (currentCredits?.querySelector('summary') || $('#close-details')).focus({preventScroll:true});

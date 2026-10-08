@@ -499,3 +499,5 @@ dialog:has(.dialog-top) {
 .photo-upload-section {margin:24px 0 8px;border-top:1px solid var(--line);padding-top:16px;}
 .photo-upload-section summary {font-size:16px;min-height:44px;cursor:pointer;padding:10px 0;}
 .photo-upload-section[open] summary {margin-bottom:16px;}
+
+.release-notes{margin:24px 0;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}.release-notes summary{cursor:pointer;font-size:14px;font-weight:600;min-height:44px;padding:8px 0;line-height:1.6}.release-notes>p{font-size:14px;line-height:1.7;overflow-wrap:anywhere}.release-notes-text{white-space:pre-wrap}
