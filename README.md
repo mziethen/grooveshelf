@@ -10,7 +10,7 @@ A self-hosted vinyl collection archive for Raspberry Pi and your home network. K
 - **Collection:** cover grid and table, album details and track lists, search, favorites, ratings, media/sleeve condition, notes, and storage locations.
 - **Capture:** suggested inventory numbers, consecutive entry, duplicate warnings, and Discogs lookup by artist, album, barcode, or catalog number.
 - **Personal photos:** local cover, back cover, label and matrix uploads, personal cover selection, and complete ZIP backups.
-- **Discogs:** reviewed metadata imports, protected manual corrections with per-field review and resolution, locally cached covers with image selection, an opt-in setting to display older saved snapshots, optional track durations and source-attributed album/track credits, and manually confirmed collection import, matching, and export.
+- **Discogs:** reviewed metadata imports, protected manual corrections with per-field review and resolution, locally cached covers with image selection, an opt-in setting to display older saved snapshots, optional track durations and source-attributed album/track credits, and manually confirmed collection import, matching, export, and resolution of missing collection links.
 - **Listening:** NFC tag associations, station scans, ten-minute listening sessions, editable play history, statistics, and record suggestions.
 - **Wishlist:** desired albums, search, editing, and acquisition into the collection.
 - **Album discovery:** Spotify, YouTube and Qobuz search links in record details.

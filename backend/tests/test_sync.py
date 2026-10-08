@@ -194,3 +194,71 @@ def test_retry_requires_review_delay_and_no_new_remote_copy(setup):
     fixture.remote=[]  # User verified that the uncertain addition is absent.
     assert client.post(retry,json={'checked_discogs':True}).status_code==200
     assert any(a['kind']=='local' for a in client.get('/api/discogs/sync/preview').json()['actions'])
+
+
+def test_missing_link_resolution_preserves_copy_and_requires_fresh_export(setup):
+    import sqlite3
+    client,fixture,path,*_=setup
+    record=local(client);copy_id=record['id']
+    client.put('/api/records/'+copy_id+'/discogs-release',json={'release_id':100})
+    client.put('/api/tags/04AABBCCDDEE11',json={'copy_id':copy_id})
+    client.post('/api/records/'+copy_id+'/plays',json={'played_at':'2026-01-01T12:00:00+00:00'})
+    plan=client.get('/api/discogs/sync/preview').json()
+    exported=apply(client,plan,plan['actions'][0],'export').json()
+    photo=client.post('/api/records/'+copy_id+'/photos',content=PNG,headers={'Content-Type':'image/png'})
+    assert photo.status_code==201
+    photo_id=photo.json()['id']
+    client.put('/api/records/'+copy_id+'/personal-cover',json={'photo_id':photo_id})
+    before=client.get('/api/records/'+copy_id).json()
+    fixture.remote=[]
+    plan=client.get('/api/discogs/sync/preview').json()
+    notice=next(n for n in plan['notices'] if n['kind']=='remote_missing')
+    payload={'plan_id':plan['plan_id'],'action_id':notice['action_id'],'choice':'detach'}
+    assert client.post('/api/discogs/sync/apply',json=payload).status_code==422
+    payload['confirmed']=True
+    writes=len([r for r in fixture.calls if r.method=='POST'])
+    assert client.post('/api/discogs/sync/apply',json=payload).json()['status']=='detached'
+    assert client.get('/api/records/'+copy_id).json()==before
+    assert client.get('/api/photos/'+photo_id).status_code==200
+    assert len([r for r in fixture.calls if r.method=='POST'])==writes
+    assert client.post('/api/discogs/sync/apply',json=payload).status_code==409
+    with sqlite3.connect(path) as db:
+        assert db.execute('SELECT copy_id FROM discogs_links').fetchone()==(None,)
+        assert db.execute('SELECT count(*) FROM discogs_exports').fetchone()[0]==0
+    fresh=client.get('/api/discogs/sync/preview').json()
+    assert not fresh['notices'] and fresh['actions'][0]['kind']=='local'
+    fixture.remote=[fixture.item(exported['instance_id'])]
+    fresh=client.get('/api/discogs/sync/preview').json()
+    assert any(n['kind']=='local_missing' for n in fresh['notices'])
+    assert all(a['kind']!='remote' for a in fresh['actions'])
+
+
+def test_missing_link_resolution_rechecks_account_remote_and_local_state(setup, monkeypatch):
+    import sqlite3
+    client,fixture,path,*_=setup
+    fixture.remote=[fixture.item(11)]
+    plan=client.get('/api/discogs/sync/preview').json()
+    copy_id=apply(client,plan,plan['actions'][0],'import').json()['copy_id']
+    fixture.remote=[]
+    plan=client.get('/api/discogs/sync/preview').json()
+    payload={'plan_id':plan['plan_id'],'action_id':plan['notices'][0]['action_id'],'choice':'detach','confirmed':True}
+    fixture.account=456
+    assert client.post('/api/discogs/sync/apply',json=payload).status_code==409
+    fixture.account=123;fixture.remote=[fixture.item(11)]
+    assert client.post('/api/discogs/sync/apply',json=payload).status_code==409
+    fixture.remote=[]
+    with sqlite3.connect(path) as db:
+        db.execute('INSERT INTO discogs_exports VALUES(?,?,?,?,?,?,?)',('intent','123',copy_id,100,'[]','uncertain','2026-01-01T00:00:00+00:00'))
+    assert client.post('/api/discogs/sync/apply',json=payload).status_code==409
+    with sqlite3.connect(path) as db:
+        assert db.execute('SELECT copy_id FROM discogs_links').fetchone()[0]==copy_id
+        db.execute('DELETE FROM discogs_exports')
+        db.execute('UPDATE discogs_links SET release_id=101')
+    assert client.post('/api/discogs/sync/apply',json=payload).status_code==409
+    assert client.get('/api/records/'+copy_id).status_code==200
+    import app.sync as sync_module
+    monkeypatch.setattr(sync_module, 'monotonic', lambda: float('inf'))
+    calls=len(fixture.calls)
+    response=client.post('/api/discogs/sync/apply',json=payload)
+    assert response.status_code==409 and 'expired' in response.json()['detail']
+    assert len(fixture.calls)==calls

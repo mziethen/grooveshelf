@@ -23,6 +23,14 @@ Preview data expires after ten minutes. Source metadata and images continue to f
 
 ## Current scope and remaining work
 
-This release synchronizes collection additions and exact-release identity. Local ratings and record/sleeve condition are available, but sync does not transfer ratings, custom collection fields, folders, condition or personal notes. Metadata refresh remains independent of collection membership. Missing-entry resolution currently retains both sides; remote deletion and changing existing synchronized associations are not provided. Scheduled automatic sync, advanced conflict resolutions and personal-field mapping remain follow-up work in #55. Full pressing attributes and separate original/pressing years remain in #30.
+This release synchronizes collection additions and exact-release identity. Local ratings and record/sleeve condition are available, but sync does not transfer ratings, custom collection fields, folders, condition or personal notes. Metadata refresh remains independent of collection membership. Missing remote links can be explicitly removed after revalidation. Remote deletion and reassignment of present synchronized instances are not provided. Scheduled automatic sync, advanced conflict resolutions and personal-field mapping remain follow-up work in #55. Pressing details and separate original/pressing years are available in record details.
 
 Official references: [Discogs developer portal](https://www.discogs.com/developers#page:user-collection), [collection usage](https://support.discogs.com/hc/en-us/articles/360007331534-How-Does-The-Collection-Feature-Work), and [API terms](https://support.discogs.com/hc/en-us/articles/360009334593-API-Terms-of-Use). The authenticated identity and collection GET response shapes were verified read-only with the deployment token. Outbound POSTs are covered by mock-transport tests; the real account has not been modified during development. The developer portal returned HTTP 403 during implementation, so a real outbound addition remains to be verified by the owner through the explicit preview flow.
+
+## Resolve a missing Discogs link
+
+In the sync preview, choose **Review missing link** next to a missing remote copy. Review the LP number and confirm **Remove missing link**. GrooveShelf rechecks the connected account and complete collection before clearing the local association. If the remote copy has returned or the association changed, refresh the preview instead.
+
+Your local record, exact release, NFC tag, photos and listening history are retained. This action sends no Discogs write. The old instance remains remembered as a tombstone to prevent accidental reimport if it returns. Only a matching, resolved export receipt is cleared; uncertain exports must be reviewed separately.
+
+A fresh preview offers matching or export as separate choices. Nothing is automatically added back to Discogs. Fully absent tombstones do not generate warnings; a returning instance is flagged for review.
