@@ -262,3 +262,23 @@ def test_missing_link_resolution_rechecks_account_remote_and_local_state(setup, 
     response=client.post('/api/discogs/sync/apply',json=payload)
     assert response.status_code==409 and 'expired' in response.json()['detail']
     assert len(fixture.calls)==calls
+
+
+def test_missing_link_resolution_rejects_incomplete_collection(setup, monkeypatch):
+    client,fixture,path,provider,_=setup
+    fixture.remote=[fixture.item(11)]
+    plan=client.get('/api/discogs/sync/preview').json()
+    copy_id=apply(client,plan,plan['actions'][0],'import').json()['copy_id']
+    fixture.remote=[]
+    plan=client.get('/api/discogs/sync/preview').json()
+    payload={'plan_id':plan['plan_id'],'action_id':plan['notices'][0]['action_id'],'choice':'detach','confirmed':True}
+    original=provider.request
+    def incomplete(endpoint, *args, **kwargs):
+        if endpoint.endswith('/collection/folders/0/releases'):
+            return {'pagination':{'pages':1}}
+        return original(endpoint, *args, **kwargs)
+    monkeypatch.setattr(provider, 'request', incomplete)
+    assert client.post('/api/discogs/sync/apply',json=payload).status_code==502
+    import sqlite3
+    with sqlite3.connect(path) as db:
+        assert db.execute('SELECT copy_id FROM discogs_links').fetchone()[0]==copy_id

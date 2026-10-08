@@ -33,14 +33,20 @@ class DiscogsSync:
     def collection(self, username):
         entries = {}
         page = 1
+        expected_pages = None
         while page <= 1000:
             data = self.provider.request(f'/users/{quote(username, safe="")}/collection/folders/0/releases',
                                          {'page': page, 'per_page': 100})
-            for item in data.get('releases', []):
+            releases = data.get('releases')
+            if not isinstance(releases, list):
+                raise HTTPException(502, 'The Discogs collection response is incomplete.')
+            for item in releases:
                 info = item.get('basic_information', {})
                 iid, rid = item.get('instance_id'), info.get('id')
                 if not isinstance(iid, int) or iid < 1 or not isinstance(rid, int) or rid < 1:
                     raise HTTPException(502, 'Discogs returned a collection entry without valid copy/release IDs.')
+                if iid in entries:
+                    raise HTTPException(502, 'The Discogs collection changed during pagination. Refresh the preview.')
                 entries[iid] = {'instance_id': iid, 'release_id': rid,
                                 'is_vinyl':any(item.get('name') == 'Vinyl' for item in info.get('formats', [])),
                                 'title': str(info.get('title', 'Untitled'))[:300],
@@ -48,6 +54,11 @@ class DiscogsSync:
                                 'source_url': f'https://www.discogs.com/release/{rid}'}
             pages = data.get('pagination', {}).get('pages')
             if not isinstance(pages, int) or pages < 0 or pages > 1000:
+                raise HTTPException(502, 'The Discogs collection pagination could not be verified.')
+            if expected_pages is not None and pages != expected_pages:
+                raise HTTPException(502, 'The Discogs collection changed during pagination. Refresh the preview.')
+            expected_pages = pages
+            if pages == 0 and releases:
                 raise HTTPException(502, 'The Discogs collection pagination could not be verified.')
             if page >= pages:
                 return entries
