@@ -3,7 +3,7 @@ export function createAppearance() {
   const names={gallery:'Gallery',studio:'Studio',listening:'Listening Room'};
   function theme(value){
     document.documentElement.dataset.theme=value;
-    document.querySelector('meta[name="theme-color"]').content={gallery:'#f7f5f0',studio:'#f7f9fc',listening:'#161b1d'}[value];
+    document.querySelector('meta[name="theme-color"]').content={gallery:'#f3f0e9',studio:'#f2f4f7',listening:'#141d19'}[value];
     $('#theme-name').textContent=names[value];
     document.querySelectorAll('[data-theme]').forEach(button=>{if(button.tagName==='BUTTON')button.setAttribute('aria-pressed',button.dataset.theme===value);});
   }
