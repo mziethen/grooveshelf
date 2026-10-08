@@ -15,7 +15,7 @@ A self-hosted vinyl collection archive for Raspberry Pi and your home network. K
 - **Wishlist:** desired albums, search, editing, and acquisition into the collection.
 - **Album discovery:** Spotify, YouTube and Qobuz search links in record details.
 - **Tools:** reviewed bulk editing of personal copy fields, printable inventory labels with optional QR links, missing-data filters, CSV and JSON exports, a printable offline catalog, and validated portable archives with cached covers and listening history.
-- **Appearance:** Gallery, Studio, and Listening Room themes, saved per browser, with responsive navigation and keyboard controls.
+- **Appearance:** an editorial record-gallery design with Gallery, Studio, and Listening Room themes, saved per browser, with responsive navigation and keyboard controls.
 
 The NFC workflow is implemented in software. The physical PN532 driver and wiring are still pending. Discogs synchronization is manually initiated; automatic synchronization and advanced conflict handling remain on the roadmap. See [open issues](https://github.com/mziethen/grooveshelf/issues).
 
@@ -62,6 +62,7 @@ For Discogs configuration, token updates, local development, and troubleshooting
 | Personal photos | [Photo uploads and covers](docs/photos.md) |
 | Correction review | [Review metadata corrections](docs/metadata-corrections.md) |
 | Metadata preferences | [Settings](docs/settings.md) |
+| Visual design and themes | [Design](docs/design.md) |
 | Design and implementation boundaries | [Architecture](docs/architecture.md) |
 | Planned behavior and issue traceability | [Requirements](REQUIREMENTS.md), [requirement-to-issue mapping](docs/requirement-issues.json) |
 
