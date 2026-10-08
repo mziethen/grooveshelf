@@ -32,7 +32,7 @@ def test_duration_persistence_and_exports(tmp_path, duration):
     with TestClient(create_app(str(restored/'grooveshelf.sqlite3'),start_worker=False)) as client:
         assert client.get('/api/records').json()[0]['tracks'][0]['duration'] == duration
     with sqlite3.connect(path) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 9
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 10
 
 
 @pytest.mark.parametrize('duration', ['3:5','3:60','-1:00','1:60:00','1234:00','3 minutes',None,123])

@@ -5,6 +5,7 @@ import { streamingLinksMarkup } from './streaming.js';
 import { createRecordQR } from './qr.js';
 import { createBulkEditor } from './bulk.js';
 import { createAppearance } from './appearance.js';
+import { createPhotos } from './photos.js';
 import { createCorrections } from './corrections.js';
 import { createSettings } from './settings.js';
 import { createLabels } from './labels.js';
@@ -30,7 +31,7 @@ async function api(path, options = {}) {
   return response.status === 204 ? null : response.json();
 }
 function cover(record) {
-  const image = /^\/api\/covers\/discogs\/r?[0-9]+(?:\/[a-f0-9]{32}\?v=[0-9.]+)?$/.test(record.cover_url || '') ? `<img src="${escape(record.cover_url)}" alt="Cover of ${escape(record.title)}" loading="lazy">` : '';
+  const image = (/^\/api\/photos\/[a-f0-9-]{36}$/.test(record.cover_url || '') || /^\/api\/covers\/discogs\/r?[0-9]+(?:\/[a-f0-9]{32}\?v=[0-9.]+)?$/.test(record.cover_url || '')) ? `<img src="${escape(record.cover_url)}" alt="Cover of ${escape(record.title)}" loading="lazy">` : '';
   return `<div class="cover">${image}<div class="disc" aria-hidden="true"></div><span class="cover-number">${escape(record.inventory_number)}</span></div>`;
 }
 function attribution(record, referenceRelease = false) {
@@ -116,7 +117,8 @@ function renderDetails(record) {
     $('#review-corrections').hidden = !record.source_url || !record.protected_fields.length;
     $('#choose-cover').hidden = !record.source_url;
     $('#edit').disabled = record.metadata_status === 'unavailable';
-    $('#detail-overview').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2 id="detail-title">${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year ? 'Saved year: ' + escape(record.year) : 'Saved year not added'}</p>${attribution(record)}${record.metadata_status === 'stale' ? `<p class="metadata-stale-notice muted">Saved Discogs data · Last checked ${record.metadata_checked_at ? escape(new Date(record.metadata_checked_at * 1000).toLocaleString()) : 'at least six hours ago'}. These details may be outdated. You can refresh them in Manage record.</p>` : ''}</div></div>`;
+    $('#manage-photos').textContent = `Manage photos${record.photo_count ? ` (${record.photo_count})` : ''}`;
+    $('#detail-overview').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2 id="detail-title">${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year ? 'Saved year: ' + escape(record.year) : 'Saved year not added'}</p>${record.personal_cover_url ? '<p class="muted">Your personal cover photo</p>' : ''}${attribution(record)}${record.metadata_status === 'stale' ? `<p class="metadata-stale-notice muted">Saved Discogs data · Last checked ${record.metadata_checked_at ? escape(new Date(record.metadata_checked_at * 1000).toLocaleString()) : 'at least six hours ago'}. These details may be outdated. You can refresh them in Manage record.</p>` : ''}</div></div>`;
     $('#detail-content').innerHTML = `${record.metadata_status === 'unavailable' ? '<p class="error">Discogs could not be refreshed. Older provider details and covers are hidden; your corrections are retained. Try refreshing again.</p>' : ''}${record.genres.length || record.styles.length ? `<p class="muted">${escape([...record.genres, ...record.styles].join(' · '))}</p>` : ''}${record.labels.length ? `<p class="muted">${record.discogs_release_id ? 'Selected release labels' : 'Reference release labels'}: ${escape(record.labels.join(', '))}</p>${attribution(record, true)}` : ''}<h3>Track list</h3>${record.tracks.length ? `<ol class="detail-tracks">${record.tracks.map(t => trackMarkup(t, escape)).join('')}</ol>` : '<p class="muted">No tracks added yet.</p>'}${record.notes ? `<h3>Notes</h3><p class="notes">${escape(record.notes)}</p>` : ''}${record.description ? `<h3>About this album</h3><p class="notes">${escape(record.description)}</p>${attribution(record, true)}` : ''}${!record.cover_url && record.metadata_status !== 'unavailable' ? '<p class="muted"><small>No cover is available for this record.</small></p>' : ''}${record.cover_selection_status === 'missing' ? '<p class="error">Your selected Discogs image is no longer available. Choose another cover.</p>' : ''}${record.protected_fields.length ? '<p class="muted"><small>Your edited fields are protected during Discogs refreshes.</small></p>' : ''}`;
     $('#detail-content').insertAdjacentHTML('afterbegin', pressingMarkup(record, escape));
     $('#detail-content').insertAdjacentHTML('beforeend', creditsMarkup(record, escape) + streamingLinksMarkup(record, escape));
@@ -229,7 +231,7 @@ window.addEventListener('hashchange', route);
 function hideExpired(record) {
   if (!record.metadata_expires_at || record.metadata_expires_at * 1000 > Date.now()) return record;
   if (record.show_expired_metadata) return {...record, metadata_status: 'stale'};
-  const result = {...record, metadata_status: 'unavailable', cover_url: null, genres: [], styles: [], labels: [], catalog_numbers: [], original_year: null, pressing_year: null, original_year_source_url: null, country: '', credits: [], credits_source_url: null, description: ''};
+  const result = {...record, metadata_status: 'unavailable', cover_url: record.personal_cover_url || null, genres: [], styles: [], labels: [], catalog_numbers: [], original_year: null, pressing_year: null, original_year_source_url: null, country: '', credits: [], credits_source_url: null, description: ''};
   for (const [field, fallback] of [['artist', 'Unknown artist'], ['title', 'Metadata temporarily unavailable'], ['year', null], ['tracks', []]]) {
     if (!record.protected_fields.includes(field)) result[field] = fallback;
   }
@@ -251,6 +253,7 @@ async function pollMetadata() {
 }
 setInterval(pollMetadata, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pollMetadata(); });
+createPhotos({api,escape,currentRecord:()=>state.selected,onSaved:async()=>{await load();await route();}});
 createCorrections({api,escape,currentRecord:()=>state.selected,onSaved:async()=>{await load();await route();}});
 createAppearance();
 createRecordQR({currentRecord:()=>state.selected});

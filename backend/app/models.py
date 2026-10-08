@@ -72,6 +72,8 @@ class Record(RecordInput):
     album_id: str
     created_at: str
     cover_url: str | None = None
+    personal_cover_url: str | None = None
+    photo_count: int = 0
     cover_selection_status: str = "default"
     source_url: str | None = None
     source_name: str | None = None
@@ -222,3 +224,8 @@ class CorrectionChoices(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     revision: str = Field(pattern=r"^[a-f0-9]{64}$")
     choices: dict[Literal['artist', 'title', 'year', 'tracks'], Literal['keep', 'provider']] = Field(min_length=1, max_length=4)
+
+
+class PersonalCoverSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    photo_id: str | None = Field(min_length=1, max_length=100)

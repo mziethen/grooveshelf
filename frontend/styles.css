@@ -486,3 +486,16 @@ dialog:has(.dialog-top) {
 .correction-field input[type=radio] {width:18px;height:18px;min-height:0;flex:none;margin:0;accent-color:var(--accent);}
 .corrections-actions {position:sticky;bottom:-32px;background:var(--surface);margin-bottom:-32px;padding:18px 0 24px;}
 @media(max-width:600px){.correction-comparison {grid-template-columns:1fr;gap:8px;}.corrections-actions{bottom:-20px;margin-bottom:-20px;}}
+
+.personal-photo-gallery {display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:24px 0;}
+.personal-photo-gallery button {padding:8px;background:var(--paper);text-align:left;overflow-wrap:anywhere;}
+.personal-photo-gallery img {display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:5px;}
+.personal-photo-gallery span {display:block;font-size:13px;line-height:1.5;margin-top:8px;}
+.personal-photo-gallery button[aria-pressed=true] {border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);}
+#photo-preview-image {display:block;max-width:100%;max-height:380px;object-fit:contain;margin:16px auto;border-radius:8px;}
+#photo-preview-caption {white-space:pre-wrap;overflow-wrap:anywhere;}
+#photos input[type=file] {max-width:100%;font-size:14px;padding:10px;}
+
+.photo-upload-section {margin:24px 0 8px;border-top:1px solid var(--line);padding-top:16px;}
+.photo-upload-section summary {font-size:16px;min-height:44px;cursor:pointer;padding:10px 0;}
+.photo-upload-section[open] summary {margin-bottom:16px;}

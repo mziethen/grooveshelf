@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 from .archive import export_archive
 from threading import Event, Thread
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Response, Request
 from .database import Database
 from .discogs import CoverStore, DiscogsProvider, fresh, public_images, MAX_AGE, source_key
 from .metadata import MetadataService
@@ -25,6 +25,9 @@ from .models import MetadataSettings, BulkPersonalInput
 from datetime import date
 from typing import Literal
 from .repository import CollectionRepository
+from .photos import PhotoService, MAX_UPLOAD
+from .models import PersonalCoverSelection
+from starlette.concurrency import run_in_threadpool
 from .corrections import CorrectionsService
 from .models import CorrectionChoices
 
@@ -35,6 +38,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     provider = provider or DiscogsProvider()
     covers = covers or CoverStore(Path(database.path).parent / 'covers')
     metadata = MetadataService(repository, provider, covers)
+    photos = PhotoService(database, repository)
     corrections = CorrectionsService(repository, metadata)
     settings = SettingsService(database)
     covers.retain_expired = lambda: settings.get()["show_expired_metadata"]
@@ -74,7 +78,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         return response
 
     def public(record):
-        return {key: value for key, value in listening.decorate(metadata.cached(record)).items() if not key.startswith('_')}
+        return {key: value for key, value in photos.decorate(listening.decorate(metadata.cached(record))).items() if not key.startswith('_')}
 
     @app.get('/api/health')
     def health():
@@ -192,7 +196,8 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
 
     @app.put('/api/records/{record_id}/cover', response_model=Record)
     def select_cover(record_id: str, data: CoverSelection):
-        return public(metadata.select_cover(record_id, data.image_id))
+        metadata.select_cover(record_id, data.image_id)
+        return public(photos.select(record_id, None))
 
     @app.get('/api/covers/discogs/{master_id}/{image_id}')
     def selected_cover(master_id: str, image_id: str):
@@ -309,6 +314,35 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     def update_personal(record_id: str, data: PersonalFields):
         record = repository.save_personal(record_id, data)
         return public(record)
+
+    @app.get('/api/records/{record_id}/photos')
+    def list_photos(record_id: str):
+        return photos.list(record_id)
+
+    @app.post('/api/records/{record_id}/photos', status_code=201)
+    async def upload_photo(record_id: str, request: Request,
+                           kind: Literal['cover', 'back', 'label', 'matrix'] = 'cover',
+                           caption: str = Query(default='', max_length=200)):
+        repository.get(record_id)
+        content = bytearray()
+        async for chunk in request.stream():
+            if len(content) + len(chunk) > MAX_UPLOAD:
+                raise HTTPException(413, 'Choose an image up to 5 MiB.')
+            content.extend(chunk)
+        return await run_in_threadpool(photos.add, record_id, bytes(content), kind, caption.strip())
+
+    @app.get('/api/photos/{photo_id}')
+    def get_photo(photo_id: str):
+        return Response(photos.content(photo_id), media_type='image/jpeg',
+                        headers={'X-Content-Type-Options':'nosniff'})
+
+    @app.put('/api/records/{record_id}/personal-cover', response_model=Record)
+    def select_personal_cover(record_id: str, data: PersonalCoverSelection):
+        return public(photos.select(record_id, data.photo_id))
+
+    @app.delete('/api/records/{record_id}/photos/{photo_id}', status_code=204)
+    def delete_photo(record_id: str, photo_id: str):
+        photos.delete(record_id, photo_id)
 
     @app.get('/api/records/{record_id}/corrections')
     def review_corrections(record_id: str):

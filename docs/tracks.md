@@ -25,7 +25,7 @@ Track lists are protected as a whole when manually corrected. A duration correct
 
 ## Data compatibility and exports
 
-Older track objects with only `position` and `title` remain valid. Nonempty durations are stored as an optional `duration` string in each track object. Missing durations are omitted from API and JSON/CSV track objects, preserving the earlier shape. Database schema version 9 is unchanged.
+Older track objects with only `position` and `title` remain valid. Nonempty durations are stored as an optional `duration` string in each track object. Missing durations are omitted from API and JSON/CSV track objects, preserving the earlier shape. Track durations require no additional schema migration; they remain compatible with schema versions 9 and 10.
 
 JSON and CSV retain durations inside track arrays. Printable HTML catalogs show durations next to track titles. Portable ZIP archives preserve them through verification and restore.
 
