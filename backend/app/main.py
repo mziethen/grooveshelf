@@ -25,6 +25,8 @@ from .models import MetadataSettings, BulkPersonalInput
 from datetime import date
 from typing import Literal
 from .repository import CollectionRepository
+from .corrections import CorrectionsService
+from .models import CorrectionChoices
 
 
 def create_app(database_path=None, provider=None, covers=None, clock=None, start_worker=True):
@@ -33,6 +35,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     provider = provider or DiscogsProvider()
     covers = covers or CoverStore(Path(database.path).parent / 'covers')
     metadata = MetadataService(repository, provider, covers)
+    corrections = CorrectionsService(repository, metadata)
     settings = SettingsService(database)
     covers.retain_expired = lambda: settings.get()["show_expired_metadata"]
     capture = CaptureService(repository)
@@ -306,6 +309,14 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     def update_personal(record_id: str, data: PersonalFields):
         record = repository.save_personal(record_id, data)
         return public(record)
+
+    @app.get('/api/records/{record_id}/corrections')
+    def review_corrections(record_id: str):
+        return corrections.preview(record_id)
+
+    @app.put('/api/records/{record_id}/corrections', response_model=Record)
+    def resolve_corrections(record_id: str, data: CorrectionChoices):
+        return public(corrections.apply(record_id, data))
 
     @app.post('/api/records/{record_id}/refresh', response_model=Record)
     def refresh_record(record_id: str):

@@ -5,6 +5,7 @@ import { streamingLinksMarkup } from './streaming.js';
 import { createRecordQR } from './qr.js';
 import { createBulkEditor } from './bulk.js';
 import { createAppearance } from './appearance.js';
+import { createCorrections } from './corrections.js';
 import { createSettings } from './settings.js';
 import { createLabels } from './labels.js';
 import { createStatistics } from './statistics.js';
@@ -112,6 +113,7 @@ function renderDetails(record) {
     scheduleExpiry();
     $('#detail-error').textContent = '';
     $('#refresh').hidden = !record.source_url;
+    $('#review-corrections').hidden = !record.source_url || !record.protected_fields.length;
     $('#choose-cover').hidden = !record.source_url;
     $('#edit').disabled = record.metadata_status === 'unavailable';
     $('#detail-overview').innerHTML = `<div class="detail-intro">${cover(record)}<div><p class="eyebrow">${escape(record.inventory_number)} · ${escape(record.format)}</p><h2 id="detail-title">${escape(record.title)}</h2><p>${escape(record.artist)}</p><p class="muted">${record.year ? 'Saved year: ' + escape(record.year) : 'Saved year not added'}</p>${attribution(record)}${record.metadata_status === 'stale' ? `<p class="metadata-stale-notice muted">Saved Discogs data · Last checked ${record.metadata_checked_at ? escape(new Date(record.metadata_checked_at * 1000).toLocaleString()) : 'at least six hours ago'}. These details may be outdated. You can refresh them in Manage record.</p>` : ''}</div></div>`;
@@ -249,6 +251,7 @@ async function pollMetadata() {
 }
 setInterval(pollMetadata, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pollMetadata(); });
+createCorrections({api,escape,currentRecord:()=>state.selected,onSaved:async()=>{await load();await route();}});
 createAppearance();
 createRecordQR({currentRecord:()=>state.selected});
 createBulkEditor({api,escape,onSaved:async count=>{await load();$('#message').textContent=`Updated ${count} ${count===1?'record':'records'}.`;}});

@@ -9,7 +9,7 @@ A self-hosted vinyl collection archive for Raspberry Pi and your home network. K
 
 - **Collection:** cover grid and table, album details and track lists, search, favorites, ratings, media/sleeve condition, notes, and storage locations.
 - **Capture:** suggested inventory numbers, consecutive entry, duplicate warnings, and Discogs lookup by artist, album, barcode, or catalog number.
-- **Discogs:** reviewed metadata imports, protected manual corrections, locally cached covers with image selection, an opt-in setting to display older saved snapshots, optional track durations and source-attributed album/track credits, and manually confirmed collection import, matching, and export.
+- **Discogs:** reviewed metadata imports, protected manual corrections with per-field review and resolution, locally cached covers with image selection, an opt-in setting to display older saved snapshots, optional track durations and source-attributed album/track credits, and manually confirmed collection import, matching, and export.
 - **Listening:** NFC tag associations, station scans, ten-minute listening sessions, editable play history, statistics, and record suggestions.
 - **Wishlist:** desired albums, search, editing, and acquisition into the collection.
 - **Album discovery:** Spotify, YouTube and Qobuz search links in record details.
@@ -57,6 +57,7 @@ For Discogs configuration, token updates, local development, and troubleshooting
 | Editing several copies at once | [Bulk edit](docs/bulk-edit.md) |
 | Labels, CSV, incomplete records | [Inventory labels](docs/labels.md), [collection tools](docs/collection-tools.md) |
 | Suggestions and play history analysis | [Discovery](docs/discovery.md), [statistics](docs/statistics.md) |
+| Correction review | [Review metadata corrections](docs/metadata-corrections.md) |
 | Metadata preferences | [Settings](docs/settings.md) |
 | Design and implementation boundaries | [Architecture](docs/architecture.md) |
 | Planned behavior and issue traceability | [Requirements](REQUIREMENTS.md), [requirement-to-issue mapping](docs/requirement-issues.json) |
