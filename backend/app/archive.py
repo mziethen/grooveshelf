@@ -136,15 +136,32 @@ def verified_files(archive):
     return manifest,content
 
 
-def verify_archive(archive):
+@contextmanager
+def verified_database(archive):
     manifest,content=verified_files(archive)
     with tempfile.TemporaryDirectory() as work:
         path=Path(work)/'collection.sqlite3';path.write_bytes(content['collection.sqlite3'])
-        validate_database(path)
+        tables=validate_database(path)
         with connect(path) as database:
             if database.execute('PRAGMA user_version').fetchone()[0] != manifest['schema_version']:
                 raise ValueError('Archive manifest and database schema disagree.')
-    return manifest
+            yield manifest,database,tables
+
+
+def verify_archive(archive):
+    with verified_database(archive) as (manifest,_,__):
+        return manifest
+
+
+def inspect_archive(archive):
+    """Report validated archive contents without opening the live database."""
+    with verified_database(archive) as (manifest,database,tables):
+        counts={label:database.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0] if table in tables else 0
+                for label,table in [('records','copies'),('albums','albums'),('photos','photos'),('nfc_tags','nfc_tags'),('plays','play_events')]}
+        counts['wishlist']=database.execute('SELECT COUNT(*) FROM wishlist WHERE acquired_at IS NULL').fetchone()[0]
+        counts['cached_covers']=sum(name.startswith('covers/') for name in manifest['files'])
+        return {'verified':True,'created_at':manifest.get('created_at'),'schema_version':manifest['schema_version'],
+                'archive_version':manifest['version'],'counts':counts}
 
 
 def restore_archive(archive, destination):

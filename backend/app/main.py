@@ -125,6 +125,12 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         except Exception as error:
             raise HTTPException(503, 'Backup failed. Existing backups are retained. Check disk space and server logs.') from error
 
+    @app.post('/api/backups/{filename}/inspect')
+    def inspect_backup(filename: str):
+        try: return backups.inspect(filename)
+        except FileNotFoundError: raise HTTPException(404, 'Backup not found.')
+        except Exception: raise HTTPException(422, 'This backup could not be verified. Keep the original file and create another backup.')
+
     @app.get('/api/backups/{filename}')
     def download_backup(filename: str):
         try: path = backups.download(filename)

@@ -218,3 +218,12 @@ body[data-workspace=listening] .intro>.primary {display:none;}
 .sync-review-items li {padding:18px 0;border-top:1px solid var(--line);overflow-wrap:anywhere;}
 .sync-review-items h3 {font-family:var(--display);font-size:22px;margin:0 0 8px;}
 .sync-review-items p {margin:8px 0;}
+
+/* Backup inspection keeps archive facts readable in every appearance. */
+#backup-inspection {border-top:1px solid var(--line);margin-top:20px;padding-top:18px;}
+#backup-inspection-details p {overflow-wrap:anywhere;}
+#backup-inspection-details dl {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 20px;}
+#backup-inspection-details dt {color:var(--muted);}
+#backup-inspection-details dd {margin:0;font-variant-numeric:tabular-nums;}
+#backups-list p {display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;}
+#backups-list a {overflow-wrap:anywhere;}
