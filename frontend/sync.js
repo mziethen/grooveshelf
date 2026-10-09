@@ -8,10 +8,14 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
   let expiryTimer;
   let retryCopy;
   let missingAction;
+  let review = null;
+  let planDeadline = 0;
   async function preview() {
     const current = ++generation;
     clearTimeout(expiryTimer);
-    plan = null;
+    plan = null; review = null;
+    if ($('#sync-review').open) $('#sync-review').close();
+    $('#sync-apply').textContent = 'Review selected changes';
     $('#sync-apply').disabled = true;
     $('#sync-preview').disabled = true;
     $('#sync-results').replaceChildren();
@@ -21,7 +25,7 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
     try {
       const data = await api('/discogs/sync/preview');
       if (current !== generation) return;
-      plan = data;
+      plan = data; planDeadline = Date.now() + data.expires_in_seconds * 1000;
       $('#sync-status').textContent = `Connected as ${data.username} · ${data.remote_count} Discogs copies. Choose the changes you want to apply. Only Vinyl releases are offered for import.`;
       $('#sync-last').textContent = data.last_success_at ? `Last successful sync change: ${new Date(data.last_success_at).toLocaleString()}` : 'No sync changes have been applied yet.';
       $('#sync-results').innerHTML = data.actions.map(action => `<article class="sync-entry" data-action="${escape(action.id)}"><h3>${escape(action.inventory_number || action.artist || 'Discogs copy')} · ${escape(action.title)}</h3><p class="muted">${action.kind === 'remote' ? `Discogs instance ${action.instance_id}` : 'GrooveShelf copy'} · Release ${action.release_id}</p><a class="attribution" href="${escape(action.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a><label>Action<select><option value="skip">Keep unchanged</option>${action.kind === 'remote' ? `<option value="import">Import ${action.matches.length ? 'as an additional copy' : 'into GrooveShelf'}</option>${action.matches.map(match => `<option value="link:${escape(match.id)}">Match ${escape(match.inventory_number)} · ${escape(match.title)}</option>`).join('')}` : '<option value="export">Add this copy to Discogs</option>'}</select></label><p class="sync-result" role="status"></p></article>`).join('') || '<p class="muted">No additions are ready to synchronize.</p>';
@@ -44,51 +48,102 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
         $('#missing-link-error').textContent = '';
         $('#missing-link-dialog').showModal();
       }));
-      $('#sync-apply').disabled = !data.actions.length;
+      $('#sync-results').querySelectorAll('select').forEach(select => select.addEventListener('change', updateSelection));
+      updateSelection();
       expiryTimer = setTimeout(() => {
         if (running) return;
         plan = null; $('#sync-results').replaceChildren(); $('#sync-notices').replaceChildren();
         $('#sync-apply').disabled = true;
+        if ($('#sync-review').open) { $('#sync-review-confirm').disabled = true; $('#sync-review-error').textContent = 'This preview has expired. Go back and refresh it before applying changes.'; }
         $('#sync-status').textContent = 'This preview has expired. Refresh it before applying changes.';
       }, data.expires_in_seconds * 1000);
     } catch (error) { if (current === generation) $('#sync-error').textContent = error.message; }
-    finally { $('#sync-preview').disabled = false; }
+    finally { if (current === generation) $('#sync-preview').disabled = false; }
   }
   $('#sync-open').addEventListener('click', () => {$('#sync-dialog').showModal(); preview();});
   $('#sync-preview').addEventListener('click', preview);
   $('#sync-cancel').addEventListener('click', () => {if (!running) $('#sync-dialog').close();});
   $('#sync-dialog').addEventListener('cancel', event => {if (running) event.preventDefault();});
-  $('#sync-dialog').addEventListener('close', () => {generation++; clearTimeout(expiryTimer); plan=null;});
-  $('#sync-apply').addEventListener('click', async () => {
+  $('#sync-dialog').addEventListener('close', () => {generation++; clearTimeout(expiryTimer); plan=null;review=null;if ($('#sync-review').open) $('#sync-review').close();});
+  function selectedChanges() {
+    return [...$('#sync-results').querySelectorAll('[data-action]')]
+      .filter(row => row.querySelector('select').value !== 'skip' && !row.querySelector('select').disabled)
+      .map(row => ({row, value:row.querySelector('select').value, action:plan.actions.find(action => action.id === row.dataset.action)}));
+  }
+  function updateSelection() {
+    const count = plan ? selectedChanges().length : 0;
+    $('#sync-apply').disabled = running || !count;
+    $('#sync-apply').textContent = count ? `Review ${count} ${count === 1 ? 'change' : 'changes'}` : 'Review selected changes';
+  }
+  $('#sync-review-back').addEventListener('click', () => {if (!running) $('#sync-review').close();});
+  $('#sync-review').addEventListener('close', () => {review = null;});
+  $('#sync-review').addEventListener('cancel', event => {if (running) event.preventDefault();});
+  $('#sync-apply').addEventListener('click', () => {
     if (!plan || running) return;
-    const changes = [...$('#sync-results').querySelectorAll('[data-action]')].filter(row => row.querySelector('select').value !== 'skip' && !row.querySelector('select').disabled);
-    if (!changes.length) {$('#sync-error').textContent = 'Choose at least one change in the preview.'; return;}
+    $('#sync-error').textContent = '';
+    const changes = selectedChanges();
+    const copies = new Set();
+    for (const {value,action} of changes) {
+      const [choice,copyId] = value.split(':');
+      const id = choice === 'link' ? copyId : choice === 'export' ? action.copy_id : null;
+      if (id && copies.has(id)) {$('#sync-error').textContent = 'Choose only one action for each GrooveShelf copy. A copy cannot be matched twice or matched and exported together.';return;}
+      if (id) copies.add(id);
+    }
+    if (!changes.length) return;
+    review = {plan, generation, changes};
+    const counts = {import:0,link:0,export:0};
+    for (const {value} of changes) counts[value.split(':')[0]]++;
+    $('#sync-review-summary').textContent = `${counts.import} ${counts.import === 1 ? 'import' : 'imports'} into GrooveShelf · ${counts.link} ${counts.link === 1 ? 'copy match' : 'copy matches'} · ${counts.export} ${counts.export === 1 ? 'addition' : 'additions'} to Discogs (${plan.username}).`;
+    $('#sync-review-items').innerHTML = changes.map(({value,action}) => {
+      const [choice,copyId] = value.split(':');
+      const match = action.matches?.find(item => item.id === copyId);
+      const destination = choice === 'import' ? 'Import into GrooveShelf · a new LP number will be assigned' : choice === 'link' ? `Match Discogs instance ${action.instance_id} to ${match.inventory_number} · ${match.title}` : `Add ${action.inventory_number} to Discogs (${plan.username}) · Uncategorised folder`;
+      return `<li><h3>${escape(action.title)}</h3><p>${escape(destination)}</p><p class="muted">Release ${escape(action.release_id)}${action.kind === 'remote' ? ` · Discogs instance ${escape(action.instance_id)}` : ''}</p><a class="attribution" href="${escape(action.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a></li>`;
+    }).join('');
+    $('#sync-review-error').textContent = '';
+    $('#sync-review-confirm').disabled = false;
+    $('#sync-review').showModal();
+  });
+  $('#sync-review-confirm').addEventListener('click', async () => {
+    if (!review || running) return;
+    if (review.plan !== plan || review.generation !== generation || Date.now() >= planDeadline || review.changes.some(({row,value}) => !row.isConnected || row.querySelector('select').value !== value)) {
+      $('#sync-review-error').textContent = 'The preview or selected changes have changed. Go back and review a fresh preview.';
+      $('#sync-review-confirm').disabled = true;return;
+    }
+    const {changes} = review;
+    const planId = plan.plan_id;
     running = true;
+    $('#sync-review-confirm').disabled = true;
+    $('#sync-review').close();
     $('#sync-apply').disabled = $('#sync-preview').disabled = $('#sync-cancel').disabled = true;
     $('#sync-error').textContent = '';
     $('#sync-results').querySelectorAll('select').forEach(select => {select.disabled = true;});
+    let completed = 0, failed = false;
     try {
       for (let index=0; index<changes.length; index++) {
-        const row = changes[index];
-        const [choice, copyId] = row.querySelector('select').value.split(':');
+        const {row,value} = changes[index];
+        const [choice, copyId] = value.split(':');
         $('#sync-status').textContent = `Applying change ${index+1} of ${changes.length}…`;
         try {
-          const result = await api('/discogs/sync/apply', {method:'POST',body:JSON.stringify({plan_id:plan.plan_id,action_id:row.dataset.action,choice,copy_id:copyId || null})});
+          const result = await api('/discogs/sync/apply', {method:'POST',body:JSON.stringify({plan_id:planId,action_id:row.dataset.action,choice,copy_id:copyId || null})});
           row.querySelector('.sync-result').textContent = `${result.status === 'imported' ? `Imported as ${result.inventory_number}` : result.status === 'linked' ? 'Copies matched' : 'Added to Discogs'}.`;
-          row.dataset.applied = 'true';
+          row.dataset.applied = 'true';completed++;
         } catch (error) {
+          failed = true;
           row.querySelector('.sync-result').textContent = error.message;
-          $('#sync-error').textContent = 'Sync stopped. Completed changes are retained. Refresh the preview to review the remaining changes.';
+          for (const pending of changes.slice(index+1)) pending.row.querySelector('.sync-result').textContent = 'Not attempted. Refresh the preview before trying again.';
+          $('#sync-error').textContent = 'Sync stopped. Completed changes are retained. An unconfirmed export may have reached Discogs; refresh the preview before retrying.';
           break;
         }
       }
-      $('#sync-status').textContent = 'Sync changes processed. Refresh the preview to check the current state.';
-      await reload();
-      if (currentRecord()) await renderCurrent();
+      $('#sync-status').textContent = failed ? `${completed} of ${changes.length} changes applied · 1 failed or unconfirmed · ${changes.length-completed-1} not attempted.` : `${completed} ${completed === 1 ? 'change' : 'changes'} applied. Refresh the preview to check the current state.`;
+      try {await reload();if (currentRecord()) await renderCurrent();}
+      catch(error) {$('#sync-error').textContent += ` Changes are retained, but the local view could not refresh: ${error.message}`;}
     } finally {
       running = false;
-      // A new preview is required after partial success or an uncertain outcome.
+      clearTimeout(expiryTimer);
       plan = null; $('#sync-apply').disabled = true;
+      $('#sync-apply').textContent = 'Review selected changes';
       $('#sync-preview').disabled = $('#sync-cancel').disabled = false;
     }
   });

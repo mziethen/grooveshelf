@@ -34,3 +34,9 @@ In the sync preview, choose **Review missing link** next to a missing remote cop
 Your local record, exact release, NFC tag, photos and listening history are retained. This action sends no Discogs write. The old instance remains remembered as a tombstone to prevent accidental reimport if it returns. Only a matching, resolved export receipt is cleared; uncertain exports must be reviewed separately.
 
 A fresh preview offers matching or export as separate choices. Nothing is automatically added back to Discogs. Fully absent tombstones do not generate warnings; a returning instance is flagged for review.
+
+## Final review and partial results
+
+Choose per-entry actions, then select **Review changes**. The final review lists exact releases and remote instances, destinations, matched LP numbers and outbound additions to the connected account’s Uncategorised folder. Going back retains the choices; only **Apply these changes** starts synchronization. A local copy cannot be matched to two remote instances or matched and exported in the same batch.
+
+Expired or changed previews cannot be confirmed. If a change fails, the batch stops and shows how many succeeded, which change failed or has an unconfirmed outcome, and which entries were not attempted. Successful changes are retained. Refresh the preview before retrying, especially for unconfirmed outbound additions. Server-side revalidation and uncertain-export reconciliation remain authoritative.

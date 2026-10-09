@@ -1,0 +1,24 @@
+const assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+const {openNavigation}=require('./navigation.cjs');
+const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
+(async()=>{const browser=await chromium.launch();try{
+ const page=await browser.newPage();const errors=[],applied=[];page.on('pageerror',e=>errors.push(e.message));await page.clock.install();
+ let held=null,release,hold=false;
+ const actions=['a','b'].map((id,i)=>({id,kind:'remote',instance_id:10+i,release_id:100,title:`Remote <album> ${id}`,artist:'Artist',source_url:'https://www.discogs.com/release/100',matches:[{id:'shared-copy',inventory_number:'LP-00001',title:'My copy'}]}));
+ actions.push({id:'c',kind:'local',copy_id:'shared-copy',inventory_number:'LP-00001',title:'Local album',release_id:100,source_url:'https://www.discogs.com/release/100'});
+ await page.route('**/api/**',async route=>{const path=new URL(route.request().url()).pathname;
+ if(path==='/api/discogs/sync/preview'){await route.fulfill({json:{plan_id:'review-plan',username:'owner',remote_count:2,actions,notices:[],expires_in_seconds:10}});return;}
+ if(path==='/api/discogs/sync/apply'){const data=route.request().postDataJSON();applied.push(data);if(hold&&applied.length===1){held=new Promise(resolve=>release=resolve);await held;}await route.fulfill(applied.length===2?{status:503,json:{detail:'Discogs temporarily unavailable'}}:{json:{status:'imported',inventory_number:'LP-00002'}});return;}
+ await route.fulfill({json:path==='/api/records'?[]:{}});
+ });
+ await page.goto(base);await openNavigation(page);await page.locator('#sync-open').click();await page.locator('[data-action="a"] select').waitFor();assert(await page.locator('#sync-apply').isDisabled());
+ await page.locator('[data-action="a"] select').selectOption('link:shared-copy');await page.locator('[data-action="b"] select').selectOption('link:shared-copy');await page.locator('#sync-apply').click();await page.getByText('Choose only one action for each GrooveShelf copy.',{exact:false}).waitFor();assert.equal(applied.length,0);assert(!await page.locator('#sync-review').evaluate(e=>e.open));
+ await page.locator('[data-action="b"] select').selectOption('skip');await page.locator('[data-action="c"] select').selectOption('export');await page.locator('#sync-apply').click();assert(!await page.locator('#sync-review').evaluate(e=>e.open));
+ await page.locator('[data-action="a"] select').selectOption('import');await page.locator('[data-action="b"] select').selectOption('import');await page.locator('#sync-apply').click();assert.equal(await page.locator('#sync-review-items li').count(),3);assert.equal(await page.locator('#sync-review-items script').count(),0);assert((await page.locator('#sync-review-items').textContent()).includes('Remote <album> a'));assert((await page.locator('#sync-review-summary').textContent()).includes('2 imports'));assert.equal(applied.length,0);
+ await page.locator('#sync-review-back').click();assert.equal(await page.locator('[data-action="a"] select').inputValue(),'import');await page.locator('#sync-apply').click();await page.clock.fastForward(11000);assert(await page.locator('#sync-review-confirm').isDisabled());assert.equal(applied.length,0);await page.locator('#sync-review-back').click();await page.locator('#sync-preview').click();await page.locator('[data-action="a"] select').waitFor();
+ for(const id of ['a','b'])await page.locator(`[data-action="${id}"] select`).selectOption('import');await page.locator('[data-action="c"] select').selectOption('export');await page.locator('#sync-apply').click();
+ for(const theme of ['gallery','studio','listening']){await page.evaluate(theme=>document.querySelector(`button[data-theme="${theme}"]`).click(),theme);for(const width of [320,390,800,1024]){await page.setViewportSize({width,height:700});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert(await page.locator('#sync-review-confirm').isVisible());}}
+ hold=true;await page.locator('#sync-review-confirm').click();await page.waitForFunction(()=>document.querySelector('#sync-status').textContent==='Applying change 1 of 3…');await page.evaluate(()=>document.querySelector('#sync-review-confirm').click());assert.equal(applied.length,1);release();await page.getByText('1 of 3 changes applied · 1 failed or unconfirmed · 1 not attempted.',{exact:true}).waitFor();assert.equal(applied.length,2);assert.equal(applied[0].action_id,'a');assert.equal(applied[1].action_id,'b');assert((await page.locator('[data-action="c"] .sync-result').textContent()).includes('Not attempted'));assert(await page.locator('#sync-apply').isDisabled());assert.deepEqual(errors,[]);
+ console.log('Sync review passed: read-only/cancel, duplicate match/export guard, identities/escaping, expiry, guarded apply, partial failure and responsive themes.');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
