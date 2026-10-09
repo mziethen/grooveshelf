@@ -152,7 +152,14 @@ class DiscogsSync:
                                     'inventory_number':by_copy[link['copy_id']]['inventory_number'],
                                     'message':f"{by_copy[link['copy_id']]['inventory_number']}: linked Discogs copy is missing. GrooveShelf retains the record; no deletion or re-addition will happen automatically."})
                 elif remote[link['instance_id']]['release_id'] != link['release_id']:
-                    notices.append({'kind':'conflict','copy_id':link['copy_id'],'message':'A linked Discogs instance has a different release. Review the association before synchronizing.'})
+                    current = remote[link['instance_id']]
+                    resolution = {'id':str(uuid4()), **link, 'kind':'release_conflict', 'remote_release_id':current['release_id']}
+                    resolutions.append(resolution)
+                    inventory = by_copy[link['copy_id']]['inventory_number']
+                    notices.append({'kind':'release_conflict','copy_id':link['copy_id'],'action_id':resolution['id'],
+                                    'inventory_number':inventory,'release_id':link['release_id'],'remote_release_id':current['release_id'],
+                                    'instance_id':link['instance_id'],
+                                    'message':f"{inventory}: saved release {link['release_id']} differs from Discogs release {current['release_id']} for collection instance {link['instance_id']}. Review the local association."})
             self.plans = {key:value for key,value in self.plans.items() if value['expires'] > monotonic()}
             if len(self.plans) >= 16:
                 self.plans.pop(next(iter(self.plans)))
@@ -177,6 +184,10 @@ class DiscogsSync:
                 if request.choice != 'detach' or request.confirmed is not True:
                     raise HTTPException(422, 'Confirm removal of the missing local link.')
                 result = self.detach_missing(account, action, remote)
+            elif action['kind'] == 'release_conflict':
+                if request.choice != 'detach' or request.confirmed is not True:
+                    raise HTTPException(422, 'Confirm removal of the conflicting local link.')
+                result = self.detach_conflict(account, action, remote)
             elif action['kind'] == 'remote':
                 entry = remote.get(action['instance_id'])
                 if not entry or entry['release_id'] != action['release_id']:
@@ -199,6 +210,15 @@ class DiscogsSync:
     def detach_missing(self, account, action, remote):
         if action['instance_id'] in remote:
             raise HTTPException(409, 'The Discogs copy is present again. Refresh the preview.')
+        return self.detach_association(account, action)
+
+    def detach_conflict(self, account, action, remote):
+        entry = remote.get(action['instance_id'])
+        if not entry or entry['release_id'] != action['remote_release_id'] or entry['release_id'] == action['release_id']:
+            raise HTTPException(409, 'The conflicting Discogs copy changed again. Refresh the preview.')
+        return self.detach_association(account, action)
+
+    def detach_association(self, account, action):
         with self.database.connect() as db:
             db.execute('BEGIN IMMEDIATE')
             link = db.execute('SELECT * FROM discogs_links WHERE account=? AND instance_id=?',

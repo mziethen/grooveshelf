@@ -29,7 +29,7 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
       $('#sync-status').textContent = `Connected as ${data.username} · ${data.remote_count} Discogs copies. Choose the changes you want to apply. Only Vinyl releases are offered for import.`;
       $('#sync-last').textContent = data.last_success_at ? `Last successful sync change: ${new Date(data.last_success_at).toLocaleString()}` : 'No sync changes have been applied yet.';
       $('#sync-results').innerHTML = data.actions.map(action => `<article class="sync-entry" data-action="${escape(action.id)}"><h3>${escape(action.inventory_number || action.artist || 'Discogs copy')} · ${escape(action.title)}</h3><p class="muted">${action.kind === 'remote' ? `Discogs instance ${action.instance_id}` : 'GrooveShelf copy'} · Release ${action.release_id}</p><a class="attribution" href="${escape(action.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a><label>Action<select><option value="skip">Keep unchanged</option>${action.kind === 'remote' ? `<option value="import">Import ${action.matches.length ? 'as an additional copy' : 'into GrooveShelf'}</option>${action.matches.map(match => `<option value="link:${escape(match.id)}">Match ${escape(match.inventory_number)} · ${escape(match.title)}</option>`).join('')}` : '<option value="export">Add this copy to Discogs</option>'}</select></label><p class="sync-result" role="status"></p></article>`).join('') || '<p class="muted">No additions are ready to synchronize.</p>';
-      $('#sync-notices').innerHTML = data.notices.map(notice => `<li>${escape(notice.message)}${notice.copy_id && notice.kind === 'unlinked' ? ` <button type="button" data-open-copy="${escape(notice.copy_id)}">Choose release</button>` : notice.copy_id && notice.kind === 'uncertain' ? ` <button type="button" data-review-export="${escape(notice.copy_id)}">Review failed export</button>` : notice.kind === 'remote_missing' && notice.action_id ? ` <button type="button" data-remove-link="${escape(notice.action_id)}">Review missing link</button>` : ''}</li>`).join('');
+      $('#sync-notices').innerHTML = data.notices.map(notice => `<li>${escape(notice.message)}${notice.copy_id && notice.kind === 'unlinked' ? ` <button type="button" data-open-copy="${escape(notice.copy_id)}">Choose release</button>` : notice.copy_id && notice.kind === 'uncertain' ? ` <button type="button" data-review-export="${escape(notice.copy_id)}">Review failed export</button>` : ['remote_missing','release_conflict'].includes(notice.kind) && notice.action_id ? ` <button type="button" data-remove-link="${escape(notice.action_id)}">${notice.kind === 'release_conflict' ? 'Review release conflict' : 'Review missing link'}</button>` : ''}</li>`).join('');
       $('#sync-notices').querySelectorAll('[data-open-copy]').forEach(button => button.addEventListener('click', () => {
         $('#sync-dialog').close(); location.hash = `record/${button.dataset.openCopy}`;
       }));
@@ -43,7 +43,10 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
         if (running || !plan) return;
         const notice = data.notices.find(item => item.action_id === button.dataset.removeLink);
         missingAction = {plan_id:plan.plan_id, action_id:notice.action_id};
-        $('#missing-link-copy').textContent = `${notice.inventory_number}: the linked Discogs collection copy is missing.`;
+        $('#missing-link-copy').textContent = notice.message;
+        const conflict = notice.kind === 'release_conflict';
+        $('#missing-link-title').textContent = conflict ? 'Review changed Discogs release' : 'Remove missing Discogs link';
+        $('#missing-link-confirm').textContent = conflict ? 'Remove conflicting link' : 'Remove missing link';
         $('#missing-link-check').checked = false;
         $('#missing-link-error').textContent = '';
         $('#missing-link-dialog').showModal();
