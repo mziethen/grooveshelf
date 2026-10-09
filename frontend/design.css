@@ -214,3 +214,7 @@ body[data-workspace=listening] .intro>.primary {display:none;}
 @media(max-width:700px) {.browse-controls {grid-template-columns:1fr 1fr;gap:12px;}.browse-controls select {font-size:16px;padding:10px 8px;}}
 .browse-favorites input[type=checkbox] {width:18px;height:18px;min-height:0;margin:0;flex:none;}
 .browse-controls label {margin:0;}
+.sync-review-items {list-style:none;padding:0;margin:24px 0;}
+.sync-review-items li {padding:18px 0;border-top:1px solid var(--line);overflow-wrap:anywhere;}
+.sync-review-items h3 {font-family:var(--display);font-size:22px;margin:0 0 8px;}
+.sync-review-items p {margin:8px 0;}

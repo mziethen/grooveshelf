@@ -46,7 +46,7 @@ const base=process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
   assert.equal(applied.length,0,'Choosing actions must not write anything');
   await page.screenshot({path:'/tmp/grooveshelf-sync-mobile.png'});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await page.locator('#sync-apply').click();await page.getByText('Copies matched.',{exact:true}).waitFor();
+  await page.locator('#sync-apply').click();assert.equal(applied.length,0,'Final review must remain read-only');await page.locator('#sync-review-confirm').click();await page.getByText('Copies matched.',{exact:true}).waitFor();
   await page.getByText('Added to Discogs.',{exact:true}).waitFor();assert.equal(applied.length,2);
   await page.locator('#sync-preview').click();await page.getByText('No additions are ready to synchronize.').waitFor();
   assert(await page.locator('#sync-apply').isDisabled());

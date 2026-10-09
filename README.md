@@ -19,7 +19,7 @@ A self-hosted vinyl collection archive for Raspberry Pi and your home network. K
 - **Pi startup:** choose a browser-specific startup workspace in Settings, including Listening with the remembered album. Startup and album selection never record a play.
 - **Appearance:** a cover-wall workspace with Collection, Archive and Listening, plus Gallery, Studio and Listening Room themes saved per browser. A tools drawer preserves management workflows at every screen size, with responsive layouts and keyboard controls.
 
-The NFC workflow is implemented in software. The physical PN532 driver and wiring are still pending. Discogs synchronization is manually initiated; automatic synchronization and advanced conflict handling remain on the roadmap. See [open issues](https://github.com/mziethen/grooveshelf/issues).
+The NFC workflow is implemented in software. The physical PN532 driver and wiring are still pending. Discogs synchronization includes a final review of selected changes and clear partial-result reporting; automatic synchronization and advanced conflict handling remain on the roadmap. See [open issues](https://github.com/mziethen/grooveshelf/issues).
 
 ## Quick start
 
