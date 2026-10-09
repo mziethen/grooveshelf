@@ -5,7 +5,7 @@ from threading import RLock
 import logging
 import re
 from uuid import uuid4
-from .archive import export_archive, verify_archive
+from .archive import export_archive, verify_archive, inspect_archive
 
 NAME = re.compile(r'^grooveshelf-([0-9]{8}T[0-9]{12}Z)\.zip$')
 
@@ -82,9 +82,16 @@ class BackupService:
             try: self.create()
             except Exception: pass  # Status records failure; the worker retries in an hour.
 
-    def download(self, filename):
+    def path(self, filename):
         if not NAME.fullmatch(filename): raise ValueError('Unknown backup filename.')
         path = self.directory / filename
         if not path.is_file() or path.is_symlink(): raise FileNotFoundError('Backup not found.')
+        return path
+
+    def download(self, filename):
+        path = self.path(filename)
         verify_archive(path)
         return path
+
+    def inspect(self, filename):
+        return {'filename': filename, **inspect_archive(self.path(filename))}

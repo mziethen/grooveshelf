@@ -73,3 +73,41 @@ def test_running_worker_wakes_when_schedule_enabled(tmp_path):
             time.sleep(.02)
         assert client.get('/api/backups').json()['backup_count']==1
         client.put('/api/backups',json={'enabled':False})
+
+
+def test_inspection_counts_archived_data_and_preserves_live_collection(tmp_path):
+    from test_photos import picture
+    path=tmp_path/'grooveshelf.sqlite3'
+    with TestClient(create_app(str(path),start_worker=False)) as client:
+        record=client.post('/api/records',json={'inventory_number':'LP-00001','artist':'Archive artist','title':'Saved album'}).json()
+        client.put('/api/tags/01020304',json={'copy_id':record['id']})
+        client.post('/api/records/'+record['id']+'/plays',json={'played_at':'2026-01-01T12:00:00Z'})
+        client.post('/api/records/'+record['id']+'/photos',params={'kind':'back'},content=picture(),headers={'Content-Type':'image/png'})
+        client.post('/api/wishlist',json={'artist':'Wish artist','title':'Wish album'})
+        name=client.post('/api/backups').json()['archives'][0]['filename']
+        archive=tmp_path/'backups'/name;original=archive.read_bytes()
+        client.post('/api/records',json={'inventory_number':'LP-00002','artist':'Later artist','title':'Added later'})
+        before=client.get('/api/records').json()
+        response=client.post('/api/backups/'+name+'/inspect')
+        assert response.status_code==200
+        data=response.json()
+        assert data['verified'] and data['filename']==name and data['schema_version']==10
+        assert data['counts']=={'records':1,'albums':1,'photos':1,'nfc_tags':1,'plays':1,'wishlist':1,'cached_covers':0}
+        assert data['created_at'] and archive.read_bytes()==original
+        assert client.get('/api/records').json()==before
+        assert client.post('/api/backups/not-a-backup.zip/inspect').status_code==422
+        assert client.post('/api/backups/grooveshelf-20260101T000000000000Z.zip/inspect').status_code==404
+        archive.write_bytes(b'broken')
+        assert client.post('/api/backups/'+name+'/inspect').status_code==422
+        assert archive.read_bytes()==b'broken' and client.get('/api/records').json()==before
+
+
+def test_inspection_supports_schema9_without_photos(tmp_path):
+    from app.archive import export_archive,inspect_archive
+    db=Database(str(tmp_path/'legacy.sqlite3'));db.initialize()
+    with db.connect() as source:
+        source.execute('DROP TABLE photos');source.execute('PRAGMA user_version=9')
+    output=tmp_path/'legacy.zip';export_archive(db.path,output)
+    report=inspect_archive(output)
+    assert report['verified'] and report['schema_version']==9
+    assert report['counts']['photos']==0 and report['counts']['records']==0
