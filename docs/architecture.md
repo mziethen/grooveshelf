@@ -16,7 +16,7 @@ Schema version 2 added Discogs provenance, field protection and freshness metada
 
 ## Current limitations
 
-User authentication and the physical PN532 adapter are not implemented yet. Portable archive export, validation, and fresh-installation restore are available; see [archives and backups](archives.md). NFC associations, station events, listening history and favorites are implemented in software. Discogs lookup, confirmed import, local cover storage and freshness refresh are available. Deployment is for a trusted home network. Do not expose this version publicly. Operational backup is required before using it as the sole copy of a real collection.
+User authentication and the physical PN532 adapter are not implemented yet. Portable archive export, validation, optional daily local backups, and fresh-installation restore are available; see [archives and backups](archives.md). NFC associations, station events, listening history and favorites are implemented in software. Discogs lookup, confirmed import, local cover storage and freshness refresh are available. Deployment is for a trusted home network. Do not expose this version publicly. Operational backup is required before using it as the sole copy of a real collection.
 
 The full collection is returned in one request, which is appropriate for the initial approximately 300-record collection. Pagination can be added when needed. API search is case-insensitive across artist, album, track title, inventory number, and storage location.
 

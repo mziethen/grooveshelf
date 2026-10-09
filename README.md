@@ -14,7 +14,7 @@ A self-hosted vinyl collection archive for Raspberry Pi and your home network. K
 - **Listening:** NFC tag associations, station scans, ten-minute listening sessions, editable play history, statistics, and record suggestions.
 - **Wishlist:** desired albums, search, editing, and acquisition into the collection.
 - **Album discovery:** Spotify, YouTube and Qobuz search links in record details.
-- **Tools:** reviewed bulk editing of personal copy fields, printable inventory labels with optional QR links, missing-data filters, CSV and JSON exports, a printable offline catalog, and validated portable archives with cached covers and listening history.
+- **Tools:** reviewed bulk editing of personal copy fields, printable inventory labels with optional QR links, missing-data filters, CSV and JSON exports, a printable offline catalog, and validated portable archives with cached covers and listening history. Optional daily local backups include status and verified downloads.
 - **Collection browsing:** sort by LP number, artist, album or year; combine favorites, genre and location filters with search and missing-data filters.
 - **Pi startup:** choose a browser-specific startup workspace in Settings, including Listening with the remembered album. Startup and album selection never record a play.
 - **Appearance:** a cover-wall workspace with Collection, Archive and Listening, plus Gallery, Studio and Listening Room themes saved per browser. A tools drawer preserves management workflows at every screen size, with responsive layouts and keyboard controls.

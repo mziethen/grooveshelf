@@ -75,7 +75,7 @@ Stop both disposable servers afterward. `GROOVESHELF_TEST_URL` defaults to `http
 
 ## Backups and updates
 
-Use **Export archive** in the navigation to download a complete portable backup. Store it outside the Pi, verify it, and export before upgrades. See [archive export, verification, and restore](archives.md). Automatic scheduled backups are not implemented.
+Use **Export archive** in the navigation to download a complete portable backup. Store it outside the Pi, verify it, and export before upgrades. See [archive export, verification, and restore](archives.md). The **Backups** dialog supports verified manual backups, downloads and optional daily local backups (off by default).
 
 To update a Docker installation after exporting:
 

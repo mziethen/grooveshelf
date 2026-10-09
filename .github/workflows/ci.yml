@@ -60,6 +60,7 @@ jobs:
           done
           curl --fail http://localhost:8080/api/health
           curl --fail http://localhost:8080/vendor/qrcode-generator.js | python -c 'import sys; assert "export default qrcode" in sys.stdin.read()'
+          curl --fail http://localhost:8080/backups.js | python -c 'import sys; assert "export function createBackups" in sys.stdin.read()'
           curl --fail http://localhost:8080/streaming.js | python -c 'import sys; assert "export function albumSearchLinks" in sys.stdin.read()'
           curl --fail http://localhost:8080/tracks.js | python -c 'import sys; assert "export function trackLine" in sys.stdin.read()'
           curl --fail http://localhost:8080/pressings.js | python -c 'import sys; assert "export function pressingMarkup" in sys.stdin.read()'

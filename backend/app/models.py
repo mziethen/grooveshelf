@@ -230,3 +230,8 @@ class CorrectionChoices(BaseModel):
 class PersonalCoverSelection(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     photo_id: str | None = Field(min_length=1, max_length=100)
+
+
+class BackupPreferences(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    enabled: bool
