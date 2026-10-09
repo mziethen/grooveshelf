@@ -12,7 +12,7 @@ Choose an appearance in the top bar. The choice is remembered in the browser and
 
 ## Layout and interaction
 
-The top bar provides three workspaces: **Collection**, a centered cover wall; **Archive**, the searchable inventory table; and **Listening**, a large album sleeve, artist, copy details and expandable track list. Gallery, Studio and Listening Room apply to all three workspaces. Search and filters survive workspace changes. The table/grid controls also switch between Archive and Collection.
+The top bar provides three workspaces: **Collection**, a centered cover wall; **Archive**, the searchable inventory table; and **Listening**, a large album sleeve, artist, copy details and expandable track list. Gallery, Studio and Listening Room apply to all three workspaces. Search and filters survive workspace changes. Sorting offers inventory number, artist, album and year in either direction; copies without a year remain at the end. The sort order is remembered per browser. Favorites, genre and location filters combine with search and missing-information filters. Clear search & filters retains the chosen sort order. The table/grid controls also switch between Archive and Collection.
 
 The tools drawer is available at every screen size through the navigation button. It contains wishlist, discovery, statistics, Discogs sync, labels, bulk editing, exports and settings. Escape returns focus to the opener; background content is inert while the drawer is open.
 
@@ -27,3 +27,7 @@ The refinement is implemented in `frontend/design.css`, loaded after the shared 
 ## Validation
 
 The browser suite covers appearance persistence, unchanged drafts, keyboard navigation, core text contrast, small-screen overflow, Pi settings access, sticky dialog actions and the existing collection workflows. Visual review uses real collection covers at desktop, mobile and Pi sizes.
+
+## Pi startup
+
+Settings → This screen → Startup view selects Collection, Archive or Listening for the current browser. The default, Last collection view, preserves the existing grid/table preference. Startup view is a browser preference, independent of installation-wide Discogs settings; the Pi can start in Listening while a phone opens Collection. Listening remembers the selected physical copy by its fixed ID. A removed copy falls back to the album chooser, and direct record links take precedence over the startup preference. Opening a view or restoring an album does not record a play. The existing `?station=…` address continues to provide reader feedback and the session countdown.

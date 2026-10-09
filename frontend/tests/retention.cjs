@@ -32,7 +32,7 @@ const base = process.env.GROOVESHELF_TEST_URL || 'http://127.0.0.1:8080';
    }
   }
   await page.locator('#close-details').click();await openNavigation(page);await page.locator('#settings-open').click();
-  await page.getByText('These settings apply to this GrooveShelf installation.').waitFor();
+  await page.getByText('Discogs settings apply to this installation. Startup view applies only to this browser.').waitFor();
   await page.locator('[name=show_expired_metadata]').uncheck();await page.locator('#settings-save').click();
   await page.getByText('Settings saved.').waitFor();await page.locator('#settings-close').click();
   await page.goto(base+'/#record/'+id);await page.locator('#details').getByRole('heading',{name:'Metadata temporarily unavailable',exact:true}).waitFor();

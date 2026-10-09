@@ -1,3 +1,4 @@
+import { createCollectionBrowser } from './browsing.js';
 import { releaseNotesMarkup } from './release-notes.js';
 import { pressingMarkup } from './pressings.js';
 import { creditsMarkup } from './credits.js';
@@ -43,7 +44,9 @@ function attribution(record, referenceRelease = false) {
 function coverFallbacks(root) {
   root.querySelectorAll('.cover img').forEach(img => img.addEventListener('error', () => img.remove(), {once: true}));
 }
-let workspaceMode = state.view === 'table' ? 'archive' : 'collection';
+const startupView = localStorage.getItem('grooveshelf-startup') || 'last';
+let workspaceMode = !/^#record\//.test(location.hash) && ['collection','archive','listening'].includes(startupView) ? startupView : state.view === 'table' ? 'archive' : 'collection';
+const browsing = createCollectionBrowser({escape,onChange:render});
 let listeningRecord = null, listeningMarkup = '', listeningRequest = 0;
 function setWorkspace(mode) {
   workspaceMode = mode;
@@ -62,6 +65,7 @@ async function chooseListening(id) {
     const record = await api(`/records/${id}`);
     if (generation !== listeningRequest) return;
     listeningRecord = hideExpired(record);
+    try { localStorage.setItem('grooveshelf-listening-copy', record.id); } catch {}
     renderListening(); scheduleExpiry();
   } catch(error) { if (generation === listeningRequest) $('#listening-view-error').textContent = error.message; }
 }
@@ -86,12 +90,12 @@ async function enterListening() {
     const records = await api('/records');
     if (workspaceMode !== 'listening') return;
     $('#listening-choice').innerHTML = '<option value="">Select from your collection</option>' + records.map(r=>`<option value="${escape(r.id)}">${escape(r.inventory_number)} · ${escape(hideExpired(r).title)}</option>`).join('');
-    const selected = listeningRecord || state.selected;
+    const selected = listeningRecord || state.selected || records.find(r=>r.id===localStorage.getItem('grooveshelf-listening-copy'));
     if (selected && records.some(r=>r.id===selected.id)) await chooseListening(selected.id);
   } catch(error) { $('#listening-view-error').textContent = error.message; }
 }
 for (const mode of ['collection','archive','listening']) $('#mode-'+mode).addEventListener('click',()=>mode==='listening' ? enterListening() : setWorkspace(mode));
-$('#listening-choice').addEventListener('change',event=>{if(event.target.value)chooseListening(event.target.value);else {++listeningRequest;listeningRecord=null;listeningMarkup='';$('#listening-album').innerHTML='<div class="empty"><h2>Make room for a record.</h2><p>Choose an album, or scan its NFC tag at your listening station.</p></div>';$('#listening-details-open').hidden=true;}});
+$('#listening-choice').addEventListener('change',event=>{if(event.target.value)chooseListening(event.target.value);else {try { localStorage.removeItem('grooveshelf-listening-copy'); } catch {} ++listeningRequest;listeningRecord=null;listeningMarkup='';$('#listening-album').innerHTML='<div class="empty"><h2>Make room for a record.</h2><p>Choose an album, or scan its NFC tag at your listening station.</p></div>';$('#listening-details-open').hidden=true;}});
 $('#app-navigation .nav-item.active').addEventListener('click',()=>setWorkspace('collection'));
 $('#listening-details-open').addEventListener('click',()=>{if(listeningRecord)location.hash=`record/${listeningRecord.id}`;});
 let collectionMarkup;
@@ -103,8 +107,8 @@ function updateCollection(target, markup) {
 }
 function render() {
   scheduleExpiry();
-  const filtered = ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked);
-  const records = state.records.filter(record=>(!$('#missing-cover').checked||!record.cover_url)&&(!$('#missing-tracks').checked||!record.tracks.length)&&(!$('#missing-nfc').checked||!record.nfc_uid));
+  const filtered = browsing.active() || ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked);
+  const records = browsing.records(state.records).filter(record=>(!$('#missing-cover').checked||!record.cover_url)&&(!$('#missing-tracks').checked||!record.tracks.length)&&(!$('#missing-nfc').checked||!record.nfc_uid));
   $('#count').textContent = filtered ? `${records.length} of ${state.records.length} records match` : `${records.length} ${records.length === 1 ? 'record' : 'records'}`;
   $('#grid-view').setAttribute('aria-pressed', state.view === 'grid');
   $('#table-view').setAttribute('aria-pressed', state.view === 'table');
@@ -119,7 +123,7 @@ function render() {
   target.className = state.view === 'grid' ? 'grid' : 'table-wrap';
   if (!records.length) {
     target.className = '';
-    if (!updateCollection(target, `<div class="empty"><h3>${($('#search').value || filtered) ? 'No matching records.' : 'Your shelf is waiting.'}</h3><p>${($('#search').value || filtered) ? 'Try different search words or clear the missing-information filters.' : 'Add your first record and start making<br>a little home for your collection.'}</p>${($('#search').value || filtered) ? '<button id="empty-clear">Clear search &amp; filters</button>' : '<button class="primary" id="empty-add">＋ Add your first record</button>'}</div>`)) return;
+    if (!updateCollection(target, `<div class="empty"><h3>${($('#search').value || filtered) ? 'No matching records.' : 'Your shelf is waiting.'}</h3><p>${($('#search').value || filtered) ? 'Try different search words or clear your filters.' : 'Add your first record and start making<br>a little home for your collection.'}</p>${($('#search').value || filtered) ? '<button id="empty-clear">Clear search &amp; filters</button>' : '<button class="primary" id="empty-add">＋ Add your first record</button>'}</div>`)) return;
     $('#empty-clear')?.addEventListener('click', clearFilters);
     $('#empty-add')?.addEventListener('click', () => openEditor());
     return;
@@ -277,6 +281,7 @@ let timer;
 async function clearFilters() {
   clearTimeout(timer);
   $('#search').value = '';
+  browsing.clear();
   for (const name of ['cover','tracks','nfc']) $('#missing-'+name).checked = false;
   $('#search').focus();
   await load();
@@ -284,7 +289,7 @@ async function clearFilters() {
 $('#clear-filters').addEventListener('click', clearFilters);
 $('#retry-load').addEventListener('click', load);
 for (const name of ['cover','tracks','nfc']) $('#missing-'+name).addEventListener('change',render);
-$('#search').addEventListener('input', () => { $('#clear-filters').hidden = !($('#search').value || ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked)); clearTimeout(timer); timer = setTimeout(load, 200); });
+$('#search').addEventListener('input', () => { $('#clear-filters').hidden = !($('#search').value || browsing.active() || ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked)); clearTimeout(timer); timer = setTimeout(load, 200); });
 for (const view of ['grid','table']) $(`#${view}-view`).addEventListener('click', () => { setWorkspace(view === 'table' ? 'archive' : 'collection'); });
 window.addEventListener('hashchange', route);
 function hideExpired(record) {
@@ -332,4 +337,6 @@ createLabels({api,escape});
 createStatistics({api,escape,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
 createDiscovery({api,escape,cover,coverFallbacks,hideExpired,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
 setWorkspace(workspaceMode);
-await load(); await route();
+await load();
+if (workspaceMode === 'listening') await enterListening();
+await route();
