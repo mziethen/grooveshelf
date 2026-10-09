@@ -346,3 +346,57 @@ def test_changed_release_conflict_revalidates_before_detaching(setup, change, mo
         monkeypatch.setattr(provider,'request',request)
     assert client.post('/api/discogs/sync/apply',json=payload).status_code==(502 if change=='incomplete' else 409)
     with sqlite3.connect(path) as db:assert db.execute('SELECT copy_id FROM discogs_links').fetchone()[0]==copy_id
+
+
+def test_previous_account_resolution_preserves_copy_and_remote_accounts(setup):
+    import sqlite3
+    client,fixture,path,*_=setup
+    record=local(client);copy_id=record['id']
+    client.put('/api/records/'+copy_id+'/discogs-release',json={'release_id':100})
+    client.put('/api/tags/04AABBCCDDEE11',json={'copy_id':copy_id})
+    client.post('/api/records/'+copy_id+'/plays',json={'played_at':'2026-01-01T12:00:00+00:00'})
+    plan=client.get('/api/discogs/sync/preview').json()
+    exported=apply(client,plan,plan['actions'][0],'export').json()
+    photo=client.post('/api/records/'+copy_id+'/photos?kind=cover',content=PNG,headers={'Content-Type':'image/png'}).json()
+    before=client.get('/api/records/'+copy_id).json()
+    fixture.account=456;fixture.remote=[]
+    plan=client.get('/api/discogs/sync/preview').json()
+    notice=next(n for n in plan['notices'] if n['kind']=='account_conflict')
+    assert (notice['saved_account'],notice['connected_account'],notice['inventory_number'])==('123','456','LP-00001')
+    assert not any(a.get('copy_id')==copy_id for a in plan['actions'])
+    payload={'plan_id':plan['plan_id'],'action_id':notice['action_id'],'choice':'detach'}
+    assert client.post('/api/discogs/sync/apply',json=payload).status_code==422
+    payload['confirmed']=True;writes=len([r for r in fixture.calls if r.method!='GET'])
+    assert client.post('/api/discogs/sync/apply',json=payload).json()['status']=='detached'
+    assert client.get('/api/records/'+copy_id).json()==before
+    assert client.get('/api/photos/'+photo['id']).status_code==200
+    assert len([r for r in fixture.calls if r.method!='GET'])==writes
+    with sqlite3.connect(path) as db:
+        assert db.execute('SELECT account,instance_id,copy_id FROM discogs_links').fetchone()==('123',exported['instance_id'],None)
+        assert db.execute('SELECT count(*) FROM discogs_exports').fetchone()[0]==0
+    assert any(a.get('copy_id')==copy_id for a in client.get('/api/discogs/sync/preview').json()['actions'])
+    assert client.post('/api/discogs/sync/apply',json=payload).status_code==409
+    fixture.account=123;fixture.remote=[fixture.item(exported['instance_id'])]
+    assert not any(a['kind']=='remote' for a in client.get('/api/discogs/sync/preview').json()['actions'])
+
+
+@pytest.mark.parametrize('change',['account','local','uncertain','receipt_account','receipt_release','incomplete'])
+def test_previous_account_resolution_revalidates_and_blocks_uncertain_exports(setup,change,monkeypatch):
+    import sqlite3
+    client,fixture,path,provider,*_=setup
+    fixture.remote=[fixture.item(11)]
+    plan=client.get('/api/discogs/sync/preview').json();copy_id=apply(client,plan,plan['actions'][0],'import').json()['copy_id']
+    fixture.account=456;fixture.remote=[]
+    plan=client.get('/api/discogs/sync/preview').json()
+    notice=next(n for n in plan['notices'] if n['kind']=='account_conflict')
+    payload={'plan_id':plan['plan_id'],'action_id':notice['action_id'],'choice':'detach','confirmed':True}
+    if change=='account':fixture.account=123
+    with sqlite3.connect(path) as db:
+        if change=='local':db.execute('UPDATE discogs_links SET release_id=101')
+        if change in ['uncertain','receipt_account','receipt_release']:
+            db.execute('INSERT INTO discogs_exports VALUES(?,?,?,?,?,?,?)',('intent','999' if change=='receipt_account' else '123',copy_id,200 if change=='receipt_release' else 100,'[]','uncertain' if change=='uncertain' else 'resolved','2026-01-01T00:00:00+00:00'))
+    if change=='incomplete':
+        original=provider.request
+        monkeypatch.setattr(provider,'request',lambda endpoint,*args,**kwargs: {'pagination':{'pages':1}} if endpoint.endswith('/collection/folders/0/releases') else original(endpoint,*args,**kwargs))
+    assert client.post('/api/discogs/sync/apply',json=payload).status_code==(502 if change=='incomplete' else 409)
+    with sqlite3.connect(path) as db:assert db.execute('SELECT copy_id FROM discogs_links').fetchone()[0]==copy_id
