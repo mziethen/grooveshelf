@@ -8,7 +8,7 @@ Environment files, Discogs access tokens, application code and arbitrary files a
 
 ## Backup procedure
 
-Use the browser export for a live snapshot on a single-backend installation. During export, metadata/cover changes and the listening worker are briefly serialized while SQLite produces a consistent snapshot. Other committed copy updates are captured according to the snapshot point. Keep the downloaded archive outside the Pi as well, with a dated filename. Export after significant collection/history changes and before upgrades; this feature does not schedule automatic backups.
+Use the browser export for a live snapshot on a single-backend installation. During export, metadata/cover changes and the listening worker are briefly serialized while SQLite produces a consistent snapshot. Other committed copy updates are captured according to the snapshot point. Keep the downloaded archive outside the Pi as well, with a dated filename. Export after significant collection/history changes and before upgrades; optional daily local backups are also available below.
 
 The offline CLI can export and verify archives too. Stop the backend and NFC bridge before an offline export, so cover files cannot change during the snapshot. From the project directory with dependencies installed:
 
@@ -44,3 +44,9 @@ Before starting the backend, set its `GROOVESHELF_DATABASE` environment entry in
 ## Validation
 
 Tests restore an imported collection with local covers, ratings, notes, favorites, locations, tags, play history, wishlist and settings into a fresh installation, verify preserved identities, and read the cover through the restored API. Corrupt checksums, paths, sizes, schema, triggers and foreign keys fail without creating the destination. CLI export/verify/restore and browser ZIP download are also tested. Physical transfer to another Raspberry Pi has not been tested here; the archive is independent of CPU architecture.
+
+## Daily local backups
+
+Open **Backups** in the navigation. **Create backup** writes and verifies a complete archive before it appears in the download list. Enable **Create a local backup every day** and save to opt in; scheduling is off by default. The running backend checks once per minute and creates an archive when the newest saved backup is at least 24 hours old (or immediately if none exists). Manual backups restart this interval. The preference is stored in the collection database; saved archive timestamps preserve the schedule after a restart. Failed attempts keep existing archives, show an error and retry after one hour.
+
+Archives are stored in `backups/` beside the configured database (`/data/backups` in Docker's persistent volume). The dialog shows the latest 20 downloads and the total archive count. Every download is verified again. All archives are retained; disabling scheduling keeps existing files. Remove unneeded files manually on the server after saving copies elsewhere. Local backups on the same disk do not protect against disk loss: download copies to another device. The backend must be running for scheduled backups; overdue backups are created after startup. Restore remains the verified command-line procedure above, into a separate destination.

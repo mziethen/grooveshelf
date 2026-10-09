@@ -1,3 +1,5 @@
+from .backups import BackupService
+from .models import BackupPreferences
 from contextlib import asynccontextmanager
 from pathlib import Path
 import os
@@ -47,6 +49,9 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     sync = DiscogsSync(repository, provider, metadata)
     listening = ListeningService(database, clock) if clock else ListeningService(database)
 
+    backups = BackupService(database, (metadata.lock, listening.lock, covers.lock))
+    backup_wake = Event()
+
     @asynccontextmanager
     async def lifespan(app):
         database.initialize()
@@ -61,10 +66,20 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
         worker = Thread(target=run_timer, daemon=True, name='grooveshelf-listening') if start_worker else None
         if worker:
             worker.start()
+        def run_backups():
+            while not stop.is_set():
+                try: backups.tick()
+                except Exception: logging.getLogger(__name__).exception('Backup scheduling failed')
+                backup_wake.wait(60)
+                backup_wake.clear()
+        backup_worker = Thread(target=run_backups, daemon=True, name='grooveshelf-backups') if start_worker else None
+        if backup_worker: backup_worker.start()
         try:
             yield
         finally:
             stop.set()
+            backup_wake.set()
+            if backup_worker: backup_worker.join(timeout=12)
             if worker:
                 worker.join(timeout=12)
 
@@ -93,6 +108,29 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     @app.put('/api/settings', response_model=MetadataSettings)
     def save_settings(data: MetadataSettings):
         return settings.save(data.model_dump(exclude_unset=True))
+
+    @app.get('/api/backups')
+    def backup_status():
+        return backups.status()
+
+    @app.put('/api/backups')
+    def backup_settings(data: BackupPreferences):
+        result = backups.configure(data.enabled)
+        backup_wake.set()
+        return result
+
+    @app.post('/api/backups')
+    def create_backup():
+        try: return backups.create()
+        except Exception as error:
+            raise HTTPException(503, 'Backup failed. Existing backups are retained. Check disk space and server logs.') from error
+
+    @app.get('/api/backups/{filename}')
+    def download_backup(filename: str):
+        try: path = backups.download(filename)
+        except FileNotFoundError: raise HTTPException(404, 'Backup not found.')
+        except Exception: raise HTTPException(422, 'This backup could not be verified. Keep the original file and create another backup.')
+        return FileResponse(path, media_type='application/zip', filename=filename, headers={'X-Content-Type-Options':'nosniff'})
 
     @app.get('/api/metadata/discogs/status')
     def discogs_status():

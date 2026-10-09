@@ -1,3 +1,4 @@
+import { createBackups } from './backups.js';
 import { createCollectionBrowser } from './browsing.js';
 import { releaseNotesMarkup } from './release-notes.js';
 import { pressingMarkup } from './pressings.js';
@@ -321,6 +322,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 createPhotos({api,escape,currentRecord:()=>state.selected,onSaved:async()=>{await load();await route();}});
 createCorrections({api,escape,currentRecord:()=>state.selected,onSaved:async()=>{await load();await route();}});
 createAppearance();
+createBackups({api,escape});
 createRecordQR({currentRecord:()=>state.selected});
 createBulkEditor({api,escape,onSaved:async count=>{await load();$('#message').textContent=`Updated ${count} ${count===1?'record':'records'}.`;}});
 createSettings({api,onSaved:async settings=>{
