@@ -227,3 +227,5 @@ body[data-workspace=listening] .intro>.primary {display:none;}
 #backup-inspection-details dd {margin:0;font-variant-numeric:tabular-nums;}
 #backups-list p {display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;}
 #backups-list a {overflow-wrap:anywhere;}
+.sync-field-values p {white-space:pre-wrap;overflow-wrap:anywhere;max-height:150px;overflow:auto;}
+#sync-review-items p {white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;}

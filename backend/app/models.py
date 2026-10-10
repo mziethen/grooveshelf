@@ -147,7 +147,7 @@ class SyncAction(BaseModel):
     model_config = ConfigDict(extra="forbid")
     plan_id: str
     action_id: str
-    choice: Literal["import", "export", "link", "detach", "rating_import"]
+    choice: Literal["import", "export", "link", "detach", "rating_import", "personal_import"]
     confirmed: bool = False
     copy_id: str | None = None
 
@@ -235,3 +235,17 @@ class PersonalCoverSelection(BaseModel):
 class BackupPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     enabled: bool
+
+
+class SyncFieldMapping(BaseModel):
+    model_config = ConfigDict(extra="forbid",strict=True)
+    account_id: str = Field(min_length=1,max_length=100)
+    media_condition: int | None = Field(default=None,ge=1)
+    sleeve_condition: int | None = Field(default=None,ge=1)
+    notes: int | None = Field(default=None,ge=1)
+
+    @model_validator(mode="after")
+    def unique_fields(self):
+        ids=[getattr(self,name) for name in ['media_condition','sleeve_condition','notes'] if getattr(self,name) is not None]
+        if len(ids)!=len(set(ids)):raise ValueError('Choose a different Discogs field for each local field')
+        return self
