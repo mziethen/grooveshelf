@@ -2,9 +2,10 @@ const {openNavigation}=require('./navigation.cjs');const assert=require('node:as
 const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
 (async()=>{
  const browser=await chromium.launch({headless:true});const page=await browser.newPage();let applied=[],mappedRequests=[],done=false,failFields=true;
- const record={id:'copy-one',album_id:'album',inventory_number:'LP-00001',artist:'Demo Artist',title:'Demo Album',format:'LP',year:2000,tracks:[],notes:'My local note',rating:2,media_condition:'G',sleeve_condition:'VG',genres:[],styles:[],labels:[],protected_fields:[],metadata_status:'manual'};
+ const record={id:'copy-one',album_id:'album',inventory_number:'LP-00001',artist:'Demo Artist',title:'Demo Album',format:'LP',year:2000,tracks:[],storage_location:'Shelf B',notes:'My local note',rating:2,media_condition:'G',sleeve_condition:'VG',genres:[],styles:[],labels:[],protected_fields:[],metadata_status:'manual'};
  const definitions=[{id:7,name:'Media <grade>',type:'dropdown'},{id:8,name:'Sleeve grade',type:'dropdown'},{id:9,name:'Private notes',type:'textarea'}];
  const personal=['media_condition','sleeve_condition','notes'].map((field,index)=>({id:field,kind:'personal',copy_id:record.id,inventory_number:record.inventory_number,title:record.title,instance_id:11,release_id:100,field,definition:definitions[index],local_value:record[field],remote_value:['VG+','Generic',''][index],source_url:'https://www.discogs.com/release/100'}));
+ const folder={id:'storage_location',kind:'personal',copy_id:record.id,inventory_number:record.inventory_number,title:record.title,instance_id:11,release_id:100,field:'storage_location',definition:{id:5,name:'Jazz <shelf>'},local_value:'Shelf B',remote_value:'Jazz <shelf>',source_url:'https://www.discogs.com/release/100'};
  const rating={id:'rating',kind:'rating',copy_id:record.id,inventory_number:record.inventory_number,title:record.title,instance_id:11,release_id:100,local_rating:2,remote_rating:5,source_url:'https://www.discogs.com/release/100'};
  await page.route('**/api/**',async route=>{
   const path=new URL(route.request().url()).pathname;
@@ -14,12 +15,12 @@ const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
   }
   if(path==='/api/discogs/sync/preview'){
    const mapped=route.request().method()==='POST';if(mapped)mappedRequests.push(route.request().postDataJSON());
-   return route.fulfill({json:{plan_id:'personal-plan',username:'demo-owner',remote_count:1,expires_in_seconds:600,notices:[],actions:done?[]:mapped?[rating,...personal]:[rating]}});
+   return route.fulfill({json:{plan_id:'personal-plan',username:'demo-owner',remote_count:1,expires_in_seconds:600,notices:[],actions:done?[]:mapped?[rating,...personal,...(route.request().postDataJSON().folder_locations?[folder]:[])]:[rating]}});
   }
   if(path==='/api/discogs/sync/apply'){
    const body=route.request().postDataJSON();assert.equal(body.confirmed,true);applied.push(body);
-   if(body.choice==='rating_import')record.rating=5;else {assert.equal(body.choice,'personal_import');record[body.action_id]=personal.find(a=>a.id===body.action_id).remote_value;}
-   if(applied.length===4)done=true;
+   if(body.choice==='rating_import')record.rating=5;else {assert.equal(body.choice,'personal_import');record[body.action_id]=[...personal,folder].find(a=>a.id===body.action_id).remote_value;}
+   if(applied.length===5)done=true;
    return route.fulfill({json:{status:body.choice==='rating_import'?'rating_imported':'personal_imported',copy_id:record.id}});
   }
   return route.fulfill({json:path==='/api/records'?[record]:path.endsWith('/plays')?[]:{}});
@@ -46,10 +47,12 @@ const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
    for(const [width,height] of [[320,700],[1024,600]]) {await page.setViewportSize({width,height});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
    await page.locator('#sync-review-back').click();assert.equal(applied.length,0);
   }
-  await page.locator('#sync-apply').click();await page.locator('#sync-review-confirm').click();await page.locator('#sync-status').getByText('4 changes applied.',{exact:false}).waitFor();
-  assert.deepEqual([record.rating,record.media_condition,record.sleeve_condition,record.notes],[5,'VG+','Generic','']);assert.equal(applied.length,4);
+  await page.locator('#sync-fields-open').click();await page.waitForFunction(()=>!document.querySelector('#sync-field-preview').disabled);assert.equal(await page.locator('#sync-field-folders').isChecked(),false);await page.locator('#sync-field-folders').check();await page.locator('#sync-field-preview').click();await page.locator('[data-action="storage_location"]').waitFor();assert.equal(mappedRequests.at(-1).folder_locations,true);assert.equal(await page.locator('.sync-field-values shelf').count(),0);
+  for(const action of [rating,...personal,folder])await page.locator(`[data-action="${action.id}"] select`).selectOption(action.kind==='rating'?'rating_import':'personal_import');
+  await page.locator('#sync-apply').click();assert.match(await page.locator('#sync-review-items').textContent(),/Shelf B → Jazz <shelf>/);assert.equal(applied.length,0);await page.locator('#sync-review-confirm').click();await page.locator('#sync-status').getByText('5 changes applied.',{exact:false}).waitFor();
+  assert.deepEqual([record.rating,record.media_condition,record.sleeve_condition,record.notes],[5,'VG+','Generic','']);assert.equal(applied.length,5);assert.equal(record.storage_location,'Jazz <shelf>');
   await page.locator('#sync-cancel').click();await openNavigation(page);await page.locator('#sync-open').click();await page.locator('#sync-fields-open').click();await page.waitForFunction(()=>!document.querySelector('#sync-field-preview').disabled);
-  assert.equal(await page.locator('#sync-field-notes').inputValue(),'');
+  assert.equal(await page.locator('#sync-field-notes').inputValue(),'');assert.equal(await page.locator('#sync-field-folders').isChecked(),false);
   console.log('Personal sync passed: account field mapping, failure/retry, duplicate mapping rejection, independent changes, rating coexistence, clear review, session reset and responsive themes.');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

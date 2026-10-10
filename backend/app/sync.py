@@ -53,6 +53,7 @@ class DiscogsSync:
                                 'title': str(info.get('title', 'Untitled'))[:300],
                                 'artist': ', '.join(str(a.get('name', '')) for a in info.get('artists', []))[:300],
                                 'source_url': f'https://www.discogs.com/release/{rid}'}
+                entries[iid]['folder_id'] = item.get('folder_id') if type(item.get('folder_id')) is int else None
                 entries[iid]['notes'] = note_values(item.get('notes'))
                 # Omitted/malformed ratings are unknown, not an instruction to clear.
                 rating = item.get('rating')
@@ -116,14 +117,32 @@ class DiscogsSync:
             fields=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields'))
             return {'account_id':account,'username':username,'fields':list(fields.values())}
 
+    def folders(self, username):
+        data = self.provider.request(f'/users/{quote(username,safe="")}/collection/folders')
+        rows = data.get('folders')
+        if not isinstance(rows, list):
+            raise HTTPException(502, 'Discogs returned an invalid folder list.')
+        folders = {}
+        for row in rows:
+            if not isinstance(row, dict) or type(row.get('id')) is not int or row['id'] < 0 or row['id'] in folders:
+                raise HTTPException(502, 'Discogs returned an invalid folder list.')
+            name = row.get('name')
+            if not isinstance(name, str) or not name.strip() or len(name) > 200:
+                raise HTTPException(502, 'Discogs returned an unsupported folder name; local locations are unchanged.')
+            folders[row['id']] = {'id':row['id'], 'name':name}
+        return folders
+
     def preview(self, mapping=None):
         with self.lock:
             account, username = self.identity()
             mapped={}
+            folders={}
             if mapping:
                 if mapping.account_id != account:
                     raise HTTPException(409,'The connected account changed. Review its field mapping again.')
-                definitions=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields'))
+                definitions=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields')) if any(getattr(mapping, field) is not None for field in FIELDS) else {}
+                if mapping.folder_locations:
+                    folders=self.folders(username)
                 for field in FIELDS:
                     id=getattr(mapping,field)
                     if id is not None:
@@ -197,6 +216,18 @@ class DiscogsSync:
                                         'instance_id':link['instance_id'],'release_id':link['release_id'],
                                         'local_rating':record['rating'],'remote_rating':entry['rating'],
                                         'source_url':entry['source_url']})
+                    if mapping and mapping.folder_locations:
+                        folder=folders.get(entry['folder_id'])
+                        if folder and folder['id'] > 1:
+                            if folder['name'] != record['storage_location']:
+                                actions.append({'id':str(uuid4()),'kind':'personal','copy_id':record['id'],
+                                                'inventory_number':record['inventory_number'],'title':record['title'],
+                                                'instance_id':link['instance_id'],'release_id':link['release_id'],
+                                                'field':'storage_location','definition':folder,'local_value':record['storage_location'],
+                                                'remote_value':folder['name'],'source_url':entry['source_url']})
+                        elif not folder:
+                            notices.append({'kind':'personal_unavailable','copy_id':record['id'],
+                                            'message':f"{record['inventory_number']}: the Discogs folder is unavailable; storage location is kept unchanged."})
                     for field,definition in mapped.items():
                         try: value=value_for(field,entry['notes'].get(definition['id']))
                         except ValueError:
@@ -272,14 +303,20 @@ class DiscogsSync:
 
     def import_personal(self,account,username,action,remote):
         field=action['field']
-        if field not in FIELDS:raise HTTPException(409,'Unsupported local field. Refresh the preview.')
-        definitions=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields'))
+        if field not in (*FIELDS, 'storage_location'):raise HTTPException(409,'Unsupported local field. Refresh the preview.')
         definition=action['definition']
-        if definitions.get(definition['id']) != definition:
-            raise HTTPException(409,'The mapped Discogs field changed. Review its mapping again.')
         entry=remote.get(action['instance_id'])
-        try:value=value_for(field,entry['notes'].get(definition['id'])) if entry else None
-        except ValueError:raise HTTPException(409,'The Discogs field is now unavailable. Refresh the preview.')
+        if field == 'storage_location':
+            folder=self.folders(username).get(definition['id'])
+            if folder != definition or not entry or entry['folder_id'] != definition['id']:
+                raise HTTPException(409,'The Discogs folder or assignment changed. Refresh the preview.')
+            value=folder['name']
+        else:
+            definitions=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields'))
+            if definitions.get(definition['id']) != definition:
+                raise HTTPException(409,'The mapped Discogs field changed. Review its mapping again.')
+            try:value=value_for(field,entry['notes'].get(definition['id'])) if entry else None
+            except ValueError:raise HTTPException(409,'The Discogs field is now unavailable. Refresh the preview.')
         if not entry or entry['release_id'] != action['release_id'] or value != action['remote_value']:
             raise HTTPException(409,'The Discogs copy or personal field changed. Refresh the preview.')
         with self.database.connect() as db:
