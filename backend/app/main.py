@@ -1,5 +1,5 @@
 from .backups import BackupService
-from .models import BackupPreferences
+from .models import BackupPreferences, SyncFieldMapping
 from contextlib import asynccontextmanager
 from pathlib import Path
 import os
@@ -428,6 +428,14 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     @app.post('/api/wishlist/{wish_id}/acquire', response_model=Record, status_code=201)
     def acquire_wish(wish_id: str, data: RecordInput):
         return public(wishlist.acquire(wish_id, data))
+
+    @app.get('/api/discogs/sync/fields')
+    def sync_fields():
+        return sync.fields()
+
+    @app.post('/api/discogs/sync/preview')
+    def mapped_sync_preview(data: SyncFieldMapping):
+        return sync.preview(data)
 
     @app.get('/api/discogs/sync/preview')
     def sync_preview():

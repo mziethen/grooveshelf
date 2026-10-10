@@ -7,6 +7,7 @@ from urllib.parse import quote
 from uuid import uuid4
 from fastapi import HTTPException
 from .models import RecordInput
+from .sync_fields import FIELDS, field_definitions, note_values, value_for
 
 
 def now():
@@ -52,6 +53,7 @@ class DiscogsSync:
                                 'title': str(info.get('title', 'Untitled'))[:300],
                                 'artist': ', '.join(str(a.get('name', '')) for a in info.get('artists', []))[:300],
                                 'source_url': f'https://www.discogs.com/release/{rid}'}
+                entries[iid]['notes'] = note_values(item.get('notes'))
                 # Omitted/malformed ratings are unknown, not an instruction to clear.
                 rating = item.get('rating')
                 if type(rating) is int and 0 <= rating <= 5:
@@ -108,9 +110,25 @@ class DiscogsSync:
                 db.execute('DELETE FROM discogs_exports WHERE id=?', (intent['id'],))
             return {'status':'retry_allowed'}
 
-    def preview(self):
+    def fields(self):
+        with self.lock:
+            account,username=self.identity()
+            fields=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields'))
+            return {'account_id':account,'username':username,'fields':list(fields.values())}
+
+    def preview(self, mapping=None):
         with self.lock:
             account, username = self.identity()
+            mapped={}
+            if mapping:
+                if mapping.account_id != account:
+                    raise HTTPException(409,'The connected account changed. Review its field mapping again.')
+                definitions=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields'))
+                for field in FIELDS:
+                    id=getattr(mapping,field)
+                    if id is not None:
+                        if id not in definitions:raise HTTPException(409,'A mapped Discogs field is missing. Review the mapping again.')
+                        mapped[field]=definitions[id]
             remote = self.collection(username)
             local = [self.metadata.present(record) for record in self.repository.list()]
             by_copy = {record['id']: record for record in local}
@@ -179,6 +197,18 @@ class DiscogsSync:
                                         'instance_id':link['instance_id'],'release_id':link['release_id'],
                                         'local_rating':record['rating'],'remote_rating':entry['rating'],
                                         'source_url':entry['source_url']})
+                    for field,definition in mapped.items():
+                        try: value=value_for(field,entry['notes'].get(definition['id']))
+                        except ValueError:
+                            notices.append({'kind':'personal_unavailable','copy_id':record['id'],
+                                            'message':f"{record['inventory_number']}: {definition['name']} is missing or unsupported; {field.replace('_',' ')} is kept unchanged."})
+                            continue
+                        if value != record[field]:
+                            actions.append({'id':str(uuid4()),'kind':'personal','copy_id':record['id'],
+                                            'inventory_number':record['inventory_number'],'title':record['title'],
+                                            'instance_id':link['instance_id'],'release_id':link['release_id'],
+                                            'field':field,'definition':definition,'local_value':record[field],
+                                            'remote_value':value,'source_url':entry['source_url']})
             self.plans = {key:value for key,value in self.plans.items() if value['expires'] > monotonic()}
             if len(self.plans) >= 16:
                 self.plans.pop(next(iter(self.plans)))
@@ -207,6 +237,10 @@ class DiscogsSync:
                 if request.choice != 'detach' or request.confirmed is not True:
                     raise HTTPException(422, 'Confirm removal of the conflicting local link.')
                 result = self.detach_conflict(account, action, remote)
+            elif action['kind'] == 'personal':
+                if request.choice != 'personal_import' or request.confirmed is not True:
+                    raise HTTPException(422,'Confirm importing the reviewed personal field.')
+                result = self.import_personal(account,username,action,remote)
             elif action['kind'] == 'rating':
                 if request.choice != 'rating_import' or request.confirmed is not True:
                     raise HTTPException(422, 'Confirm importing the reviewed Discogs rating.')
@@ -235,6 +269,27 @@ class DiscogsSync:
                 db.execute('INSERT INTO discogs_sync_state(account,last_success_at) VALUES(?,?) ON CONFLICT(account) DO UPDATE SET last_success_at=excluded.last_success_at', (account, now()))
             del plan['actions'][request.action_id]
             return result
+
+    def import_personal(self,account,username,action,remote):
+        field=action['field']
+        if field not in FIELDS:raise HTTPException(409,'Unsupported local field. Refresh the preview.')
+        definitions=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields'))
+        definition=action['definition']
+        if definitions.get(definition['id']) != definition:
+            raise HTTPException(409,'The mapped Discogs field changed. Review its mapping again.')
+        entry=remote.get(action['instance_id'])
+        try:value=value_for(field,entry['notes'].get(definition['id'])) if entry else None
+        except ValueError:raise HTTPException(409,'The Discogs field is now unavailable. Refresh the preview.')
+        if not entry or entry['release_id'] != action['release_id'] or value != action['remote_value']:
+            raise HTTPException(409,'The Discogs copy or personal field changed. Refresh the preview.')
+        with self.database.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            link=db.execute('SELECT copy_id,release_id FROM discogs_links WHERE account=? AND instance_id=?',(account,action['instance_id'])).fetchone()
+            copy=db.execute(f'SELECT "{field}" FROM copies WHERE id=?',(action['copy_id'],)).fetchone()
+            if not link or link['copy_id'] != action['copy_id'] or link['release_id'] != action['release_id'] or not copy or copy[field] != action['local_value']:
+                raise HTTPException(409,'The local copy, association or personal field changed. Refresh the preview.')
+            db.execute(f'UPDATE copies SET "{field}"=? WHERE id=?',(value,action['copy_id']))
+        return {'status':'personal_imported','copy_id':action['copy_id'],'field':field}
 
     def import_rating(self, account, action, remote):
         entry = remote.get(action['instance_id'])
