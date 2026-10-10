@@ -52,6 +52,10 @@ class DiscogsSync:
                                 'title': str(info.get('title', 'Untitled'))[:300],
                                 'artist': ', '.join(str(a.get('name', '')) for a in info.get('artists', []))[:300],
                                 'source_url': f'https://www.discogs.com/release/{rid}'}
+                # Omitted/malformed ratings are unknown, not an instruction to clear.
+                rating = item.get('rating')
+                if type(rating) is int and 0 <= rating <= 5:
+                    entries[iid]['rating'] = rating or None
             pages = data.get('pagination', {}).get('pages')
             if not isinstance(pages, int) or pages < 0 or pages > 1000:
                 raise HTTPException(502, 'The Discogs collection pagination could not be verified.')
@@ -166,6 +170,15 @@ class DiscogsSync:
                                     'inventory_number':inventory,'release_id':link['release_id'],'remote_release_id':current['release_id'],
                                     'instance_id':link['instance_id'],
                                     'message':f"{inventory}: saved release {link['release_id']} differs from Discogs release {current['release_id']} for collection instance {link['instance_id']}. Review the local association."})
+                else:
+                    entry = remote[link['instance_id']]
+                    record = by_copy[link['copy_id']]
+                    if 'rating' in entry and entry['rating'] != record['rating']:
+                        actions.append({'id':str(uuid4()),'kind':'rating','copy_id':link['copy_id'],
+                                        'inventory_number':record['inventory_number'],'title':record['title'],
+                                        'instance_id':link['instance_id'],'release_id':link['release_id'],
+                                        'local_rating':record['rating'],'remote_rating':entry['rating'],
+                                        'source_url':entry['source_url']})
             self.plans = {key:value for key,value in self.plans.items() if value['expires'] > monotonic()}
             if len(self.plans) >= 16:
                 self.plans.pop(next(iter(self.plans)))
@@ -194,6 +207,10 @@ class DiscogsSync:
                 if request.choice != 'detach' or request.confirmed is not True:
                     raise HTTPException(422, 'Confirm removal of the conflicting local link.')
                 result = self.detach_conflict(account, action, remote)
+            elif action['kind'] == 'rating':
+                if request.choice != 'rating_import' or request.confirmed is not True:
+                    raise HTTPException(422, 'Confirm importing the reviewed Discogs rating.')
+                result = self.import_rating(account, action, remote)
             elif action['kind'] == 'account_conflict':
                 if request.choice != 'detach' or request.confirmed is not True:
                     raise HTTPException(422, 'Confirm removal of the previous-account local link.')
@@ -218,6 +235,20 @@ class DiscogsSync:
                 db.execute('INSERT INTO discogs_sync_state(account,last_success_at) VALUES(?,?) ON CONFLICT(account) DO UPDATE SET last_success_at=excluded.last_success_at', (account, now()))
             del plan['actions'][request.action_id]
             return result
+
+    def import_rating(self, account, action, remote):
+        entry = remote.get(action['instance_id'])
+        if not entry or entry['release_id'] != action['release_id'] or 'rating' not in entry or entry['rating'] != action['remote_rating']:
+            raise HTTPException(409, 'The Discogs copy or rating changed. Refresh the preview.')
+        with self.database.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            link = db.execute('SELECT copy_id,release_id FROM discogs_links WHERE account=? AND instance_id=?',
+                              (account, action['instance_id'])).fetchone()
+            copy = db.execute('SELECT rating FROM copies WHERE id=?', (action['copy_id'],)).fetchone()
+            if not link or link['copy_id'] != action['copy_id'] or link['release_id'] != action['release_id'] or not copy or copy['rating'] != action['local_rating']:
+                raise HTTPException(409, 'The local copy, association or rating changed. Refresh the preview.')
+            db.execute('UPDATE copies SET rating=? WHERE id=?', (action['remote_rating'],action['copy_id']))
+        return {'status':'rating_imported','copy_id':action['copy_id'],'rating':action['remote_rating']}
 
     def detach_missing(self, account, action, remote):
         if action['instance_id'] in remote:
