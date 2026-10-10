@@ -139,7 +139,13 @@ class DiscogsSync:
             for link in links:
                 if link['account'] != account:
                     if link['copy_id']:
-                        notices.append({'kind':'account','message':'A local copy is linked to a different Discogs account and will not be exported here.'})
+                        resolution = {'id':str(uuid4()), **link, 'kind':'account_conflict'}
+                        resolutions.append(resolution)
+                        inventory = by_copy[link['copy_id']]['inventory_number']
+                        notices.append({'kind':'account_conflict','copy_id':link['copy_id'],'action_id':resolution['id'],
+                                        'inventory_number':inventory,'saved_account':link['account'],'connected_account':account,
+                                        'release_id':link['release_id'],'instance_id':link['instance_id'],
+                                        'message':f"{inventory}: collection instance {link['instance_id']} (release {link['release_id']}) belongs to saved account {link['account']}; connected account is {account}. Review this local association before syncing with the new account."})
                     continue
                 if link['copy_id'] is None:
                     if link['instance_id'] not in remote:
@@ -188,6 +194,12 @@ class DiscogsSync:
                 if request.choice != 'detach' or request.confirmed is not True:
                     raise HTTPException(422, 'Confirm removal of the conflicting local link.')
                 result = self.detach_conflict(account, action, remote)
+            elif action['kind'] == 'account_conflict':
+                if request.choice != 'detach' or request.confirmed is not True:
+                    raise HTTPException(422, 'Confirm removal of the previous-account local link.')
+                if action['account'] == account:
+                    raise HTTPException(409, 'The saved account is connected again. Refresh the preview.')
+                result = self.detach_association(action['account'], action)
             elif action['kind'] == 'remote':
                 entry = remote.get(action['instance_id'])
                 if not entry or entry['release_id'] != action['release_id']:
@@ -227,7 +239,7 @@ class DiscogsSync:
                 raise HTTPException(409, 'The local association changed. Refresh the preview.')
             receipt = db.execute('SELECT * FROM discogs_exports WHERE copy_id=?', (action['copy_id'],)).fetchone()
             if receipt and (receipt['status'] != 'resolved' or receipt['account'] != account or receipt['release_id'] != action['release_id']):
-                raise HTTPException(409, 'An export still needs review before this link can be removed.')
+                raise HTTPException(409, 'Reconnect the saved Discogs account and review its unresolved or inconsistent export before removing this link.' if action.get('kind') == 'account_conflict' else 'An export still needs review before this link can be removed.')
             # Retain the old instance as a tombstone; never recreate it automatically.
             db.execute('UPDATE discogs_links SET copy_id=NULL WHERE account=? AND instance_id=?',
                        (account, action['instance_id']))
