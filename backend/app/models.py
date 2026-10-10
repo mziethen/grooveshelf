@@ -243,6 +243,7 @@ class SyncFieldMapping(BaseModel):
     media_condition: int | None = Field(default=None,ge=1)
     sleeve_condition: int | None = Field(default=None,ge=1)
     notes: int | None = Field(default=None,ge=1)
+    folder_locations: bool = False
 
     @model_validator(mode="after")
     def unique_fields(self):

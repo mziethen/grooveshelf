@@ -11,7 +11,8 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
   let review = null;
   let planDeadline = 0;
   let fieldMapping=null,fieldDefinitions=null,fieldGeneration=0,fieldsBusy=false;
-  const personalLabels={media_condition:'Record condition',sleeve_condition:'Sleeve condition',notes:'Personal notes'};
+  const personalLabels={media_condition:'Record condition',sleeve_condition:'Sleeve condition',notes:'Personal notes',storage_location:'Storage location'};
+  const mappedFields=['media_condition','sleeve_condition','notes'];
   function personalValue(value) {return value == null ? 'Not graded' : value === '' ? '(empty)' : String(value);}
   $('#sync-fields-open').addEventListener('click',async()=>{
     if(running||fieldsBusy)return;
@@ -21,11 +22,12 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
     try {
       const data=await api('/discogs/sync/fields');if(current!==fieldGeneration)return;
       fieldDefinitions=data;$('#sync-field-account').textContent=`Connected as ${data.username} · account ${data.account_id}`;
-      for(const field of Object.keys(personalLabels)) {
+      for(const field of mappedFields) {
         const select=$('#sync-field-'+field);
         select.innerHTML='<option value="">Do not import</option>'+data.fields.map(item=>`<option value="${escape(String(item.id))}">${escape(item.name)} · field ${escape(String(item.id))}</option>`).join('');
         select.value=fieldMapping?.account_id===data.account_id ? String(fieldMapping[field]||'') : '';
       }
+      $('#sync-field-folders').checked=fieldMapping?.account_id===data.account_id && !!fieldMapping.folder_locations;
       $('#sync-field-preview').disabled=false;
     } catch(error) {if(current===fieldGeneration)$('#sync-field-error').textContent=error.message;}
     finally {if(current===fieldGeneration)fieldsBusy=false;}
@@ -35,7 +37,8 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
   $('#sync-field-form').addEventListener('submit',event=>{
     event.preventDefault();if(fieldsBusy||!fieldDefinitions)return;
     const next={account_id:fieldDefinitions.account_id};
-    for(const field of Object.keys(personalLabels))next[field]=$('#sync-field-'+field).value?Number($('#sync-field-'+field).value):null;
+    for(const field of mappedFields)next[field]=$('#sync-field-'+field).value?Number($('#sync-field-'+field).value):null;
+    if($('#sync-field-folders').checked)next.folder_locations=true;
     const ids=Object.values(next).filter(value=>typeof value==='number');
     if(new Set(ids).size!==ids.length){$('#sync-field-error').textContent='Choose a different Discogs field for each local field.';return;}
     fieldMapping=next;$('#sync-field-dialog').close();preview();
@@ -58,7 +61,7 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
       plan = data; planDeadline = Date.now() + data.expires_in_seconds * 1000;
       $('#sync-status').textContent = `Connected as ${data.username} · ${data.remote_count} Discogs copies. Choose the changes you want to apply. Only Vinyl releases are offered for import.`;
       $('#sync-last').textContent = data.last_success_at ? `Last successful sync change: ${new Date(data.last_success_at).toLocaleString()}` : 'No sync changes have been applied yet.';
-      $('#sync-results').innerHTML = data.actions.map(action => `<article class="sync-entry" data-action="${escape(action.id)}"><h3>${escape(action.inventory_number || action.artist || 'Discogs copy')} · ${escape(action.title)}</h3><p class="muted">${action.kind === 'remote' ? `Discogs instance ${action.instance_id}` : 'GrooveShelf copy'} · Release ${action.release_id}</p><a class="attribution" href="${escape(action.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a>${action.kind === 'rating' ? `<p>Rating · GrooveShelf: ${escape(ratingLabel(action.local_rating))} · Discogs: ${escape(ratingLabel(action.remote_rating))}</p>` : action.kind === 'personal' ? `<div class="sync-field-values"><p>${escape(personalLabels[action.field])} · Discogs field: ${escape(action.definition.name)}</p><p>GrooveShelf: ${escape(personalValue(action.local_value))}</p><p>Discogs: ${escape(personalValue(action.remote_value))}</p></div>` : ''}<label>Action<select><option value="skip">Keep unchanged</option>${action.kind === 'remote' ? `<option value="import">Import ${action.matches.length ? 'as an additional copy' : 'into GrooveShelf'}</option>${action.matches.map(match => `<option value="link:${escape(match.id)}">Match ${escape(match.inventory_number)} · ${escape(match.title)}</option>`).join('')}` : action.kind === 'rating' ? `<option value="rating_import">Use Discogs rating · ${escape(ratingLabel(action.remote_rating))}</option>` : action.kind === 'personal' ? `<option value="personal_import">Use Discogs ${escape(personalLabels[action.field].toLowerCase())}</option>` : '<option value="export">Add this copy to Discogs</option>'}</select></label><p class="sync-result" role="status"></p></article>`).join('') || '<p class="muted">No additions are ready to synchronize.</p>';
+      $('#sync-results').innerHTML = data.actions.map(action => `<article class="sync-entry" data-action="${escape(action.id)}"><h3>${escape(action.inventory_number || action.artist || 'Discogs copy')} · ${escape(action.title)}</h3><p class="muted">${action.kind === 'remote' ? `Discogs instance ${action.instance_id}` : 'GrooveShelf copy'} · Release ${action.release_id}</p><a class="attribution" href="${escape(action.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a>${action.kind === 'rating' ? `<p>Rating · GrooveShelf: ${escape(ratingLabel(action.local_rating))} · Discogs: ${escape(ratingLabel(action.remote_rating))}</p>` : action.kind === 'personal' ? `<div class="sync-field-values"><p>${escape(personalLabels[action.field])} · Discogs ${action.field==='storage_location'?'folder':'field'}: ${escape(action.definition.name)}</p><p>GrooveShelf: ${escape(personalValue(action.local_value))}</p><p>Discogs: ${escape(personalValue(action.remote_value))}</p></div>` : ''}<label>Action<select><option value="skip">Keep unchanged</option>${action.kind === 'remote' ? `<option value="import">Import ${action.matches.length ? 'as an additional copy' : 'into GrooveShelf'}</option>${action.matches.map(match => `<option value="link:${escape(match.id)}">Match ${escape(match.inventory_number)} · ${escape(match.title)}</option>`).join('')}` : action.kind === 'rating' ? `<option value="rating_import">Use Discogs rating · ${escape(ratingLabel(action.remote_rating))}</option>` : action.kind === 'personal' ? `<option value="personal_import">Use Discogs ${escape(personalLabels[action.field].toLowerCase())}</option>` : '<option value="export">Add this copy to Discogs</option>'}</select></label><p class="sync-result" role="status"></p></article>`).join('') || '<p class="muted">No additions are ready to synchronize.</p>';
       $('#sync-notices').innerHTML = data.notices.map(notice => `<li>${escape(notice.message)}${notice.copy_id && notice.kind === 'unlinked' ? ` <button type="button" data-open-copy="${escape(notice.copy_id)}">Choose release</button>` : notice.copy_id && notice.kind === 'uncertain' ? ` <button type="button" data-review-export="${escape(notice.copy_id)}">Review failed export</button>` : ['remote_missing','release_conflict','account_conflict'].includes(notice.kind) && notice.action_id ? ` <button type="button" data-remove-link="${escape(notice.action_id)}">${notice.kind === 'account_conflict' ? 'Review account conflict' : notice.kind === 'release_conflict' ? 'Review release conflict' : 'Review missing link'}</button>` : ''}</li>`).join('');
       $('#sync-notices').querySelectorAll('[data-open-copy]').forEach(button => button.addEventListener('click', () => {
         $('#sync-dialog').close(); location.hash = `record/${button.dataset.openCopy}`;
