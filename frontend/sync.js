@@ -28,7 +28,7 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
       plan = data; planDeadline = Date.now() + data.expires_in_seconds * 1000;
       $('#sync-status').textContent = `Connected as ${data.username} · ${data.remote_count} Discogs copies. Choose the changes you want to apply. Only Vinyl releases are offered for import.`;
       $('#sync-last').textContent = data.last_success_at ? `Last successful sync change: ${new Date(data.last_success_at).toLocaleString()}` : 'No sync changes have been applied yet.';
-      $('#sync-results').innerHTML = data.actions.map(action => `<article class="sync-entry" data-action="${escape(action.id)}"><h3>${escape(action.inventory_number || action.artist || 'Discogs copy')} · ${escape(action.title)}</h3><p class="muted">${action.kind === 'remote' ? `Discogs instance ${action.instance_id}` : 'GrooveShelf copy'} · Release ${action.release_id}</p><a class="attribution" href="${escape(action.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a><label>Action<select><option value="skip">Keep unchanged</option>${action.kind === 'remote' ? `<option value="import">Import ${action.matches.length ? 'as an additional copy' : 'into GrooveShelf'}</option>${action.matches.map(match => `<option value="link:${escape(match.id)}">Match ${escape(match.inventory_number)} · ${escape(match.title)}</option>`).join('')}` : '<option value="export">Add this copy to Discogs</option>'}</select></label><p class="sync-result" role="status"></p></article>`).join('') || '<p class="muted">No additions are ready to synchronize.</p>';
+      $('#sync-results').innerHTML = data.actions.map(action => `<article class="sync-entry" data-action="${escape(action.id)}"><h3>${escape(action.inventory_number || action.artist || 'Discogs copy')} · ${escape(action.title)}</h3><p class="muted">${action.kind === 'remote' ? `Discogs instance ${action.instance_id}` : 'GrooveShelf copy'} · Release ${action.release_id}</p><a class="attribution" href="${escape(action.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a>${action.kind === 'rating' ? `<p>Rating · GrooveShelf: ${escape(ratingLabel(action.local_rating))} · Discogs: ${escape(ratingLabel(action.remote_rating))}</p>` : ''}<label>Action<select><option value="skip">Keep unchanged</option>${action.kind === 'remote' ? `<option value="import">Import ${action.matches.length ? 'as an additional copy' : 'into GrooveShelf'}</option>${action.matches.map(match => `<option value="link:${escape(match.id)}">Match ${escape(match.inventory_number)} · ${escape(match.title)}</option>`).join('')}` : action.kind === 'rating' ? `<option value="rating_import">Use Discogs rating · ${escape(ratingLabel(action.remote_rating))}</option>` : '<option value="export">Add this copy to Discogs</option>'}</select></label><p class="sync-result" role="status"></p></article>`).join('') || '<p class="muted">No additions are ready to synchronize.</p>';
       $('#sync-notices').innerHTML = data.notices.map(notice => `<li>${escape(notice.message)}${notice.copy_id && notice.kind === 'unlinked' ? ` <button type="button" data-open-copy="${escape(notice.copy_id)}">Choose release</button>` : notice.copy_id && notice.kind === 'uncertain' ? ` <button type="button" data-review-export="${escape(notice.copy_id)}">Review failed export</button>` : ['remote_missing','release_conflict','account_conflict'].includes(notice.kind) && notice.action_id ? ` <button type="button" data-remove-link="${escape(notice.action_id)}">${notice.kind === 'account_conflict' ? 'Review account conflict' : notice.kind === 'release_conflict' ? 'Review release conflict' : 'Review missing link'}</button>` : ''}</li>`).join('');
       $('#sync-notices').querySelectorAll('[data-open-copy]').forEach(button => button.addEventListener('click', () => {
         $('#sync-dialog').close(); location.hash = `record/${button.dataset.openCopy}`;
@@ -74,6 +74,7 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
       .filter(row => row.querySelector('select').value !== 'skip' && !row.querySelector('select').disabled)
       .map(row => ({row, value:row.querySelector('select').value, action:plan.actions.find(action => action.id === row.dataset.action)}));
   }
+  function ratingLabel(value) {return value == null ? 'Unrated' : `${value}/5`;}
   function updateSelection() {
     const count = plan ? selectedChanges().length : 0;
     $('#sync-apply').disabled = running || !count;
@@ -89,20 +90,20 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
     const copies = new Set();
     for (const {value,action} of changes) {
       const [choice,copyId] = value.split(':');
-      const id = choice === 'link' ? copyId : choice === 'export' ? action.copy_id : null;
+      const id = choice === 'link' ? copyId : ['export','rating_import'].includes(choice) ? action.copy_id : null;
       if (id && copies.has(id)) {$('#sync-error').textContent = 'Choose only one action for each GrooveShelf copy. A copy cannot be matched twice or matched and exported together.';return;}
       if (id) copies.add(id);
     }
     if (!changes.length) return;
     review = {plan, generation, changes};
-    const counts = {import:0,link:0,export:0};
+    const counts = {import:0,link:0,export:0,rating_import:0};
     for (const {value} of changes) counts[value.split(':')[0]]++;
-    $('#sync-review-summary').textContent = `${counts.import} ${counts.import === 1 ? 'import' : 'imports'} into GrooveShelf · ${counts.link} ${counts.link === 1 ? 'copy match' : 'copy matches'} · ${counts.export} ${counts.export === 1 ? 'addition' : 'additions'} to Discogs (${plan.username}).`;
+    $('#sync-review-summary').textContent = `${counts.import} ${counts.import === 1 ? 'import' : 'imports'} into GrooveShelf · ${counts.link} ${counts.link === 1 ? 'copy match' : 'copy matches'} · ${counts.export} ${counts.export === 1 ? 'addition' : 'additions'} to Discogs (${plan.username}).${counts.rating_import ? ` ${counts.rating_import} rating ${counts.rating_import === 1 ? 'update' : 'updates'} in GrooveShelf.` : ''}`;
     $('#sync-review-items').innerHTML = changes.map(({value,action}) => {
       const [choice,copyId] = value.split(':');
       const match = action.matches?.find(item => item.id === copyId);
-      const destination = choice === 'import' ? 'Import into GrooveShelf · a new LP number will be assigned' : choice === 'link' ? `Match Discogs instance ${action.instance_id} to ${match.inventory_number} · ${match.title}` : `Add ${action.inventory_number} to Discogs (${plan.username}) · Uncategorised folder`;
-      return `<li><h3>${escape(action.title)}</h3><p>${escape(destination)}</p><p class="muted">Release ${escape(action.release_id)}${action.kind === 'remote' ? ` · Discogs instance ${escape(action.instance_id)}` : ''}</p><a class="attribution" href="${escape(action.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a></li>`;
+      const destination = choice === 'rating_import' ? `Update ${action.inventory_number} in GrooveShelf · Rating: ${ratingLabel(action.local_rating)} → ${ratingLabel(action.remote_rating)}` : choice === 'import' ? 'Import into GrooveShelf · a new LP number will be assigned' : choice === 'link' ? `Match Discogs instance ${action.instance_id} to ${match.inventory_number} · ${match.title}` : `Add ${action.inventory_number} to Discogs (${plan.username}) · Uncategorised folder`;
+      return `<li><h3>${escape(action.title)}</h3><p>${escape(destination)}</p><p class="muted">Release ${escape(action.release_id)}${['remote','rating'].includes(action.kind) ? ` · Discogs instance ${escape(action.instance_id)}` : ''}</p><a class="attribution" href="${escape(action.source_url)}" target="_blank" rel="noopener">Data provided by Discogs</a></li>`;
     }).join('');
     $('#sync-review-error').textContent = '';
     $('#sync-review-confirm').disabled = false;
@@ -129,14 +130,14 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
         const [choice, copyId] = value.split(':');
         $('#sync-status').textContent = `Applying change ${index+1} of ${changes.length}…`;
         try {
-          const result = await api('/discogs/sync/apply', {method:'POST',body:JSON.stringify({plan_id:planId,action_id:row.dataset.action,choice,copy_id:copyId || null})});
-          row.querySelector('.sync-result').textContent = `${result.status === 'imported' ? `Imported as ${result.inventory_number}` : result.status === 'linked' ? 'Copies matched' : 'Added to Discogs'}.`;
+          const result = await api('/discogs/sync/apply', {method:'POST',body:JSON.stringify({plan_id:planId,action_id:row.dataset.action,choice,copy_id:copyId || null,...(choice === 'rating_import' ? {confirmed:true} : {})})});
+          row.querySelector('.sync-result').textContent = `${result.status === 'imported' ? `Imported as ${result.inventory_number}` : result.status === 'rating_imported' ? 'Rating updated in GrooveShelf' : result.status === 'linked' ? 'Copies matched' : 'Added to Discogs'}.`;
           row.dataset.applied = 'true';completed++;
         } catch (error) {
           failed = true;
           row.querySelector('.sync-result').textContent = error.message;
           for (const pending of changes.slice(index+1)) pending.row.querySelector('.sync-result').textContent = 'Not attempted. Refresh the preview before trying again.';
-          $('#sync-error').textContent = 'Sync stopped. Completed changes are retained. An unconfirmed export may have reached Discogs; refresh the preview before retrying.';
+          $('#sync-error').textContent = changes.some(change=>change.value === 'export') ? 'Sync stopped. Completed changes are retained. An unconfirmed export may have reached Discogs; refresh the preview before retrying.' : 'Sync stopped. Completed changes are retained. Refresh the preview to review current values before retrying.';
           break;
         }
       }

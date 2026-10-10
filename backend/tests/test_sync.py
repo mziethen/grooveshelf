@@ -400,3 +400,69 @@ def test_previous_account_resolution_revalidates_and_blocks_uncertain_exports(se
         monkeypatch.setattr(provider,'request',lambda endpoint,*args,**kwargs: {'pagination':{'pages':1}} if endpoint.endswith('/collection/folders/0/releases') else original(endpoint,*args,**kwargs))
     assert client.post('/api/discogs/sync/apply',json=payload).status_code==(502 if change=='incomplete' else 409)
     with sqlite3.connect(path) as db:assert db.execute('SELECT copy_id FROM discogs_links').fetchone()[0]==copy_id
+
+
+def test_reviewed_ratings_are_per_copy_and_preserve_other_data(setup):
+    client,fixture,*_=setup
+    fixture.remote=[{**fixture.item(11),'rating':5},{**fixture.item(12),'rating':2}]
+    plan=client.get('/api/discogs/sync/preview').json()
+    ids=[apply(client,plan,action,'import').json()['copy_id'] for action in plan['actions']]
+    client.put('/api/tags/01020304',json={'copy_id':ids[0]})
+    client.post('/api/records/'+ids[0]+'/plays',json={'played_at':'2026-01-01T12:00:00Z'})
+    photo=client.post('/api/records/'+ids[0]+'/photos?kind=back',content=PNG,headers={'Content-Type':'image/png'}).json()
+    before=[client.get('/api/records/'+id).json() for id in ids]
+    writes=len([r for r in fixture.calls if r.method!='GET'])
+    plan=client.get('/api/discogs/sync/preview').json()
+    ratings=[a for a in plan['actions'] if a['kind']=='rating']
+    assert {a['remote_rating'] for a in ratings}=={2,5}
+    assert [client.get('/api/records/'+id).json() for id in ids]==before
+    for action in ratings:
+        payload={'plan_id':plan['plan_id'],'action_id':action['id'],'choice':'rating_import'}
+        assert client.post('/api/discogs/sync/apply',json=payload).status_code==422
+        payload['confirmed']=True
+        assert client.post('/api/discogs/sync/apply',json=payload).json()['status']=='rating_imported'
+        assert client.post('/api/discogs/sync/apply',json=payload).status_code==409
+    after=[client.get('/api/records/'+id).json() for id in ids]
+    assert [a['rating'] for a in after]==[5,2]
+    assert [{k:v for k,v in a.items() if k!='rating'} for a in after]==[{k:v for k,v in a.items() if k!='rating'} for a in before]
+    assert client.get('/api/photos/'+photo['id']).status_code==200
+    assert len([r for r in fixture.calls if r.method!='GET'])==writes
+    assert not any(a['kind']=='rating' for a in client.get('/api/discogs/sync/preview').json()['actions'])
+
+
+@pytest.mark.parametrize('rating',[0,1,5,None,'4',True,-1,6])
+def test_rating_validation_and_explicit_unrated(setup,rating):
+    client,fixture,*_=setup
+    fixture.remote=[fixture.item(11)]
+    plan=client.get('/api/discogs/sync/preview').json();id=apply(client,plan,plan['actions'][0],'import').json()['copy_id']
+    client.put('/api/records/'+id+'/personal',json={'rating':3})
+    fixture.remote[0]['rating']=rating
+    plan=client.get('/api/discogs/sync/preview').json();actions=[a for a in plan['actions'] if a['kind']=='rating']
+    valid=type(rating) is int and 0<=rating<=5
+    assert bool(actions)==valid
+    if valid:
+        action=actions[0];assert action['remote_rating']==(rating or None)
+        response=client.post('/api/discogs/sync/apply',json={'plan_id':plan['plan_id'],'action_id':action['id'],'choice':'rating_import','confirmed':True})
+        assert response.status_code==200
+    assert client.get('/api/records/'+id).json()['rating']==((rating or None) if valid else 3)
+
+
+@pytest.mark.parametrize('change',['account','remote_rating','missing_rating','remote_release','remote_missing','local_rating','link'])
+def test_rating_import_revalidates_both_values_and_association(setup,change):
+    import sqlite3
+    client,fixture,path,*_=setup
+    fixture.remote=[{**fixture.item(11),'rating':4}]
+    plan=client.get('/api/discogs/sync/preview').json();id=apply(client,plan,plan['actions'][0],'import').json()['copy_id']
+    plan=client.get('/api/discogs/sync/preview').json();action=next(a for a in plan['actions'] if a['kind']=='rating')
+    if change=='account':fixture.account=456
+    if change=='remote_rating':fixture.remote[0]['rating']=2
+    if change=='missing_rating':fixture.remote[0].pop('rating')
+    if change=='remote_release':fixture.remote[0]['basic_information']['id']=200
+    if change=='remote_missing':fixture.remote=[]
+    if change=='local_rating':client.put('/api/records/'+id+'/personal',json={'rating':1})
+    if change=='link':
+        with sqlite3.connect(path) as db:db.execute('UPDATE discogs_links SET copy_id=NULL')
+    before=client.get('/api/records/'+id).json()
+    response=client.post('/api/discogs/sync/apply',json={'plan_id':plan['plan_id'],'action_id':action['id'],'choice':'rating_import','confirmed':True})
+    assert response.status_code==409
+    assert client.get('/api/records/'+id).json()==before
