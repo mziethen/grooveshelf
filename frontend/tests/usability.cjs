@@ -24,7 +24,7 @@ const base=process.env.GROOVESHELF_TEST_URL||'http://127.0.0.1:8080';
   assert.equal(await page.locator('#empty-add').count(),0);assert.equal(await page.locator('#count').textContent(),'Unavailable');
   offline=false;await page.locator('#retry-load').click();await page.locator('[data-record]').waitFor();assert(!await page.locator('#retry-load').isVisible());
   await page.locator('#search').fill('no match');await page.clock.runFor(250);await page.getByRole('heading',{name:'No matching records.'}).waitFor();
-  await page.locator('#missing-nfc').check();await page.locator('#empty-clear').click();await page.locator('[data-record]').waitFor();
+  await page.locator('#incomplete-filters summary').click();await page.locator('#missing-nfc').check();await page.locator('#empty-clear').click();await page.locator('[data-record]').waitFor();
   assert.equal(await page.locator('#search').inputValue(),'');assert(!await page.locator('#missing-nfc').isChecked());
   assert(await page.locator('#search').evaluate(e=>e===document.activeElement));
   await page.locator('#search').fill('pending query');const count=searches.length;await page.locator('#clear-filters').click();await page.clock.runFor(300);await page.locator('[data-record]').waitFor();assert.deepEqual(searches.slice(count),['']);
