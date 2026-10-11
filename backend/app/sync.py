@@ -254,6 +254,7 @@ class DiscogsSync:
                                         'inventory_number':record['inventory_number'],'title':record['title'],
                                         'instance_id':link['instance_id'],'release_id':link['release_id'],
                                         'local_rating':record['rating'],'remote_rating':entry['rating'],
+                                        'folder_id':entry['folder_id'],'can_export_rating':entry['folder_id'] is not None and entry['folder_id'] > 0,
                                         'source_url':entry['source_url']})
                     if mapping and mapping.folder_locations:
                         folder=folders.get(entry['folder_id'])
@@ -312,9 +313,14 @@ class DiscogsSync:
                     raise HTTPException(422,'Confirm importing the reviewed personal field.')
                 result = self.import_personal(account,username,action,remote)
             elif action['kind'] == 'rating':
-                if request.choice != 'rating_import' or request.confirmed is not True:
-                    raise HTTPException(422, 'Confirm importing the reviewed Discogs rating.')
-                result = self.import_rating(account, action, remote)
+                if request.choice not in ('rating_import','rating_export') or request.confirmed is not True:
+                    raise HTTPException(422, 'Confirm the reviewed rating update.')
+                if request.choice == 'rating_export':
+                    # Consume once before sending: an ambiguous response must never replay this action.
+                    plan['actions'].pop(request.action_id)
+                    result = self.export_rating(account, username, action, remote)
+                else:
+                    result = self.import_rating(account, action, remote)
             elif action['kind'] == 'account_conflict':
                 if request.choice != 'detach' or request.confirmed is not True:
                     raise HTTPException(422, 'Confirm removal of the previous-account local link.')
@@ -337,7 +343,7 @@ class DiscogsSync:
                 result = self.export_copy(account, username, action, remote)
             with self.database.connect() as db:
                 db.execute('INSERT INTO discogs_sync_state(account,last_success_at) VALUES(?,?) ON CONFLICT(account) DO UPDATE SET last_success_at=excluded.last_success_at', (account, now()))
-            del plan['actions'][request.action_id]
+            plan['actions'].pop(request.action_id, None)
             return result
 
     def import_personal(self,account,username,action,remote):
@@ -366,6 +372,25 @@ class DiscogsSync:
                 raise HTTPException(409,'The local copy, association or personal field changed. Refresh the preview.')
             db.execute(f'UPDATE copies SET "{field}"=? WHERE id=?',(value,action['copy_id']))
         return {'status':'personal_imported','copy_id':action['copy_id'],'field':field}
+
+    def export_rating(self, account, username, action, remote):
+        entry=remote.get(action['instance_id'])
+        if not action.get('can_export_rating') or not entry or entry['release_id'] != action['release_id'] or entry['folder_id'] != action['folder_id'] or 'rating' not in entry or entry['rating'] != action['remote_rating']:
+            raise HTTPException(409,'The Discogs copy, folder or rating changed. Refresh the preview.')
+        with self.database.connect() as db:
+            link=db.execute('SELECT copy_id,release_id FROM discogs_links WHERE account=? AND instance_id=?',(account,action['instance_id'])).fetchone()
+            copy=db.execute('SELECT rating FROM copies WHERE id=?',(action['copy_id'],)).fetchone()
+            if not link or link['copy_id'] != action['copy_id'] or link['release_id'] != action['release_id'] or not copy or copy['rating'] != action['local_rating']:
+                raise HTTPException(409,'The local copy, association or rating changed. Refresh the preview.')
+        endpoint=f'/users/{quote(username,safe="")}/collection/folders/{entry["folder_id"]}/releases/{entry["release_id"]}/instances/{entry["instance_id"]}'
+        try:
+            self.provider.request(endpoint, method='POST', body={'rating':action['local_rating'] or 0})
+            confirmed=self.collection(username).get(action['instance_id'])
+        except HTTPException as error:
+            raise HTTPException(error.status_code,f'Rating update unconfirmed. {error.detail} Refresh the preview to check Discogs before choosing another update.') from None
+        if not confirmed or confirmed['release_id'] != action['release_id'] or confirmed['folder_id'] != action['folder_id'] or 'rating' not in confirmed or confirmed['rating'] != action['local_rating']:
+            raise HTTPException(502,'Rating update unconfirmed. Refresh the preview to check Discogs before choosing another update.')
+        return {'status':'rating_exported','copy_id':action['copy_id'],'rating':action['local_rating']}
 
     def import_rating(self, account, action, remote):
         entry = remote.get(action['instance_id'])
