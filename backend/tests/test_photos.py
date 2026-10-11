@@ -77,7 +77,7 @@ def test_photos_persist_and_archive_restore_includes_images_and_choice(setup,tmp
     client.put('/api/records/'+record['id']+'/personal-cover',json={'photo_id':photo['id']})
     content=client.get(photo['url']).content
     archive=tmp_path/'photos.zip';archive.write_bytes(client.get('/api/export/collection.zip').content)
-    assert verify_archive(archive)['schema_version']==10
+    assert verify_archive(archive)['schema_version']==11
     restored=tmp_path/'restored';restore_archive(archive,restored)
     for database in [path,str(restored/'grooveshelf.sqlite3')]:
         with TestClient(create_app(database,start_worker=False)) as other:
@@ -91,7 +91,7 @@ def test_legacy_schema_nine_archives_restore_and_migrate(setup,tmp_path):
     client, _, _, _, path=setup;record=client.post('/api/records',json=imported_payload()).json()
     legacy=tmp_path/'legacy.sqlite3'
     with sqlite3.connect(path) as source,sqlite3.connect(legacy) as target:source.backup(target)
-    with sqlite3.connect(legacy) as db:db.execute('DROP TABLE photos');db.execute('PRAGMA user_version=9')
+    with sqlite3.connect(legacy) as db:db.execute('DROP TABLE discogs_field_mappings');db.execute('DROP TABLE photos');db.execute('PRAGMA user_version=9')
     archive=tmp_path/'legacy.zip';assert export_archive(legacy,archive)['schema_version']==9
     assert verify_archive(archive)['schema_version']==9
     restored=tmp_path/'restored';restore_archive(archive,restored)
@@ -99,7 +99,7 @@ def test_legacy_schema_nine_archives_restore_and_migrate(setup,tmp_path):
         shown=other.get('/api/records/'+record['id']).json()
         assert shown['title']==record['title'] and shown['photo_count']==0
         assert upload(other,shown).status_code==201
-    with sqlite3.connect(restored/'grooveshelf.sqlite3') as db:assert db.execute('PRAGMA user_version').fetchone()[0]==10
+    with sqlite3.connect(restored/'grooveshelf.sqlite3') as db:assert db.execute('PRAGMA user_version').fetchone()[0]==11
     # Existing collections migrate in place as well, retaining their IDs.
     with TestClient(create_app(str(legacy),start_worker=False)) as migrated:
         assert migrated.get('/api/records/'+record['id']).json()['id']==record['id']

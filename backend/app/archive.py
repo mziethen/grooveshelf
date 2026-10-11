@@ -15,7 +15,7 @@ from .repository import CollectionRepository
 from .models import Record
 
 FORMAT_VERSION = 1
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 MAX_DATABASE = 256 * 1024 * 1024
 MAX_COVER = 5 * 1024 * 1024
 MAX_TOTAL = 512 * 1024 * 1024
@@ -40,7 +40,7 @@ def connect(path):
 def validate_database(path):
     with connect(path) as source, tempfile.TemporaryDirectory() as work:
         version = source.execute('PRAGMA user_version').fetchone()[0]
-        if version not in (9, SCHEMA_VERSION):
+        if version not in (9, 10, SCHEMA_VERSION):
             raise ValueError('Archive database schema is incompatible with this application.')
         if source.execute('PRAGMA integrity_check').fetchone()[0] != 'ok' or source.execute('PRAGMA foreign_key_check').fetchone():
             raise ValueError('Archive database integrity or relationships are invalid.')
@@ -49,6 +49,8 @@ def validate_database(path):
             expected = {row[0] for row in reference.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
             if version == 9:
                 expected.discard('photos')
+            if version < 11:
+                expected.discard('discogs_field_mappings')
             actual = {row[0] for row in source.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
             if actual != expected or source.execute("SELECT 1 FROM sqlite_master WHERE type IN ('view','trigger')").fetchone():
                 raise ValueError('Archive database contains unsupported tables, views or triggers.')
@@ -59,7 +61,11 @@ def validate_database(path):
                     raise ValueError('Archive database relationships are incompatible.')
                 if existing != columns or any(row[6] for row in source.execute(f'PRAGMA table_xinfo("{table}")')):
                     raise ValueError('Archive database columns are incompatible.')
-        if version == 10:
+        if version >= 11:
+            from .sync_mapping import validate_saved_mapping
+            for row in source.execute('SELECT account,content FROM discogs_field_mappings'):
+                validate_saved_mapping(row[0], row[1])
+        if version >= 10:
             from .photos import validate_photos
             validate_photos(source)
         for row in source.execute('SELECT played_at FROM play_events'):
@@ -113,7 +119,7 @@ def verified_files(archive):
         if 'manifest.json' not in names or source.getinfo('manifest.json').file_size>1024*1024:
             raise ValueError('Archive manifest is missing or too large.')
         manifest = json.loads(source.read('manifest.json'))
-        if manifest.get('format')!='grooveshelf-archive' or manifest.get('version')!=FORMAT_VERSION or manifest.get('schema_version') not in (9, SCHEMA_VERSION):
+        if manifest.get('format')!='grooveshelf-archive' or manifest.get('version')!=FORMAT_VERSION or manifest.get('schema_version') not in (9, 10, SCHEMA_VERSION):
             raise ValueError('Archive version is incompatible.')
         listed = manifest.get('files')
         if not isinstance(listed,dict) or 'collection.sqlite3' not in listed or set(names)!=set(listed)|{'manifest.json'}:
