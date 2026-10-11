@@ -108,6 +108,9 @@ function updateCollection(target, markup) {
 }
 function render() {
   scheduleExpiry();
+  const incompleteCount = ['cover','tracks','nfc'].filter(name=>$('#missing-'+name).checked).length;
+  $('#incomplete-filter-count').hidden = incompleteCount === 0;
+  $('#incomplete-filter-count').textContent = incompleteCount ? `${incompleteCount} active` : '';
   const filtered = browsing.active() || ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked);
   const records = browsing.records(state.records).filter(record=>(!$('#missing-cover').checked||!record.cover_url)&&(!$('#missing-tracks').checked||!record.tracks.length)&&(!$('#missing-nfc').checked||!record.nfc_uid));
   $('#count').textContent = filtered ? `${records.length} of ${state.records.length} records match` : `${records.length} ${records.length === 1 ? 'record' : 'records'}`;
