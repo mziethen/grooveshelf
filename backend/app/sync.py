@@ -8,7 +8,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 from .models import RecordInput
 from .sync_mapping import validate_saved_mapping
-from .sync_fields import FIELDS, field_definitions, note_values, value_for
+from .sync_fields import FIELDS, field_definitions, note_values, value_for, export_value
 
 
 def now():
@@ -55,7 +55,14 @@ class DiscogsSync:
                                 'artist': ', '.join(str(a.get('name', '')) for a in info.get('artists', []))[:300],
                                 'source_url': f'https://www.discogs.com/release/{rid}'}
                 entries[iid]['folder_id'] = item.get('folder_id') if type(item.get('folder_id')) is int else None
-                entries[iid]['notes'] = note_values(item.get('notes'))
+                notes=item.get('notes')
+                entries[iid]['notes'] = note_values(notes)
+                if notes is None:
+                    entries[iid]['note_field_ids']=[]
+                elif isinstance(notes,list) and all(isinstance(n,dict) and type(n.get('field_id')) is int and n['field_id'] > 0 and isinstance(n.get('value'),str) for n in notes):
+                    entries[iid]['note_field_ids']=[n['field_id'] for n in notes]
+                else:
+                    entries[iid]['note_field_ids']=None
                 # Omitted/malformed ratings are unknown, not an instruction to clear.
                 rating = item.get('rating')
                 if type(rating) is int and 0 <= rating <= 5:
@@ -279,7 +286,10 @@ class DiscogsSync:
                                             'inventory_number':record['inventory_number'],'title':record['title'],
                                             'instance_id':link['instance_id'],'release_id':link['release_id'],
                                             'field':field,'definition':definition,'local_value':record[field],
-                                            'remote_value':value,'source_url':entry['source_url']})
+                                            'remote_value':value,'remote_raw':entry['notes'][definition['id']],
+                                            'folder_id':entry['folder_id'],
+                                            'export_value':export_value(field,record[field],definition) if entry['folder_id'] is not None and entry['folder_id'] > 0 else None,
+                                            'source_url':entry['source_url']})
             self.plans = {key:value for key,value in self.plans.items() if value['expires'] > monotonic()}
             if len(self.plans) >= 16:
                 self.plans.pop(next(iter(self.plans)))
@@ -309,9 +319,13 @@ class DiscogsSync:
                     raise HTTPException(422, 'Confirm removal of the conflicting local link.')
                 result = self.detach_conflict(account, action, remote)
             elif action['kind'] == 'personal':
-                if request.choice != 'personal_import' or request.confirmed is not True:
-                    raise HTTPException(422,'Confirm importing the reviewed personal field.')
-                result = self.import_personal(account,username,action,remote)
+                if request.choice not in ('personal_import','personal_export') or request.confirmed is not True:
+                    raise HTTPException(422,'Confirm the reviewed personal field update.')
+                if request.choice == 'personal_export':
+                    plan['actions'].pop(request.action_id)
+                    result=self.export_personal(account,username,action,remote)
+                else:
+                    result = self.import_personal(account,username,action,remote)
             elif action['kind'] == 'rating':
                 if request.choice not in ('rating_import','rating_export') or request.confirmed is not True:
                     raise HTTPException(422, 'Confirm the reviewed rating update.')
@@ -372,6 +386,32 @@ class DiscogsSync:
                 raise HTTPException(409,'The local copy, association or personal field changed. Refresh the preview.')
             db.execute(f'UPDATE copies SET "{field}"=? WHERE id=?',(value,action['copy_id']))
         return {'status':'personal_imported','copy_id':action['copy_id'],'field':field}
+
+    def export_personal(self,account,username,action,remote):
+        field=action['field']
+        if field not in FIELDS or action.get('export_value') is None:
+            raise HTTPException(409,'This field cannot be exported. Review the mapping and preview.')
+        definition=action['definition']
+        definitions=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields'))
+        entry=remote.get(action['instance_id'])
+        if definitions.get(definition['id']) != definition or not entry or entry['release_id'] != action['release_id'] or entry['folder_id'] != action['folder_id'] or entry['notes'].get(definition['id']) != action['remote_raw']:
+            raise HTTPException(409,'The Discogs field, copy, folder or value changed. Refresh the preview.')
+        with self.database.connect() as db:
+            link=db.execute('SELECT copy_id,release_id FROM discogs_links WHERE account=? AND instance_id=?',(account,action['instance_id'])).fetchone()
+            copy=db.execute(f'SELECT "{field}" FROM copies WHERE id=?',(action['copy_id'],)).fetchone()
+            if not link or link['copy_id'] != action['copy_id'] or link['release_id'] != action['release_id'] or not copy or copy[field] != action['local_value'] or export_value(field,copy[field],definition) != action['export_value']:
+                raise HTTPException(409,'The local copy, association or field changed. Refresh the preview.')
+        endpoint=f'/users/{quote(username,safe="")}/collection/folders/{entry["folder_id"]}/releases/{entry["release_id"]}/instances/{entry["instance_id"]}/fields/{definition["id"]}'
+        try:
+            self.provider.request(endpoint,method='POST',body={'value':action['export_value']})
+            confirmed=self.collection(username).get(action['instance_id'])
+            fresh=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields'))
+        except HTTPException as error:
+            raise HTTPException(error.status_code,f'Personal field update unconfirmed. {error.detail} Refresh the preview to check Discogs before choosing another update.') from None
+        cleared=confirmed and action['export_value']=='' and confirmed['note_field_ids'] is not None and definition['id'] not in confirmed['note_field_ids']
+        if fresh.get(definition['id']) != definition or not confirmed or confirmed['release_id'] != action['release_id'] or confirmed['folder_id'] != action['folder_id'] or (confirmed['notes'].get(definition['id']) != action['export_value'] and not cleared):
+            raise HTTPException(502,'Personal field update unconfirmed. Refresh the preview to check Discogs before choosing another update.')
+        return {'status':'personal_exported','copy_id':action['copy_id'],'field':field}
 
     def export_rating(self, account, username, action, remote):
         entry=remote.get(action['instance_id'])

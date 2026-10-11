@@ -17,7 +17,10 @@ def field_definitions(data):
         name,kind,options=field.get('name'),field.get('type'),field.get('options',[])
         if not isinstance(name,str) or not name or len(name)>200 or not isinstance(kind,str) or len(kind)>100 or not isinstance(options,list) or len(options)>200 or any(not isinstance(v,str) or len(v)>10000 for v in options):
             raise HTTPException(502,'Discogs collection field definitions are invalid.')
+        if 'public' in field and type(field['public']) is not bool:
+            raise HTTPException(502,'Discogs returned an invalid field visibility.')
         result[field['id']]={'id':field['id'],'name':name,'type':kind,'options':options}
+        if 'public' in field:result[field['id']]['public']=field['public']
     return result
 
 
@@ -43,3 +46,24 @@ def value_for(field, value):
     allowed=set(GRADES.values()) | ({'Generic','No Cover'} if field=='sleeve_condition' else set())
     if grade not in allowed:raise ValueError('Unsupported condition')
     return grade
+
+
+def export_value(field, value, definition):
+    """Return exact supported provider text, never invent dropdown options."""
+    if field not in FIELDS or definition['type'] not in ('dropdown','textarea','text'):
+        return None
+    if field == 'notes':
+        candidate = value
+    else:
+        candidate = next((label for label, code in GRADES.items() if code == value), value or '')
+    if not isinstance(candidate,str) or len(candidate)>10000:
+        return None
+    if definition['type']=='dropdown':
+        if candidate not in definition['options']:
+            if isinstance(value,str) and value in definition['options']:candidate=value
+            else:return None
+    try:
+        if value_for(field,candidate) != value:return None
+    except ValueError:
+        return None
+    return candidate
