@@ -433,6 +433,14 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     def sync_fields():
         return sync.fields()
 
+    @app.put('/api/discogs/sync/mapping')
+    def save_sync_mapping(data: SyncFieldMapping):
+        return sync.save_mapping(data)
+
+    @app.delete('/api/discogs/sync/mapping')
+    def forget_sync_mapping(data: SyncFieldMapping):
+        return sync.forget_mapping(data)
+
     @app.post('/api/discogs/sync/preview')
     def mapped_sync_preview(data: SyncFieldMapping):
         return sync.preview(data)

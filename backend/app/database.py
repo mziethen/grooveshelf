@@ -22,7 +22,7 @@ class Database:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 10:
+            if version > 11:
                 raise RuntimeError("Database schema is newer than this application")
             db.execute("PRAGMA journal_mode = WAL")
             db.executescript("""
@@ -129,4 +129,5 @@ class Database:
                 CREATE INDEX IF NOT EXISTS photos_copy ON photos(copy_id);
                 CREATE UNIQUE INDEX IF NOT EXISTS photos_cover ON photos(copy_id) WHERE is_cover=1;
             """)
-            db.execute("PRAGMA user_version = 10")
+            db.execute("CREATE TABLE IF NOT EXISTS discogs_field_mappings (account TEXT PRIMARY KEY, content TEXT NOT NULL)")
+            db.execute("PRAGMA user_version = 11")

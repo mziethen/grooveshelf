@@ -91,7 +91,7 @@ def test_inspection_counts_archived_data_and_preserves_live_collection(tmp_path)
         response=client.post('/api/backups/'+name+'/inspect')
         assert response.status_code==200
         data=response.json()
-        assert data['verified'] and data['filename']==name and data['schema_version']==10
+        assert data['verified'] and data['filename']==name and data['schema_version']==11
         assert data['counts']=={'records':1,'albums':1,'photos':1,'nfc_tags':1,'plays':1,'wishlist':1,'cached_covers':0}
         assert data['created_at'] and archive.read_bytes()==original
         assert client.get('/api/records').json()==before
@@ -106,7 +106,7 @@ def test_inspection_supports_schema9_without_photos(tmp_path):
     from app.archive import export_archive,inspect_archive
     db=Database(str(tmp_path/'legacy.sqlite3'));db.initialize()
     with db.connect() as source:
-        source.execute('DROP TABLE photos');source.execute('PRAGMA user_version=9')
+        source.execute('DROP TABLE discogs_field_mappings');source.execute('DROP TABLE photos');source.execute('PRAGMA user_version=9')
     output=tmp_path/'legacy.zip';export_archive(db.path,output)
     report=inspect_archive(output)
     assert report['verified'] and report['schema_version']==9

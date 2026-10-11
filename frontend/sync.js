@@ -18,30 +18,52 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
     if(running||fieldsBusy)return;
     const current=++fieldGeneration;fieldsBusy=true;fieldDefinitions=null;
     $('#sync-field-error').textContent='';$('#sync-field-account').textContent='Loading fields for the connected account…';
-    $('#sync-field-preview').disabled=true;$('#sync-field-dialog').showModal();
+    $('#sync-field-preview').disabled=true;$('#sync-field-forget').disabled=false;$('#sync-field-forget').hidden=true;$('#sync-field-remember').checked=false;$('#sync-field-saved').textContent='';$('#sync-field-dialog').showModal();
     try {
       const data=await api('/discogs/sync/fields');if(current!==fieldGeneration)return;
       fieldDefinitions=data;$('#sync-field-account').textContent=`Connected as ${data.username} · account ${data.account_id}`;
+      const saved=data.saved_mapping;
+      const choices=fieldMapping?.account_id===data.account_id?fieldMapping:saved;
+      $('#sync-field-remember').checked=!!saved;
+      $('#sync-field-forget').hidden=!saved&&!data.saved_mapping_invalid;
+      $('#sync-field-saved').textContent=data.saved_mapping_invalid?'Saved fields changed or are missing. Select and save a new mapping before using them.':saved?'Saved choices loaded for this account. Review them before previewing.':'Choices are temporary unless you choose to save them.';
       for(const field of mappedFields) {
         const select=$('#sync-field-'+field);
         select.innerHTML='<option value="">Do not import</option>'+data.fields.map(item=>`<option value="${escape(String(item.id))}">${escape(item.name)} · field ${escape(String(item.id))}</option>`).join('');
-        select.value=fieldMapping?.account_id===data.account_id ? String(fieldMapping[field]||'') : '';
+        select.value=String(choices?.[field]||'');
       }
-      $('#sync-field-folders').checked=fieldMapping?.account_id===data.account_id && !!fieldMapping.folder_locations;
+      $('#sync-field-folders').checked=!!choices?.folder_locations;
       $('#sync-field-preview').disabled=false;
     } catch(error) {if(current===fieldGeneration)$('#sync-field-error').textContent=error.message;}
     finally {if(current===fieldGeneration)fieldsBusy=false;}
   });
   $('#sync-field-cancel').addEventListener('click',()=>$('#sync-field-dialog').close());
   $('#sync-field-dialog').addEventListener('close',()=>{fieldGeneration++;fieldsBusy=false;});
-  $('#sync-field-form').addEventListener('submit',event=>{
+  $('#sync-field-form').addEventListener('submit',async event=>{
     event.preventDefault();if(fieldsBusy||!fieldDefinitions)return;
     const next={account_id:fieldDefinitions.account_id};
     for(const field of mappedFields)next[field]=$('#sync-field-'+field).value?Number($('#sync-field-'+field).value):null;
     if($('#sync-field-folders').checked)next.folder_locations=true;
     const ids=Object.values(next).filter(value=>typeof value==='number');
     if(new Set(ids).size!==ids.length){$('#sync-field-error').textContent='Choose a different Discogs field for each local field.';return;}
+    if($('#sync-field-remember').checked) {
+      const current=fieldGeneration;fieldsBusy=true;$('#sync-field-preview').disabled=true;$('#sync-field-forget').disabled=true;
+      try {await api('/discogs/sync/mapping',{method:'PUT',body:JSON.stringify(next)});if(current!==fieldGeneration)return;}
+      catch(error){if(current===fieldGeneration)$('#sync-field-error').textContent=error.message;return;}
+      finally{if(current===fieldGeneration){fieldsBusy=false;$('#sync-field-preview').disabled=false;$('#sync-field-forget').disabled=false;}}
+    }
     fieldMapping=next;$('#sync-field-dialog').close();preview();
+  });
+  $('#sync-field-forget').addEventListener('click',async()=>{
+    if(fieldsBusy||!fieldDefinitions)return;
+    const current=fieldGeneration;fieldsBusy=true;$('#sync-field-forget').disabled=true;$('#sync-field-preview').disabled=true;$('#sync-field-error').textContent='';
+    try {
+      await api('/discogs/sync/mapping',{method:'DELETE',body:JSON.stringify({account_id:fieldDefinitions.account_id})});
+      if(current!==fieldGeneration)return;
+      $('#sync-field-forget').hidden=true;$('#sync-field-remember').checked=false;
+      $('#sync-field-saved').textContent='Saved mapping forgotten. Current choices remain available for this session.';
+    }catch(error){if(current===fieldGeneration)$('#sync-field-error').textContent=error.message;}
+    finally{if(current===fieldGeneration){fieldsBusy=false;$('#sync-field-forget').disabled=false;$('#sync-field-preview').disabled=false;}}
   });
   async function preview() {
     const current = ++generation;

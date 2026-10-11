@@ -7,6 +7,7 @@ from urllib.parse import quote
 from uuid import uuid4
 from fastapi import HTTPException
 from .models import RecordInput
+from .sync_mapping import validate_saved_mapping
 from .sync_fields import FIELDS, field_definitions, note_values, value_for
 
 
@@ -115,7 +116,45 @@ class DiscogsSync:
         with self.lock:
             account,username=self.identity()
             fields=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields'))
-            return {'account_id':account,'username':username,'fields':list(fields.values())}
+            with self.database.connect() as db:
+                row=db.execute('SELECT content FROM discogs_field_mappings WHERE account=?',(account,)).fetchone()
+            saved_mapping=None
+            invalid=False
+            if row:
+                try:
+                    saved=validate_saved_mapping(account,row['content'])
+                    invalid=any(fields.get(definition['id']) != definition for definition in saved['definitions'].values())
+                    if not invalid:saved_mapping=saved['mapping']
+                except Exception:
+                    invalid=True
+            return {'account_id':account,'username':username,'fields':list(fields.values()),
+                    'saved_mapping':saved_mapping,'saved_mapping_invalid':invalid}
+
+    def save_mapping(self, mapping):
+        with self.lock:
+            account,username=self.identity()
+            if mapping.account_id != account:
+                raise HTTPException(409,'The connected account changed. Review its mapping again.')
+            fields=field_definitions(self.provider.request(f'/users/{quote(username,safe="")}/collection/fields')) if any(getattr(mapping,name) is not None for name in FIELDS) else {}
+            definitions={}
+            for name in FIELDS:
+                id=getattr(mapping,name)
+                if id is not None:
+                    if id not in fields:raise HTTPException(409,'A mapped Discogs field is missing. Review the mapping again.')
+                    definitions[name]=fields[id]
+            content=json.dumps({'mapping':mapping.model_dump(),'definitions':definitions})
+            with self.database.connect() as db:
+                db.execute('INSERT INTO discogs_field_mappings(account,content) VALUES(?,?) ON CONFLICT(account) DO UPDATE SET content=excluded.content',(account,content))
+            return {'status':'saved','account_id':account}
+
+    def forget_mapping(self, mapping):
+        with self.lock:
+            account,_=self.identity()
+            if mapping.account_id != account:
+                raise HTTPException(409,'The connected account changed. Review its mapping again.')
+            with self.database.connect() as db:
+                db.execute('DELETE FROM discogs_field_mappings WHERE account=?',(account,))
+            return {'status':'forgotten','account_id':account}
 
     def folders(self, username):
         data = self.provider.request(f'/users/{quote(username,safe="")}/collection/folders')
