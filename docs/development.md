@@ -21,6 +21,14 @@ docker compose down
 
 ## Local development without Docker
 
+Once development dependencies are installed, start both servers from the repository root:
+
+```sh
+./dev.sh
+```
+
+The script loads `.env`, starts the backend with automatic code reload and the frontend on port 8080, and stops both with Ctrl+C. Restart it after changing `.env`. If either port is already occupied, stop the existing instance first.
+
 Python 3.12 is supported. In the repository root:
 
 ```sh
