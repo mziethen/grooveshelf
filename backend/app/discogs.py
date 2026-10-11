@@ -151,6 +151,8 @@ class DiscogsProvider:
             if response.status_code == 404:
                 raise HTTPException(404, "This Discogs entry was not found.")
             response.raise_for_status()
+            if response.status_code == 204 and method == "POST":
+                return {}
             data = response.json()
             if not isinstance(data, dict):
                 raise ValueError("Invalid response")
