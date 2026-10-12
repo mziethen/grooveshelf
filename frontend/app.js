@@ -108,9 +108,13 @@ function updateCollection(target, markup) {
 }
 function render() {
   scheduleExpiry();
-  const incompleteCount = ['cover','tracks','nfc'].filter(name=>$('#missing-'+name).checked).length;
-  $('#incomplete-filter-count').hidden = incompleteCount === 0;
-  $('#incomplete-filter-count').textContent = incompleteCount ? `${incompleteCount} active` : '';
+  const incompleteLabels = {cover:'No cover', tracks:'No tracks', nfc:'No NFC tag'};
+  const incompleteActive = Object.keys(incompleteLabels).filter(name=>$('#missing-'+name).checked);
+  const incompleteSummary = incompleteActive.map(name=>incompleteLabels[name]).join(' · ');
+  $('#incomplete-filter-count').hidden = incompleteActive.length === 0;
+  // Leave the summary node stable during unchanged station heartbeats.
+  if ($('#incomplete-filter-count').textContent !== incompleteSummary) $('#incomplete-filter-count').textContent = incompleteSummary;
+  $('#clear-incomplete-filters').hidden = incompleteActive.length === 0;
   const filtered = browsing.active() || ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked);
   const records = browsing.records(state.records).filter(record=>(!$('#missing-cover').checked||!record.cover_url)&&(!$('#missing-tracks').checked||!record.tracks.length)&&(!$('#missing-nfc').checked||!record.nfc_uid));
   $('#count').textContent = filtered ? `${records.length} of ${state.records.length} records match` : `${records.length} ${records.length === 1 ? 'record' : 'records'}`;
@@ -293,6 +297,11 @@ async function clearFilters() {
 $('#clear-filters').addEventListener('click', clearFilters);
 $('#retry-load').addEventListener('click', load);
 for (const name of ['cover','tracks','nfc']) $('#missing-'+name).addEventListener('change',render);
+$('#clear-incomplete-filters').addEventListener('click', () => {
+  for (const name of ['cover','tracks','nfc']) $('#missing-'+name).checked = false;
+  $('#incomplete-filters summary').focus();
+  render();
+});
 $('#search').addEventListener('input', () => { $('#clear-filters').hidden = !($('#search').value || browsing.active() || ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked)); clearTimeout(timer); timer = setTimeout(load, 200); });
 for (const view of ['grid','table']) $(`#${view}-view`).addEventListener('click', () => { setWorkspace(view === 'table' ? 'archive' : 'collection'); });
 window.addEventListener('hashchange', route);
