@@ -220,6 +220,8 @@ body[data-workspace=listening] .intro>.primary {display:none;}
 .filter-disclosure>summary {min-height:44px;padding:12px 0;cursor:pointer;font-size:13px;color:var(--muted);}
 .filter-disclosure>summary:hover {color:var(--ink);}
 #incomplete-filter-count {display:inline-block;margin-left:8px;padding:3px 8px;border-radius:20px;background:var(--accent-soft);color:var(--accent);font-size:12px;}
+#incomplete-filter-count {max-width:100%;overflow-wrap:anywhere;line-height:1.6;}
+#clear-incomplete-filters {min-height:44px;font-size:12px;}
 .filter-disclosure .missing-filters legend {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
 .filter-disclosure .missing-filters .filter-help {position:static;width:100%;height:auto;margin:4px 0 0;clip-path:none;}
 /* Keep collection controls compact while preserving comfortable touch targets. */
