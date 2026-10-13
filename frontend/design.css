@@ -226,6 +226,8 @@ body[data-workspace=listening] .intro>.primary {display:none;}
 .sync-browse label {margin:0;min-width:0;}
 .sync-browse p {grid-column:1/-1;margin:0;font-size:13px;line-height:1.6;overflow-wrap:anywhere;}
 .sync-browse button {min-height:44px;justify-self:start;}
+.sync-selection-tools {grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;}
+.sync-selection-tools button {font-size:12px;}
 @media(max-width:600px){.sync-browse {grid-template-columns:minmax(0,1fr);}.sync-browse input,.sync-browse select {font-size:16px;}}
 .filter-disclosure .missing-filters legend {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
 .filter-disclosure .missing-filters .filter-help {position:static;width:100%;height:auto;margin:4px 0 0;clip-path:none;}

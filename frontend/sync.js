@@ -32,6 +32,11 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
     }
     const selected=selectedChanges();
     const hiddenSelected=selected.filter(({row})=>row.hidden).length;
+    const visibleSelected=selected.length-hiddenSelected;
+    $('#sync-clear-visible').disabled=running||visibleSelected===0;
+    $('#sync-clear-all').disabled=running||selected.length===0;
+    $('#sync-clear-visible').textContent=visibleSelected?`Clear ${visibleSelected} visible ${visibleSelected===1?'selection':'selections'}`:'Clear visible selections';
+    $('#sync-clear-all').textContent=selected.length?`Clear all ${selected.length} ${selected.length===1?'selection':'selections'}`:'Clear all selections';
     const message=`${visible} of ${rows.length} proposed changes shown · ${selected.length} selected${hiddenSelected?` · ${hiddenSelected} selected outside this view`:''}`;
     if ($('#sync-visible-count').textContent!==message) $('#sync-visible-count').textContent=message;
     $('#sync-clear-filter').hidden=!query&&kind==='all';
@@ -42,6 +47,16 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
   $('#sync-clear-filter').addEventListener('click',()=>{
     $('#sync-search').value='';$('#sync-filter').value='all';$('#sync-search').focus();filterPreview();
   });
+  for (const [id,visibleOnly] of [['sync-clear-visible',true],['sync-clear-all',false]]) {
+    $('#'+id).addEventListener('click',()=>{
+      if (!plan||running) return;
+      for (const {row} of selectedChanges()) {
+        if (!visibleOnly||!row.hidden) row.querySelector('select').value='skip';
+      }
+      // The reset button becomes disabled; return focus to a stable control.
+      $('#sync-filter').focus();updateSelection();
+    });
+  }
   function personalValue(value) {return value == null ? 'Not graded' : value === '' ? '(empty)' : String(value);}
   $('#sync-fields-open').addEventListener('click',async()=>{
     if(running||fieldsBusy)return;
@@ -212,6 +227,7 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
     const {changes} = review;
     const planId = plan.plan_id;
     running = true;
+    $('#sync-clear-visible').disabled=$('#sync-clear-all').disabled=true;
     $('#sync-search').disabled=$('#sync-filter').disabled=$('#sync-clear-filter').disabled=true;
     $('#sync-review-confirm').disabled = true;
     $('#sync-review').close();
