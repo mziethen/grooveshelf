@@ -39,6 +39,8 @@ A fresh preview offers matching or export as separate choices. Nothing is automa
 
 Choose per-entry actions, then select **Review changes**. The final review lists exact releases and remote instances, destinations, matched LP numbers and outbound additions to the connected account’s Uncategorised folder. Going back retains the choices; only **Apply these changes** starts synchronization. A local copy cannot be matched to two remote instances or matched and exported in the same batch.
 
+Use **Search proposed changes** to find an artist, album, LP number, release or instance ID, or mapped field. **Show changes** filters by type or shows only selected entries. These controls filter locally without contacting Discogs. Hidden selections remain included in the final review; the counter identifies selections outside the current view. Notices remain visible. **Clear preview filters** shows all entries without clearing selected actions. Refreshing the preview starts a new selection.
+
 Expired or changed previews cannot be confirmed. If a change fails, the batch stops and shows how many succeeded, which change failed or has an unconfirmed outcome, and which entries were not attempted. Successful changes are retained. Refresh the preview before retrying, especially for unconfirmed outbound additions. Server-side revalidation and uncertain-export reconciliation remain authoritative.
 
 ## Changed-release conflicts

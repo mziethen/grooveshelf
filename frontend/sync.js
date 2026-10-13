@@ -13,6 +13,35 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
   let fieldMapping=null,fieldDefinitions=null,fieldGeneration=0,fieldsBusy=false;
   const personalLabels={media_condition:'Record condition',sleeve_condition:'Sleeve condition',notes:'Personal notes',storage_location:'Storage location'};
   const mappedFields=['media_condition','sleeve_condition','notes'];
+  function resetBrowse() {
+    $('#sync-search').value='';$('#sync-filter').value='all';
+    $('#sync-browse').hidden=true;$('#sync-no-matches').hidden=true;
+  }
+  function filterPreview() {
+    if (!plan) return;
+    const query=$('#sync-search').value.trim().toLocaleLowerCase('en');
+    const kind=$('#sync-filter').value;
+    const rows=[...$('#sync-results').querySelectorAll('[data-action]')];
+    let visible=0;
+    for (const row of rows) {
+      const selected=row.querySelector('select').value!=='skip';
+      const hadFocus=row.contains(document.activeElement);
+      row.hidden=!(row.dataset.search.includes(query) && (kind==='all'||(kind==='selected'?selected:row.dataset.kind===kind)));
+      if (!row.hidden) visible++;
+      else if (hadFocus) $('#sync-filter').focus();
+    }
+    const selected=selectedChanges();
+    const hiddenSelected=selected.filter(({row})=>row.hidden).length;
+    const message=`${visible} of ${rows.length} proposed changes shown · ${selected.length} selected${hiddenSelected?` · ${hiddenSelected} selected outside this view`:''}`;
+    if ($('#sync-visible-count').textContent!==message) $('#sync-visible-count').textContent=message;
+    $('#sync-clear-filter').hidden=!query&&kind==='all';
+    $('#sync-no-matches').hidden=visible!==0||rows.length===0;
+  }
+  $('#sync-search').addEventListener('input',filterPreview);
+  $('#sync-filter').addEventListener('change',filterPreview);
+  $('#sync-clear-filter').addEventListener('click',()=>{
+    $('#sync-search').value='';$('#sync-filter').value='all';$('#sync-search').focus();filterPreview();
+  });
   function personalValue(value) {return value == null ? 'Not graded' : value === '' ? '(empty)' : String(value);}
   $('#sync-fields-open').addEventListener('click',async()=>{
     if(running||fieldsBusy)return;
@@ -69,6 +98,7 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
     const current = ++generation;
     clearTimeout(expiryTimer);
     plan = null; review = null;
+    resetBrowse();
     if ($('#sync-review').open) $('#sync-review').close();
     $('#sync-apply').textContent = 'Review selected changes';
     $('#sync-apply').disabled = true;
@@ -108,10 +138,17 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
         $('#missing-link-dialog').showModal();
       }));
       $('#sync-results').querySelectorAll('select').forEach(select => select.addEventListener('change', updateSelection));
+      for (const row of $('#sync-results').querySelectorAll('[data-action]')) {
+        const action=data.actions.find(item=>item.id===row.dataset.action);
+        row.dataset.kind=action.kind;
+        row.dataset.search=[action.title,action.artist,action.inventory_number,action.release_id,action.instance_id,personalLabels[action.field],action.definition?.name,...(action.matches||[]).flatMap(match=>[match.title,match.inventory_number])].filter(value=>value!=null).join(' ').toLocaleLowerCase('en');
+      }
+      $('#sync-browse').hidden=data.actions.length===0;
       updateSelection();
       expiryTimer = setTimeout(() => {
         if (running) return;
         plan = null; $('#sync-results').replaceChildren(); $('#sync-notices').replaceChildren();
+        resetBrowse();
         $('#sync-apply').disabled = true;
         if ($('#sync-review').open) { $('#sync-review-confirm').disabled = true; $('#sync-review-error').textContent = 'This preview has expired. Go back and refresh it before applying changes.'; }
         $('#sync-status').textContent = 'This preview has expired. Refresh it before applying changes.';
@@ -134,6 +171,7 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
     const count = plan ? selectedChanges().length : 0;
     $('#sync-apply').disabled = running || !count;
     $('#sync-apply').textContent = count ? `Review ${count} ${count === 1 ? 'change' : 'changes'}` : 'Review selected changes';
+    filterPreview();
   }
   $('#sync-review-back').addEventListener('click', () => {if (!running) $('#sync-review').close();});
   $('#sync-review').addEventListener('close', () => {review = null;});
@@ -174,6 +212,7 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
     const {changes} = review;
     const planId = plan.plan_id;
     running = true;
+    $('#sync-search').disabled=$('#sync-filter').disabled=$('#sync-clear-filter').disabled=true;
     $('#sync-review-confirm').disabled = true;
     $('#sync-review').close();
     $('#sync-apply').disabled = $('#sync-preview').disabled = $('#sync-fields-open').disabled = $('#sync-cancel').disabled = true;
@@ -204,6 +243,9 @@ export function createDiscogsSync({api, escape, reload, currentRecord, renderCur
       running = false;
       clearTimeout(expiryTimer);
       plan = null; $('#sync-apply').disabled = true;
+      $('#sync-browse').hidden=true;$('#sync-no-matches').hidden=true;
+      $('#sync-search').disabled=$('#sync-filter').disabled=$('#sync-clear-filter').disabled=false;
+      $('#sync-results').querySelectorAll('[data-action]').forEach(row=>{row.hidden=false;});
       $('#sync-apply').textContent = 'Review selected changes';
       $('#sync-preview').disabled = $('#sync-fields-open').disabled = $('#sync-cancel').disabled = false;
     }

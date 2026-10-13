@@ -222,6 +222,11 @@ body[data-workspace=listening] .intro>.primary {display:none;}
 #incomplete-filter-count {display:inline-block;margin-left:8px;padding:3px 8px;border-radius:20px;background:var(--accent-soft);color:var(--accent);font-size:12px;}
 #incomplete-filter-count {max-width:100%;overflow-wrap:anywhere;line-height:1.6;}
 #clear-incomplete-filters {min-height:44px;font-size:12px;}
+.sync-browse {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 16px;padding:16px 0;border-top:1px solid var(--line);}
+.sync-browse label {margin:0;min-width:0;}
+.sync-browse p {grid-column:1/-1;margin:0;font-size:13px;line-height:1.6;overflow-wrap:anywhere;}
+.sync-browse button {min-height:44px;justify-self:start;}
+@media(max-width:600px){.sync-browse {grid-template-columns:minmax(0,1fr);}.sync-browse input,.sync-browse select {font-size:16px;}}
 .filter-disclosure .missing-filters legend {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
 .filter-disclosure .missing-filters .filter-help {position:static;width:100%;height:auto;margin:4px 0 0;clip-path:none;}
 /* Keep collection controls compact while preserving comfortable touch targets. */
