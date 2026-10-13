@@ -228,6 +228,21 @@ body[data-workspace=listening] .intro>.primary {display:none;}
 .sync-browse button {min-height:44px;justify-self:start;}
 .sync-selection-tools {grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;}
 .sync-selection-tools button {font-size:12px;}
+/* Long sync plans scroll independently; review actions stay within reach. */
+#sync-dialog,#sync-review {width:min(960px,calc(100% - 40px));height:min(820px,calc(100dvh - 40px));padding:0;overflow:hidden;}
+#sync-dialog[open],#sync-review[open] {display:flex;flex-direction:column;}
+.sync-workspace-content {flex:1;min-height:0;overflow:auto;padding:28px 32px;scroll-padding:20px;}
+.sync-workspace-content>h2 {font-family:var(--display);font-size:30px;font-weight:var(--display-weight);letter-spacing:-1px;margin:0 0 20px;}
+#sync-dialog>.actions,#sync-review>.actions {flex:none;margin:0;padding:16px 24px;background:var(--surface);border-top:1px solid var(--line);gap:10px;}
+@media(max-width:600px){
+ #sync-dialog,#sync-review {width:calc(100% - 20px);height:calc(100dvh - 20px);max-height:calc(100dvh - 20px);}
+ .sync-workspace-content {padding:22px 18px;}
+ .sync-workspace-content>h2 {font-size:27px;}
+ #sync-dialog>.actions,#sync-review>.actions {padding:12px;gap:8px;}
+ #sync-dialog>.actions {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+ #sync-dialog>.actions button {white-space:normal;min-width:0;}
+ #sync-review>.actions button {flex:1;}
+}
 @media(max-width:600px){.sync-browse {grid-template-columns:minmax(0,1fr);}.sync-browse input,.sync-browse select {font-size:16px;}}
 .filter-disclosure .missing-filters legend {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
 .filter-disclosure .missing-filters .filter-help {position:static;width:100%;height:auto;margin:4px 0 0;clip-path:none;}
