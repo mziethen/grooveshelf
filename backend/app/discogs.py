@@ -163,10 +163,15 @@ class DiscogsProvider:
             raise HTTPException(*self.retry_error) from None
 
     def search(self, artist, title, page):
+        return self._master_search({'artist': artist, 'release_title': title}, page)
+
+    def text_search(self, text, page):
+        return self._master_search({'q': text}, page)
+
+    def _master_search(self, params, page):
         if not self.token:
             raise HTTPException(503, "Discogs search needs a server-side DISCOGS_TOKEN. You can still enter records manually.")
-        data = self.request("/database/search", {"artist": artist, "release_title": title,
-                                               "type": "master", "per_page": 20, "page": page})
+        data = self.request("/database/search", {**params, "type": "master", "per_page": 20, "page": page})
         results = []
         for item in data.get("results", []):
             mid = item.get("id")

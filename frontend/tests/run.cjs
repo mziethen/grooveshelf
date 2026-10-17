@@ -2,7 +2,7 @@
 const {spawnSync} = require('node:child_process');
 const {join} = require('node:path');
 const workflows = [
-  'browser', 'discogs', 'listening', 'heartbeat', 'covers', 'sync', 'sync-browsing', 'sync-layout',
+  'browser', 'discogs', 'recognition', 'listening', 'heartbeat', 'covers', 'sync', 'sync-browsing', 'sync-layout',
   'personal', 'wishlist', 'capture', 'collection-tools', 'discovery',
   'statistics', 'identifiers', 'labels', 'settings', 'locations',
   'archive', 'appearance', 'bulk', 'qr', 'exports', 'streaming', 'tracks', 'credits', 'pressings', 'usability', 'retention', 'reader-feedback', 'corrections', 'photos', 'release-notes', 'workspace', 'browsing', 'startup', 'sync-review', 'sync-accounts', 'sync-ratings', 'sync-rating-export', 'sync-personal', 'sync-personal-export', 'sync-mapping', 'backups', 'backup-inspection',

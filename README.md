@@ -8,7 +8,7 @@ A self-hosted vinyl collection archive for Raspberry Pi and your home network. K
 ## Features
 
 - **Collection:** cover grid and table, album details and track lists, search, favorites, ratings, media/sleeve condition, notes, and storage locations.
-- **Capture:** suggested inventory numbers, consecutive entry, duplicate warnings, and Discogs lookup by artist, album, barcode, or catalog number.
+- **Capture:** suggested inventory numbers, consecutive entry, duplicate warnings, and Discogs lookup by artist, album, barcode, or catalog number. Optional local cover-text recognition reads a photo with Tesseract; review the text, choose an album and confirm its details before saving. Textless artwork needs another lookup method.
 - **Personal photos:** local cover, back cover, label and matrix uploads, personal cover selection, and complete ZIP backups.
 - **Discogs:** reviewed metadata imports, protected manual corrections with per-field review and resolution, locally cached covers with image selection, an opt-in setting to display older saved snapshots, optional track durations, attributed release notes in previews and details, album/track credits, and manually confirmed collection import, matching, export, resolution of missing collection links, bidirectional reviewed ratings and mapped condition/notes, and optional reviewed imports of custom folder names as storage locations, and saved account-specific field mappings.
 - **Listening:** NFC tag associations, station scans, ten-minute listening sessions, editable play history, statistics, and record suggestions.
@@ -55,7 +55,7 @@ For Discogs configuration, token updates, local development, and troubleshooting
 | Metadata, cover handling, freshness | [Discogs integration](docs/discogs.md) |
 | Collection import, matching, export | [Discogs synchronization](docs/discogs-sync.md) |
 | NFC stations and listening sessions | [Listening and NFC](docs/listening.md) |
-| Consecutive entry and identifiers | [Rapid capture](docs/capture.md), [barcode and catalog lookup](docs/identifier-search.md) |
+| Consecutive entry, identifiers and cover photos | [Rapid capture](docs/capture.md), [barcode and catalog lookup](docs/identifier-search.md), [cover-text recognition and setup](docs/cover-recognition.md) |
 | Wishlist and storage locations | [Wishlist](docs/wishlist.md), [locations](docs/locations.md) |
 | QR identifiers and printable record links | [QR codes](docs/qr-codes.md) |
 | Editing several copies at once | [Bulk edit](docs/bulk-edit.md) |
