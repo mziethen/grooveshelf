@@ -8,6 +8,16 @@ This first implementation uses local optical character recognition (OCR), not re
 
 Tesseract is a free, open-source OCR engine. Discogs supplies album candidates through its existing authenticated database search, using the server's `DISCOGS_TOKEN`; there is no paid vision service or image-search account. No freely usable general cover-image recognition API was verified for this implementation. This is an assisted lookup, and does not claim a confidence score or guaranteed match.
 
+## Compare saved collection covers
+
+After choosing a photo, use **Compare saved collection covers** for a local visual comparison. This also works without readable text, but only when a similar cover is already saved in your collection. Review the suggested titles and LP numbers, then explicitly open a record. Opening a saved record closes the unsaved entry draft; it never adds or merges copies. Duplicate physical copies remain separate suggestions.
+
+The comparison uses a small grayscale difference hash and a coarse color-layout comparison, with conservative fixed thresholds. These are similarity heuristics, not calibrated probabilities. Uniform/very low-detail photos are rejected. Perspective, cropping, lighting and similar artwork can produce missed or incorrect suggestions. Photograph just the cover, straight-on and well-lit. This does not search an online artwork catalog or identify an exact pressing.
+
+Selected personal covers take precedence. Provider covers must already exist locally and meet the current saved-data display policy; expired images are skipped unless displaying older saved data is enabled. Missing, corrupt or unselected photos are not fetched. Neither comparison nor its result list makes provider requests or stores image features, uploads or new photos. Opening a chosen record uses the normal detail-view refresh behavior.
+
+Each backend process permits one visual comparison at a time. At most 500 usable cover comparisons are processed, with a ten-second budget checked between images. A partial-comparison notice indicates that more copies may match. Up to ten suggestions are shown, along with counts for matches, compared covers and unavailable covers. These processing limits and conservative thresholds suit a small local collection; they are not an accuracy guarantee for large libraries.
+
 ## Installation
 
 The Docker backend includes Tesseract and English recognition data on both supported architectures. For local development, install it on the backend host:

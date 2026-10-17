@@ -15,7 +15,7 @@ export function createDiscogsSearch({ api, escape, onImport }) {
   const next = root.querySelector('#discogs-next');
   const previous = root.querySelector('#discogs-previous');
   const search = root.querySelector('#discogs-search');
-  const recognition=createCoverRecognition({api,onSearch:q=>find(1,false,{q})});
+  const recognition=createCoverRecognition({api,escape,onSearch:q=>find(1,false,{q}),onOpen:id=>{document.querySelector('#editor').close();location.hash=`record/${encodeURIComponent(id)}`;}});
   async function find(targetPage = 1, identifier = false, coverQuery=null) {
     const form = document.querySelector('#record-form');
     query = targetPage === 1 ? (coverQuery || (identifier ? {kind:root.querySelector('#discogs-id-kind').value,value:root.querySelector('#discogs-identifier').value} : { artist: form.elements.artist.value, title: form.elements.title.value })) : query;
