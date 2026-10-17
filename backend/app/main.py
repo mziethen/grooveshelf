@@ -20,6 +20,7 @@ from .sync import DiscogsSync
 from .wishlist import WishlistService
 from .capture import CaptureService
 from . import recognition
+from .cover_matching import LocalCoverMatcher
 from starlette.concurrency import run_in_threadpool
 from .export import collection_csv, collection_json, collection_html
 from .discovery import suggest
@@ -43,6 +44,7 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     covers = covers or CoverStore(Path(database.path).parent / 'covers')
     metadata = MetadataService(repository, provider, covers)
     photos = PhotoService(database, repository)
+    cover_matcher = LocalCoverMatcher(repository, metadata, covers)
     corrections = CorrectionsService(repository, metadata)
     settings = SettingsService(database)
     covers.retain_expired = lambda: settings.get()["show_expired_metadata"]
@@ -156,6 +158,15 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
                 raise HTTPException(413, 'Choose an image up to 5 MiB.')
             content.extend(chunk)
         return await run_in_threadpool(recognition.recognize, bytes(content))
+
+    @app.post('/api/capture/cover-matches')
+    async def match_saved_covers(request: Request):
+        content = bytearray()
+        async for chunk in request.stream():
+            if len(content) + len(chunk) > MAX_UPLOAD:
+                raise HTTPException(413, 'Choose an image up to 5 MiB.')
+            content.extend(chunk)
+        return await run_in_threadpool(cover_matcher.match, bytes(content))
 
     @app.get('/api/metadata/discogs/text-search')
     def search_cover_text(q: str = Query(min_length=1, max_length=300), page: int = Query(default=1,ge=1,le=50)):

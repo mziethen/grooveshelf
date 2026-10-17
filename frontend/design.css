@@ -234,6 +234,8 @@ body[data-workspace=listening] .intro>.primary {display:none;}
 .cover-recognition input[type=file] {max-width:100%;font-size:14px;}
 #recognition-image {display:block;max-width:100%;max-height:220px;margin:16px auto;object-fit:contain;}
 .cover-recognition button {min-height:44px;}
+#recognition-matches article {border-top:1px solid var(--line);padding:12px 0;overflow-wrap:anywhere;}
+#recognition-matches h4 {font-size:16px;margin:8px 0;}
 /* Long sync plans scroll independently; review actions stay within reach. */
 #sync-dialog,#sync-review {width:min(960px,calc(100% - 40px));height:min(820px,calc(100dvh - 40px));padding:0;overflow:hidden;}
 #sync-dialog[open],#sync-review[open] {display:flex;flex-direction:column;}
