@@ -2,6 +2,8 @@
 
 In **Add a record → Find album details**, open **Find an album from a cover photo**. Choose a JPEG, PNG or WebP image, or take a photo on a supported phone. Use **Read cover text**, correct the extracted artist/title text, then choose **Find matching albums**. Select a Discogs result and confirm **Use these details**. Review the draft and save the record separately.
 
+For sideways or upside-down artwork, use **Rotate photo 90°** until the preview is upright. Both OCR and saved-cover comparison receive the prepared image. Rotation happens locally in your browser, leaves the original file unchanged, and clears results from the previous orientation. Each turn is rendered from the original rather than repeatedly recompressing an intermediate image. **Restore original photo** restores the original bytes. Prepared images are resized to at most 2048 pixels per side and use JPEG with a white background for transparency. Rotation itself does not contact the server.
+
 ## Scope and feasibility
 
 This first implementation uses local optical character recognition (OCR), not reverse-image matching. It can suggest albums when a cover has readable artist/title text. Textless artwork, elaborate lettering, glare, perspective and low contrast can prevent recognition. Photograph the cover straight-on in good light. Correct noisy text or use the existing manual, barcode or catalog-number searches when needed. Album artwork cannot establish the exact pressing; use **Choose Discogs release** separately.
