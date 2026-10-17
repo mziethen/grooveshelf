@@ -19,6 +19,8 @@ from .listening import ListeningService
 from .sync import DiscogsSync
 from .wishlist import WishlistService
 from .capture import CaptureService
+from . import recognition
+from starlette.concurrency import run_in_threadpool
 from .export import collection_csv, collection_json, collection_html
 from .discovery import suggest
 from .statistics import statistics
@@ -141,6 +143,25 @@ def create_app(database_path=None, provider=None, covers=None, clock=None, start
     @app.get('/api/metadata/discogs/status')
     def discogs_status():
         return {'search_configured': bool(provider.token)}
+
+    @app.get('/api/capture/cover-text/status')
+    def recognition_status():
+        return recognition.status()
+
+    @app.post('/api/capture/cover-text')
+    async def recognize_cover(request: Request):
+        content = bytearray()
+        async for chunk in request.stream():
+            if len(content) + len(chunk) > MAX_UPLOAD:
+                raise HTTPException(413, 'Choose an image up to 5 MiB.')
+            content.extend(chunk)
+        return await run_in_threadpool(recognition.recognize, bytes(content))
+
+    @app.get('/api/metadata/discogs/text-search')
+    def search_cover_text(q: str = Query(min_length=1, max_length=300), page: int = Query(default=1,ge=1,le=50)):
+        if not q.strip():
+            raise HTTPException(422, 'Review the recognized text before searching.')
+        return provider.text_search(q.strip(), page)
 
     @app.get('/api/metadata/discogs/search')
     def search_discogs(artist: str = Query(default='', max_length=300),

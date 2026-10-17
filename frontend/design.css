@@ -228,6 +228,12 @@ body[data-workspace=listening] .intro>.primary {display:none;}
 .sync-browse button {min-height:44px;justify-self:start;}
 .sync-selection-tools {grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;}
 .sync-selection-tools button {font-size:12px;}
+.cover-recognition {margin:18px 0;border-top:1px solid var(--line);padding-top:8px;}
+.cover-recognition summary {cursor:pointer;min-height:44px;padding:12px 0;font-size:14px;}
+.cover-recognition p {font-size:13px;line-height:1.6;}
+.cover-recognition input[type=file] {max-width:100%;font-size:14px;}
+#recognition-image {display:block;max-width:100%;max-height:220px;margin:16px auto;object-fit:contain;}
+.cover-recognition button {min-height:44px;}
 /* Long sync plans scroll independently; review actions stay within reach. */
 #sync-dialog,#sync-review {width:min(960px,calc(100% - 40px));height:min(820px,calc(100dvh - 40px));padding:0;overflow:hidden;}
 #sync-dialog[open],#sync-review[open] {display:flex;flex-direction:column;}

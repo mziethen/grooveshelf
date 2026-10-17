@@ -21,6 +21,7 @@ jobs:
         with:
           node-version: '24'
       - run: pip install -r backend/requirements-dev.txt
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng
       - run: pytest -q
       - run: npm ci --prefix frontend --ignore-scripts
       - run: cd frontend && npx playwright install --with-deps chromium
