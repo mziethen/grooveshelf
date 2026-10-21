@@ -36,6 +36,7 @@ jobs:
           curl --fail http://127.0.0.1:8080/api/health
           GROOVESHELF_TEST_URL=http://127.0.0.1:8080 npm test --prefix frontend
       - run: docker compose config --quiet
+      - run: docker compose -f compose.portainer.yaml config --quiet
   containers:
     runs-on: ubuntu-latest
     steps:
@@ -55,6 +56,7 @@ jobs:
       - name: Compose runtime smoke test
         run: |
           docker compose up --build -d --wait
+          python scripts/check_frontend_modules.py http://localhost:8080
           for attempt in $(seq 1 30); do
             if curl --fail http://localhost:8080/api/health; then break; fi
             sleep 1
