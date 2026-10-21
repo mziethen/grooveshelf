@@ -1,0 +1,26 @@
+# Build these local images on the target Docker host before deploying in Portainer.
+services:
+  backend:
+    image: grooveshelf-backend:local
+    restart: unless-stopped
+    environment:
+      GROOVESHELF_DATABASE: /data/grooveshelf.sqlite3
+      DISCOGS_TOKEN: ${DISCOGS_TOKEN:-}
+    volumes:
+      - collection-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+  frontend:
+    image: grooveshelf-frontend:local
+    restart: unless-stopped
+    ports:
+      - "${GROOVESHELF_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+volumes:
+  collection-data:

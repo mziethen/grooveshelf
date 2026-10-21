@@ -44,6 +44,7 @@ For Discogs configuration, token updates, local development, and troubleshooting
 | Topic | Guide |
 | --- | --- |
 | Installation, updates, development, tests | [Running GrooveShelf](docs/development.md) |
+| Home-server deployment with Portainer | [Portainer setup](docs/portainer.md) |
 | Spotify, YouTube and Qobuz searches | [Streaming links](docs/streaming.md) |
 | Collection download formats | [CSV, JSON and printable catalog](docs/exports.md) |
 | Portable export, verification, restore | [Archives and backups](docs/archives.md) |
