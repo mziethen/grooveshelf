@@ -22,10 +22,11 @@ class ScanBridge:
                 self.last_uid = uid
 
 
-def run_reader(reader, post, stop=lambda: False, clock=time.monotonic):
+def run_reader(reader, post, stop=lambda: False, clock=time.monotonic, sleep=time.sleep):
     bridge = ScanBridge(post)
     last_heartbeat = -float('inf')
     failed = False
+    retry_delay = 1
     try:
         while not stop():
             if clock() - last_heartbeat >= 5:
@@ -36,7 +37,25 @@ def run_reader(reader, post, stop=lambda: False, clock=time.monotonic):
             except Exception:
                 failed = True
                 post('reader', {'status': 'error'})
-                raise
+                recover = getattr(reader, 'recover', None)
+                if not callable(recover):
+                    raise
+                try:
+                    recover()
+                except Exception:
+                    # Keep the bridge alive and retry recovery with a bounded delay.
+                    sleep(retry_delay)
+                    retry_delay = min(retry_delay * 2, 5)
+                    continue
+                sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, 5)
+                continue
+            if failed:
+                # The adapter recovered and returned a valid read cycle.
+                post('reader', {'status': 'connected'})
+                last_heartbeat = clock()
+                failed = False
+                retry_delay = 1
             bridge.observe(uid)
     finally:
         if not failed:
