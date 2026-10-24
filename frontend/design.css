@@ -287,3 +287,95 @@ body:not([data-workspace=listening]) .missing-filters {padding:8px 0 12px;gap:6p
 #backups-list a {overflow-wrap:anywhere;}
 .sync-field-values p {white-space:pre-wrap;overflow-wrap:anywhere;max-height:150px;overflow:auto;}
 #sync-review-items p {white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;}
+
+/* Compact collection layout: keep every control visible while bringing records higher. */
+.intro {
+  padding:12px 0 8px;
+  gap:16px;
+}
+.intro .eyebrow,
+.intro-description {
+  display:none;
+}
+.intro h1 {
+  font-size:30px;
+  line-height:1.15;
+  letter-spacing:-1.1px;
+  margin:0;
+}
+.intro>.primary {
+  min-height:44px;
+  padding:10px 16px;
+}
+.collection-heading {
+  padding:8px 0;
+}
+.toolbar {
+  min-height:44px;
+  padding:0 12px;
+}
+.search input {
+  min-height:44px;
+  padding:8px 0;
+}
+.browse-controls {
+  padding:8px 0 2px;
+  gap:8px 12px;
+}
+.browse-controls label {
+  font-size:11px;
+  margin:0;
+}
+.browse-controls select {
+  min-height:38px;
+  padding:7px 9px;
+  margin-top:4px;
+}
+.browse-favorites {
+  min-height:44px;
+}
+.filter-disclosure {
+  margin:0 0 6px;
+}
+.filter-disclosure>summary {
+  min-height:40px;
+  padding:8px 0;
+  font-size:12px;
+}
+.filter-disclosure .missing-filters {
+  padding:4px 0 8px;
+  gap:4px 10px;
+}
+.grid {
+  padding-top:4px;
+  gap:24px 18px;
+}
+.record-card h3 {
+  margin-top:9px;
+}
+.record-meta {
+  margin-top:7px;
+}
+.attribution {
+  margin-top:5px;
+}
+table th {
+  padding:11px 12px;
+}
+table td {
+  padding:12px;
+}
+@media(max-width:900px) {
+  .intro {padding:10px 0 6px;}
+  .intro h1 {font-size:28px;}
+}
+@media(max-width:700px) {
+  .browse-controls select {min-height:44px;}
+  .filter-disclosure>summary {min-height:44px;}
+  .grid {gap:20px 14px;}
+}
+@media(max-width:480px) {
+  .intro {padding:8px 0 6px;}
+  .intro h1 {font-size:25px;}
+  .intro>.primary {min-height:44px;padding:9px 12px;}
+}
