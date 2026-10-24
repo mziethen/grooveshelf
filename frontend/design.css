@@ -392,7 +392,7 @@ table td {
 body[data-workspace=listening] .view-toggle {display:none;}
 .collection-control-row {display:grid;grid-template-columns:minmax(180px,1fr) minmax(0,2.5fr);align-items:end;gap:12px;padding-top:12px;}
 .collection-control-row .toolbar {min-height:44px;padding:0 10px;}
-.collection-control-row .search input {min-height:44px;padding:8px 0;font-size:13px;}
+.collection-control-row .search input {min-height:44px;padding:8px 0;font-size:16px;}
 .collection-control-row .search-hint {display:none;}
 body:not([data-workspace=listening]) .collection-control-row .browse-controls {padding:0;gap:10px;grid-template-columns:minmax(150px,1.2fr) minmax(110px,1fr) minmax(120px,1fr) auto;}
 .collection-control-row .browse-controls label:not(.browse-favorites) {position:relative;padding-top:0;font-size:11px;}
