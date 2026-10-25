@@ -147,7 +147,7 @@ class SyncAction(BaseModel):
     model_config = ConfigDict(extra="forbid")
     plan_id: str
     action_id: str
-    choice: Literal["import", "export", "link", "detach", "rating_import", "rating_export", "personal_import", "personal_export"]
+    choice: Literal["import", "export", "link", "detach", "rating_import", "rating_export", "personal_import", "personal_export", "folder_export"]
     confirmed: bool = False
     copy_id: str | None = None
 

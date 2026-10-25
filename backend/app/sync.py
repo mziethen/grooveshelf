@@ -178,6 +178,12 @@ class DiscogsSync:
             folders[row['id']] = {'id':row['id'], 'name':name}
         return folders
 
+    @staticmethod
+    def folder_for(folders, location):
+        # Only an existing, unambiguous custom folder is a destination; folders are never created.
+        named=[folder for folder in folders.values() if folder['id'] > 1 and folder['name'] == location] if location else []
+        return named[0] if len(named) == 1 else None
+
     def preview(self, mapping=None):
         with self.lock:
             account, username = self.identity()
@@ -263,18 +269,6 @@ class DiscogsSync:
                                         'local_rating':record['rating'],'remote_rating':entry['rating'],
                                         'folder_id':entry['folder_id'],'can_export_rating':entry['folder_id'] is not None and entry['folder_id'] > 0,
                                         'source_url':entry['source_url']})
-                    if mapping and mapping.folder_locations:
-                        folder=folders.get(entry['folder_id'])
-                        if folder and folder['id'] > 1:
-                            if folder['name'] != record['storage_location']:
-                                actions.append({'id':str(uuid4()),'kind':'personal','copy_id':record['id'],
-                                                'inventory_number':record['inventory_number'],'title':record['title'],
-                                                'instance_id':link['instance_id'],'release_id':link['release_id'],
-                                                'field':'storage_location','definition':folder,'local_value':record['storage_location'],
-                                                'remote_value':folder['name'],'source_url':entry['source_url']})
-                        elif not folder:
-                            notices.append({'kind':'personal_unavailable','copy_id':record['id'],
-                                            'message':f"{record['inventory_number']}: the Discogs folder is unavailable; storage location is kept unchanged."})
                     for field,definition in mapped.items():
                         try: value=value_for(field,entry['notes'].get(definition['id']))
                         except ValueError:
@@ -290,6 +284,23 @@ class DiscogsSync:
                                             'folder_id':entry['folder_id'],
                                             'export_value':export_value(field,record[field],definition) if entry['folder_id'] is not None and entry['folder_id'] > 0 else None,
                                             'source_url':entry['source_url']})
+                    # Folder moves come last so same-batch field/rating exports still target the previewed folder.
+                    if mapping and mapping.folder_locations:
+                        folder=folders.get(entry['folder_id'])
+                        if not folder:
+                            notices.append({'kind':'personal_unavailable','copy_id':record['id'],
+                                            'message':f"{record['inventory_number']}: the Discogs folder is unavailable; storage location is kept unchanged."})
+                        else:
+                            can_import=folder['id'] > 1 and folder['name'] != record['storage_location']
+                            target=self.folder_for(folders,record['storage_location'])
+                            if folder['id'] < 1 or (target and target['id'] == folder['id']):target=None
+                            if can_import or target:
+                                actions.append({'id':str(uuid4()),'kind':'personal','copy_id':record['id'],
+                                                'inventory_number':record['inventory_number'],'title':record['title'],
+                                                'instance_id':link['instance_id'],'release_id':link['release_id'],
+                                                'field':'storage_location','definition':folder,'local_value':record['storage_location'],
+                                                'remote_value':folder['name'],'can_import':can_import,'folder_id':entry['folder_id'],
+                                                'export_folder':target,'source_url':entry['source_url']})
             self.plans = {key:value for key,value in self.plans.items() if value['expires'] > monotonic()}
             if len(self.plans) >= 16:
                 self.plans.pop(next(iter(self.plans)))
@@ -319,9 +330,12 @@ class DiscogsSync:
                     raise HTTPException(422, 'Confirm removal of the conflicting local link.')
                 result = self.detach_conflict(account, action, remote)
             elif action['kind'] == 'personal':
-                if request.choice not in ('personal_import','personal_export') or request.confirmed is not True:
+                if request.choice not in ('personal_import','personal_export','folder_export') or request.confirmed is not True:
                     raise HTTPException(422,'Confirm the reviewed personal field update.')
-                if request.choice == 'personal_export':
+                if request.choice == 'folder_export':
+                    plan['actions'].pop(request.action_id)
+                    result=self.export_folder(account,username,action,remote)
+                elif request.choice == 'personal_export':
                     plan['actions'].pop(request.action_id)
                     result=self.export_personal(account,username,action,remote)
                 else:
@@ -366,6 +380,7 @@ class DiscogsSync:
         definition=action['definition']
         entry=remote.get(action['instance_id'])
         if field == 'storage_location':
+            if not action['can_import']:raise HTTPException(409,'Uncategorised is not a storage location. Refresh the preview.')
             folder=self.folders(username).get(definition['id'])
             if folder != definition or not entry or entry['folder_id'] != definition['id']:
                 raise HTTPException(409,'The Discogs folder or assignment changed. Refresh the preview.')
@@ -412,6 +427,30 @@ class DiscogsSync:
         if fresh.get(definition['id']) != definition or not confirmed or confirmed['release_id'] != action['release_id'] or confirmed['folder_id'] != action['folder_id'] or (confirmed['notes'].get(definition['id']) != action['export_value'] and not cleared):
             raise HTTPException(502,'Personal field update unconfirmed. Refresh the preview to check Discogs before choosing another update.')
         return {'status':'personal_exported','copy_id':action['copy_id'],'field':field}
+
+    def export_folder(self, account, username, action, remote):
+        target=action.get('export_folder')
+        if action['field'] != 'storage_location' or not target:
+            raise HTTPException(409,'This copy cannot be moved to a Discogs folder. Refresh the preview.')
+        folders=self.folders(username)
+        entry=remote.get(action['instance_id'])
+        if folders.get(action['definition']['id']) != action['definition'] or self.folder_for(folders,action['local_value']) != target or not entry or entry['release_id'] != action['release_id'] or entry['folder_id'] != action['folder_id']:
+            raise HTTPException(409,'The Discogs folders or this copy\'s folder changed. Refresh the preview.')
+        with self.database.connect() as db:
+            link=db.execute('SELECT copy_id,release_id FROM discogs_links WHERE account=? AND instance_id=?',(account,action['instance_id'])).fetchone()
+            copy=db.execute('SELECT storage_location FROM copies WHERE id=?',(action['copy_id'],)).fetchone()
+            if not link or link['copy_id'] != action['copy_id'] or link['release_id'] != action['release_id'] or not copy or copy['storage_location'] != action['local_value']:
+                raise HTTPException(409,'The local copy, association or storage location changed. Refresh the preview.')
+        endpoint=f'/users/{quote(username,safe="")}/collection/folders/{entry["folder_id"]}/releases/{entry["release_id"]}/instances/{entry["instance_id"]}'
+        try:
+            self.provider.request(endpoint,method='POST',body={'folder_id':target['id']})
+            confirmed=self.collection(username).get(action['instance_id'])
+            fresh=self.folders(username)
+        except HTTPException as error:
+            raise HTTPException(error.status_code,f'Folder move unconfirmed. {error.detail} Refresh the preview to check Discogs before choosing another update.') from None
+        if fresh.get(target['id']) != target or not confirmed or confirmed['release_id'] != action['release_id'] or confirmed['folder_id'] != target['id'] or confirmed.get('rating') != entry.get('rating'):
+            raise HTTPException(502,'Folder move unconfirmed. Refresh the preview to check Discogs before choosing another update.')
+        return {'status':'folder_exported','copy_id':action['copy_id'],'folder_id':target['id']}
 
     def export_rating(self, account, username, action, remote):
         entry=remote.get(action['instance_id'])
