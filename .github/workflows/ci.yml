@@ -57,6 +57,10 @@ jobs:
         run: |
           docker compose up --build -d --wait
           python scripts/check_frontend_modules.py http://localhost:8080
+          for asset in / /index.html /missing-route /app.js /styles.css /design.css /vendor/qrcode-generator.js; do
+            curl --fail --silent --output /dev/null --dump-header - "http://localhost:8080$asset" | grep -qi '^cache-control: no-cache' || { echo "Missing no-cache header for $asset"; exit 1; }
+          done
+          grep -q 'href="/styles.css?v=' frontend/index.html && grep -q 'href="/design.css?v=' frontend/index.html
           for attempt in $(seq 1 30); do
             if curl --fail http://localhost:8080/api/health; then break; fi
             sleep 1
