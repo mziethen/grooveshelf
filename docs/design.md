@@ -24,6 +24,17 @@ Dialogs share the same surface, typography and corner treatment. Touch actions r
 
 The refinement is implemented in `frontend/design.css`, loaded after the shared functional styles. Theme tokens and layout rules are grouped by purpose and responsive size. Fonts use the existing system stacks; no font service, extra image assets or network dependency is introduced.
 
+## Power-user workspace
+
+**Console** is a fourth appearance: graphite surfaces, amber actions, blue selection and monospaced LP numbers, grades and shortcuts. It uses local font stacks (Inter and JetBrains Mono when installed, otherwise system fonts) and compacts the page heading. Every feature below also works in Gallery, Studio and Listening Room.
+
+- **Filters in the search field.** Words still search artist, album, tracks, LP number and location on the server. Filters run locally and combine: `artist:`, `title:`, `genre:`, `loc:`, `format:` (text contains; quote spaces, `loc:"Shelf B"`), `year:1970..1979`, `rating:>=4`, `plays:>=5`, `cond:>=VG+` and `sleeve:` (grades P to M), `played:<30d` or `played:never` (d, w, m, y), `has:` or `no:` with cover, tracks, tag, release, location, notes, rating, cond or plays, and `is:fav`. A leading `-` negates a filter. Unknown prefixes stay ordinary search words; a known filter with an invalid value is reported below the views.
+- **Views and saved filters.** Chips show built-in views with their counts. **Save filter** keeps the current query in this browser (up to nine), recalled with Alt+1 to Alt+9 or from the palette.
+- **Archive selection and inspector.** The Archive table shows grades, rating, plays, last play and NFC status. Checkboxes select copies; the selection bar edits fields or moves the location through the existing bulk editor, which now lists each copy's old and new values before applying. The LP number button, J/K or the arrow keys inspect a copy in the side panel (wide screens), with details, edit, favorite and log-play actions. Selecting copies never changes them.
+- **Command palette.** ⌘K or Ctrl+K (or **Commands**) searches copies and runs commands: workspaces, tools, exports, views, saved filters and appearances. Type `>` for commands only and `#` for LP numbers.
+- **Keyboard shortcuts.** `/` search, `1` `2` `3` workspaces, `N` add, `G` then `W` `S` `D` `L` `B` `P` `E` `K` for tools, and in Archive `J` `K` `X` `↵` `F` `E` `M` `Esc`. `?` lists them with the filter syntax. Single-key shortcuts never fire while typing or while a dialog or the navigation drawer is open.
+- **Phone.** Below 900 px a bottom bar switches Collection, Archive and Listening and opens Commands as a bottom sheet. The Archive table keeps its essential columns and scrolls inside its frame.
+
 ## Validation
 
 The browser suite covers appearance persistence, unchanged drafts, keyboard navigation, core text contrast, small-screen overflow, Pi settings access, sticky dialog actions and the existing collection workflows. Visual review uses real collection covers at desktop, mobile and Pi sizes.

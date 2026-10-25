@@ -21,6 +21,9 @@ import { createDiscogsSync } from './sync.js';
 import { createCoverPicker } from './covers.js';
 import { createListeningUI } from './listening.js';
 import { createDiscogsSearch } from './discogs.js';
+import { createArchive } from './archive.js';
+import { createPalette, createShortcuts } from './palette.js';
+import { parseQuery, VIEWS } from './query.js';
 const $ = (selector) => document.querySelector(selector);
 const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, releaseId: null, coverImageId: null, wishId: null, routeError: null, trackDraft: [], hasLoaded: false, loadError: null };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -48,13 +51,20 @@ function coverFallbacks(root) {
 const startupView = localStorage.getItem('grooveshelf-startup') || 'last';
 let workspaceMode = !/^#record\//.test(location.hash) && ['collection','archive','listening'].includes(startupView) ? startupView : state.view === 'table' ? 'archive' : 'collection';
 const browsing = createCollectionBrowser({escape,onChange:render});
+const archive = createArchive({api, escape, cover, attribution, coverFallbacks,
+  onOpen: id => { if (location.hash === `#record/${id}`) route(); else location.hash = `record/${id}`; },
+  onEdit: id => { const record = state.records.find(r => r.id === id); if (record) openEditor(record); },
+  onBulk: (ids, options) => bulk.open(ids, options),
+  onLabels: () => $('#labels-open').click(),
+  reload: () => load()});
+archive.onChange = () => render();
 let listeningRecord = null, listeningMarkup = '', listeningRequest = 0;
 function setWorkspace(mode) {
   workspaceMode = mode;
   document.body.dataset.workspace = mode;
   $('#library-screen').hidden = mode === 'listening';
   $('#listening-screen').hidden = mode !== 'listening';
-  for (const name of ['collection','archive','listening']) $('#mode-'+name).setAttribute('aria-pressed', name === mode);
+  for (const name of ['collection','archive','listening']) { $('#mode-'+name).setAttribute('aria-pressed', name === mode); $(`#mobile-tabs [data-tab="${name}"]`).setAttribute('aria-pressed', name === mode); }
   $('.intro h1').innerHTML = mode === 'archive' ? 'Everything <em>in its place</em><span>.</span>' : mode === 'listening' ? 'A moment <em>to listen</em><span>.</span>' : 'Your <em>collection</em><span>.</span>';
   $('.intro-description').textContent = mode === 'archive' ? 'Every copy. Every detail. All together.' : mode === 'listening' ? 'Scan your record. Let the album take the room.' : 'The records you love. A place of their own.';
   if (mode !== 'listening') { state.view = mode === 'archive' ? 'table' : 'grid'; localStorage.setItem('grooveshelf-view', state.view); render(); }
@@ -99,6 +109,30 @@ for (const mode of ['collection','archive','listening']) $('#mode-'+mode).addEve
 $('#listening-choice').addEventListener('change',event=>{if(event.target.value)chooseListening(event.target.value);else {try { localStorage.removeItem('grooveshelf-listening-copy'); } catch {} ++listeningRequest;listeningRecord=null;listeningMarkup='';$('#listening-album').innerHTML='<div class="empty"><h2>Make room for a record.</h2><p>Choose an album, or scan its NFC tag at your listening station.</p></div>';$('#listening-details-open').hidden=true;}});
 $('#app-navigation .nav-item.active').addEventListener('click',()=>setWorkspace('collection'));
 $('#listening-details-open').addEventListener('click',()=>{if(listeningRecord)location.hash=`record/${listeningRecord.id}`;});
+const SAVED_FILTERS = 'grooveshelf-saved-filters';
+function savedFilters() {
+  try { const value = JSON.parse(localStorage.getItem(SAVED_FILTERS) || '[]'); return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()).slice(0, 9) : []; } catch { return []; }
+}
+function storeFilters(list) { try { localStorage.setItem(SAVED_FILTERS, JSON.stringify(list.slice(0, 9))); } catch {} }
+let viewsMarkup = '', statusMarkup = '';
+function applyQuery(text) {
+  clearTimeout(timer); $('#search').value = text; render(); load();
+}
+function renderViews(query) {
+  const current = $('#search').value.trim(), saved = savedFilters();
+  const chip = (label, value, count) => `<button type="button" class="view-chip" data-view="${escape(value)}" aria-pressed="${current === value}">${escape(label)}${count == null ? '' : ` <span>${count}</span>`}</button>`;
+  const markup = VIEWS.map(([label, value]) => chip(label, value, state.records.filter(parseQuery(value).test).length)).join('')
+    + saved.map((value, index) => `<span class="saved-filter">${chip(value, value)}<button type="button" class="saved-remove" data-remove-filter="${index}" aria-label="Remove saved filter ${escape(value)}">×</button></span>`).join('')
+    + (current && !saved.includes(current) && !VIEWS.some(view => view[1] === current) && saved.length < 9 ? '<button type="button" class="view-chip save-filter" id="save-filter">＋ Save filter</button>' : '');
+  if (markup !== viewsMarkup) {
+    viewsMarkup = markup; $('#quick-views').innerHTML = markup;
+    $('#quick-views').querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => applyQuery(button.dataset.view)));
+    $('#quick-views').querySelectorAll('[data-remove-filter]').forEach(button => button.addEventListener('click', () => { const list = savedFilters(); list.splice(Number(button.dataset.removeFilter), 1); storeFilters(list); render(); $('#search').focus(); }));
+    $('#save-filter')?.addEventListener('click', () => { storeFilters([...savedFilters(), $('#search').value.trim()]); render(); $('#quick-views [data-view][aria-pressed=true]')?.focus(); });
+  }
+  const status = query.chips.length || query.unknown.length ? `${query.chips.length ? `Filters: ${query.chips.map(escape).join(' · ')}` : ''}${query.unknown.length ? `<span class="error">Not understood: ${query.unknown.map(escape).join(' · ')}. Press ? for the filter syntax.</span>` : ''}` : '';
+  if (status !== statusMarkup) { statusMarkup = status; $('#query-status').innerHTML = status; }
+}
 let collectionMarkup;
 function updateCollection(target, markup) {
   if (collectionMarkup === markup) return false;
@@ -115,14 +149,18 @@ function render() {
   // Leave the summary node stable during unchanged station heartbeats.
   if ($('#incomplete-filter-count').textContent !== incompleteSummary) $('#incomplete-filter-count').textContent = incompleteSummary;
   $('#clear-incomplete-filters').hidden = incompleteActive.length === 0;
-  const filtered = browsing.active() || ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked);
-  const records = browsing.records(state.records).filter(record=>(!$('#missing-cover').checked||!record.cover_url)&&(!$('#missing-tracks').checked||!record.tracks.length)&&(!$('#missing-nfc').checked||!record.nfc_uid));
+  const query = parseQuery($('#search').value);
+  renderViews(query);
+  const filtered = browsing.active() || query.chips.length > 0 || ['cover','tracks','nfc'].some(name=>$('#missing-'+name).checked);
+  const records = browsing.records(state.records).filter(query.test).filter(record=>(!$('#missing-cover').checked||!record.cover_url)&&(!$('#missing-tracks').checked||!record.tracks.length)&&(!$('#missing-nfc').checked||!record.nfc_uid));
   $('#count').textContent = filtered ? `${records.length} of ${state.records.length} records match` : `${records.length} ${records.length === 1 ? 'record' : 'records'}`;
   $('#grid-view').setAttribute('aria-pressed', state.view === 'grid');
   $('#table-view').setAttribute('aria-pressed', state.view === 'table');
   $('#clear-filters').hidden = !($('#search').value || filtered);
   $('#retry-load').hidden = !state.loadError;
   const target = $('#collection');
+  const archiveView = state.view === 'table' && records.length > 0 && !(state.loadError && !state.hasLoaded);
+  if (!archiveView) { archive.bar(false); archive.inspector(false); }
   if (state.loadError && (!state.hasLoaded || !state.records.length)) {
     target.className = ''; $('#count').textContent = 'Unavailable';
     updateCollection(target, '<div class="empty"><h3>Your collection could not be loaded.</h3><p>Your records have not been changed. Check the server connection and use Retry loading.</p></div>');
@@ -138,16 +176,18 @@ function render() {
   }
   let markup;
   if (state.view === 'grid') markup = records.map(r => `<article class="record-entry"><button class="record-card" data-record="${escape(r.id)}">${cover(r)}<h3>${escape(r.title)}</h3><p>${escape(r.artist)}</p><div class="record-meta"><span>${escape(r.inventory_number)}</span><span>${r.favorite ? '★ ' : ''}${escape(r.format)}${r.year ? ` · ${r.year}` : ''}</span></div>${r.storage_location?`<p class="record-location">${escape(r.storage_location)}</p>`:''}</button>${attribution(r)}</article>`).join('');
-  else markup = `<table><thead><tr><th>Inventory</th><th>Album</th><th>Artist</th><th>Format</th><th>Year</th><th>Location</th></tr></thead><tbody>${records.map(r => `<tr><td>${escape(r.inventory_number)}</td><td><button data-record="${escape(r.id)}">${escape(r.title)}</button></td><td>${escape(r.artist)}${attribution(r)}</td><td>${escape(r.format)}</td><td>${r.year ?? '—'}</td><td>${escape(r.storage_location)||'—'}</td></tr>`).join('')}</tbody></table>`;
+  else markup = archive.markup(records);
+  if (archiveView) { archive.bar(true); archive.inspector(true); }
   if (!updateCollection(target, markup)) return;
   coverFallbacks(target);
+  if (state.view === 'table') archive.bind(target);
   target.querySelectorAll('[data-record]').forEach(button => button.addEventListener('click', () => { location.hash = `record/${button.dataset.record}`; }));
 }
 async function load() {
   const request = ++state.request;
   if (collectionMarkup === undefined) $('#message').textContent = 'Loading your collection…';
   try {
-    const records = await api(`/records?q=${encodeURIComponent($('#search').value)}`);
+    const records = await api(`/records?q=${encodeURIComponent(parseQuery($('#search').value).text)}`);
     if (request !== state.request) return;
     state.hasLoaded = true; state.loadError = null;
     state.records = records.map(hideExpired); $('#message').textContent = state.routeError || ''; render();
@@ -333,10 +373,10 @@ setInterval(pollMetadata, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pollMetadata(); });
 createPhotos({api,escape,currentRecord:()=>state.selected,onSaved:async()=>{await load();await route();}});
 createCorrections({api,escape,currentRecord:()=>state.selected,onSaved:async()=>{await load();await route();}});
-createAppearance();
+const appearance = createAppearance();
 createBackups({api,escape});
 createRecordQR({currentRecord:()=>state.selected});
-createBulkEditor({api,escape,onSaved:async count=>{await load();$('#message').textContent=`Updated ${count} ${count===1?'record':'records'}.`;}});
+const bulk = createBulkEditor({api,escape,onSaved:async count=>{await load();$('#message').textContent=`Updated ${count} ${count===1?'record':'records'}.`;}});
 createSettings({api,onSaved:async settings=>{
   state.records = state.records.map(record=>hideExpired({...record, show_expired_metadata:settings.show_expired_metadata}));
   if (state.selected) state.selected = hideExpired({...state.selected, show_expired_metadata:settings.show_expired_metadata});
@@ -350,6 +390,33 @@ createSettings({api,onSaved:async settings=>{
 createLabels({api,escape});
 createStatistics({api,escape,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
 createDiscovery({api,escape,cover,coverFallbacks,hideExpired,onOpen:id=>{if(location.hash===`#record/${id}`)route();else location.hash=`record/${id}`;}});
+const click = id => () => $('#' + id).click();
+const palette = createPalette({escape, records: () => state.records, openRecord: id => { if (location.hash === `#record/${id}`) route(); else location.hash = `record/${id}`; }, commands: () => [
+  ...[['collection','Collection','1'],['archive','Archive','2'],['listening','Listening','3']].map(([mode,label,keys]) => ({group:'Go to', label, keys, run: () => mode === 'listening' ? enterListening() : setWorkspace(mode)})),
+  {label:'Add a record', keys:'N', keywords:'new copy create capture', run: click('add')},
+  ...(archive.selected().length ? [{label:`Edit ${archive.selected().length} selected ${archive.selected().length === 1 ? 'copy' : 'copies'}`, keys:'E', keywords:'bulk selection', run: click('selection-edit')}] : []),
+  {label:'Bulk edit', keys:'G B', run: click('bulk-open')},
+  {label:'Sync with Discogs', keys:'G D', run: click('sync-open')},
+  {label:'Print labels', keys:'G L', keywords:'qr', run: click('labels-open')},
+  {label:'Wishlist', keys:'G W', run: click('wishlist-open')},
+  {label:'What should I play?', keys:'G P', keywords:'discovery suggestion', run: click('discover-open')},
+  {label:'Listening statistics', keys:'G S', run: click('stats-open')},
+  {label:'Backups', keys:'G K', run: click('backups-open')},
+  {label:'Settings', keys:'G E', run: click('settings-open')},
+  ...[...document.querySelectorAll('#export-options a')].map(link => ({label:link.textContent.trim(), keywords:'export download', run: () => link.click()})),
+  {label:'Clear search & filters', keywords:'reset', run: clearFilters},
+  {label:'Keyboard shortcuts & filter syntax', keys:'?', keywords:'help', run: () => $('#shortcuts-dialog').showModal()},
+  ...VIEWS.map(([label, value]) => ({group:'Views', label, detail: value, run: () => applyQuery(value)})),
+  ...savedFilters().map((value, index) => ({group:'Saved filters', label: value, keys:`Alt ${index + 1}`, run: () => applyQuery(value)})),
+  ...Object.entries(appearance.names).map(([value, label]) => ({group:'Appearance', label:`Use ${label} appearance`, keywords:'theme', run: () => appearance.choose(value)}))
+]});
+createShortcuts({palette, archive, workspace: () => workspaceMode, setWorkspace: mode => mode === 'listening' ? enterListening() : setWorkspace(mode),
+  actions: {savedFilter: index => { const value = savedFilters()[index]; if (!value) return false; applyQuery(value); return true; }}});
+$('#palette-open').addEventListener('click', () => palette.open());
+$('#mobile-tabs').addEventListener('click', event => {
+  const tab = event.target.closest('[data-tab]')?.dataset.tab;
+  if (tab === 'commands') palette.open(); else if (tab === 'listening') enterListening(); else if (tab) setWorkspace(tab);
+});
 setWorkspace(workspaceMode);
 await load();
 if (workspaceMode === 'listening') await enterListening();
