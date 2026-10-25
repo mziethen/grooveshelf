@@ -36,9 +36,13 @@ export function createBulkEditor({api,escape,onSaved}) {
     finally {if(current===generation){loading=false;$('#bulk-reload').disabled=false;render();}}
   }
   function draft(){reviewed=null;$('#bulk-draft').hidden=false;$('#bulk-confirmation').hidden=true;$('#bulk-title').textContent='Edit multiple records';}
-  $('#bulk-open').addEventListener('click',()=>{
-    form.reset();selected.clear();$('#bulk-filter').value='';$('#bulk-location-row').hidden=true;form.elements.storage_location.disabled=true;draft();dialog.showModal();reload();
-  });
+  function open(ids=[],{location=false}={}) {
+    form.reset();selected=new Set(ids);$('#bulk-filter').value='';
+    $('#bulk-location-change').checked=location;$('#bulk-location-row').hidden=!location;form.elements.storage_location.disabled=!location;
+    draft();dialog.showModal();reload();
+    if(location)form.elements.storage_location.focus();
+  }
+  $('#bulk-open').addEventListener('click',()=>open());
   for(const id of ['bulk-close','bulk-cancel'])$('#'+id).addEventListener('click',()=>{if(!busy)dialog.close();});
   dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();});
   dialog.addEventListener('close',()=>{generation++;reviewed=null;});
@@ -68,7 +72,15 @@ export function createBulkEditor({api,escape,onSaved}) {
     reviewed={record_ids:chosen.map(record=>record.id),changes};
     $('#bulk-title').textContent='Review bulk changes';$('#bulk-review-count').textContent=`Update ${chosen.length} ${chosen.length===1?'copy':'copies'}`;
     $('#bulk-changes').innerHTML=summary.map(text=>`<li>${escape(text)}</li>`).join('');
-    $('#bulk-review-records').innerHTML=chosen.map(record=>`<li><strong>${escape(record.inventory_number)}</strong><span>${escape(record.title)} · ${escape(record.artist)}</span></li>`).join('');
+    const labels={storage_location:'Storage location',rating:'Rating',media_condition:'Record condition',sleeve_condition:'Sleeve condition',favorite:'Favorite'};
+    const shown=(field,value)=>field==='rating'?(value?`${value}/5`:'Not rated'):field==='favorite'?(value?'Favorite':'Not a favorite'):field==='storage_location'?(value||'No location'):(value||'Not graded');
+    let total=0;
+    $('#bulk-review-records').innerHTML=chosen.map(record=>`<li><strong>${escape(record.inventory_number)}</strong><span>${escape(record.title)} · ${escape(record.artist)}</span><div class="bulk-diff">${Object.entries(changes).map(([field,value])=>{
+      const before=field==='favorite'?Boolean(record.favorite):record[field]??(field==='storage_location'?'':null);
+      if(before===value)return `<p class="unchanged">${escape(labels[field])}: ${escape(shown(field,value))} <span>(unchanged)</span></p>`;
+      total++;return `<p>${escape(labels[field])}: <del>${escape(shown(field,before))}</del> → <ins>${escape(shown(field,value))}</ins></p>`;
+    }).join('')}</div></li>`).join('');
+    $('#bulk-diff-summary').textContent=`${total} ${total===1?'value changes':'values change'} across these copies. Unchanged values are marked.`;
     $('#bulk-draft').hidden=true;$('#bulk-confirmation').hidden=false;$('#bulk-review-count').tabIndex=-1;$('#bulk-review-count').focus();
   });
   $('#bulk-apply').addEventListener('click',async()=>{
@@ -78,4 +90,5 @@ export function createBulkEditor({api,escape,onSaved}) {
     catch(error){$('#bulk-error').textContent=error.message;$('#bulk-status').textContent='';}
     finally {busy=false;for(const id of ['bulk-close','bulk-back','bulk-apply'])$('#'+id).disabled=false;}
   });
+  return {open};
 }

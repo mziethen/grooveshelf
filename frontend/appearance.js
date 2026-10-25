@@ -1,14 +1,15 @@
 export function createAppearance() {
   const $=selector=>document.querySelector(selector);
-  const names={gallery:'Gallery',studio:'Studio',listening:'Listening Room'};
+  const names={gallery:'Gallery',studio:'Studio',listening:'Listening Room',console:'Console'};
   function theme(value){
     document.documentElement.dataset.theme=value;
-    document.querySelector('meta[name="theme-color"]').content={gallery:'#f3f0e9',studio:'#f2f4f7',listening:'#141d19'}[value];
+    document.querySelector('meta[name="theme-color"]').content={gallery:'#f3f0e9',studio:'#f2f4f7',listening:'#141d19',console:'#14161a'}[value];
     $('#theme-name').textContent=names[value];
     document.querySelectorAll('[data-theme]').forEach(button=>{if(button.tagName==='BUTTON')button.setAttribute('aria-pressed',button.dataset.theme===value);});
   }
   theme(document.documentElement.dataset.theme||'gallery');
-  document.querySelectorAll('.theme-options button').forEach(button=>button.addEventListener('click',()=>{theme(button.dataset.theme);try{localStorage.setItem('grooveshelf-theme',button.dataset.theme);}catch{}$('.theme-picker').open=false;$('.theme-picker summary').focus();}));
+  const choose=value=>{theme(value);try{localStorage.setItem('grooveshelf-theme',value);}catch{}};
+  document.querySelectorAll('.theme-options button').forEach(button=>button.addEventListener('click',()=>{choose(button.dataset.theme);$('.theme-picker').open=false;$('.theme-picker summary').focus();}));
   document.addEventListener('click',event=>{if(!event.target.closest('.theme-picker'))$('.theme-picker').open=false;});
   const mobile=matchMedia('(max-width: 900px)');let opened=false;
   function close(returnFocus=true){opened=false;document.body.classList.remove('nav-open');$('#nav-shade').hidden=true;$('#nav-toggle').setAttribute('aria-expanded','false');$('#app-navigation').removeAttribute('role');$('#app-navigation').removeAttribute('aria-modal');$('#app-main').inert=false;$('.topbar').inert=false;$('#app-navigation').inert=true;if(returnFocus)$('#nav-toggle').focus();}
@@ -25,4 +26,5 @@ export function createAppearance() {
   });
   document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('close',()=>{if(!document.querySelector('dialog[open]')&&(!document.activeElement||document.activeElement===document.body||document.activeElement.closest('[inert]')))$('#nav-toggle').focus();}));
   mobile.addEventListener('change',()=>close(false));close(false);
+  return {choose,names};
 }
