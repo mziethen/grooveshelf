@@ -24,6 +24,7 @@ import { createDiscogsSearch } from './discogs.js';
 import { createArchive } from './archive.js';
 import { createPalette, createShortcuts } from './palette.js';
 import { parseQuery, VIEWS } from './query.js';
+import { createListeningRoom } from './listening-room.js';
 const $ = (selector) => document.querySelector(selector);
 const state = { records: [], view: localStorage.getItem('grooveshelf-view') || 'grid', selected: null, editing: null, request: 0, masterId: null, releaseId: null, coverImageId: null, wishId: null, routeError: null, trackDraft: [], hasLoaded: false, loadError: null };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -59,6 +60,7 @@ const archive = createArchive({api, escape, cover, attribution, coverFallbacks,
   reload: () => load()});
 archive.onChange = () => render();
 let listeningRecord = null, listeningMarkup = '', listeningRequest = 0;
+const room = createListeningRoom({api, escape, cover, coverFallbacks, hideExpired: record => hideExpired(record), onChoose: id => chooseListening(id)});
 function setWorkspace(mode) {
   workspaceMode = mode;
   document.body.dataset.workspace = mode;
@@ -67,6 +69,7 @@ function setWorkspace(mode) {
   for (const name of ['collection','archive','listening']) { $('#mode-'+name).setAttribute('aria-pressed', name === mode); $(`#mobile-tabs [data-tab="${name}"]`).setAttribute('aria-pressed', name === mode); }
   $('.intro h1').innerHTML = mode === 'archive' ? 'Everything <em>in its place</em><span>.</span>' : mode === 'listening' ? 'A moment <em>to listen</em><span>.</span>' : 'Your <em>collection</em><span>.</span>';
   $('.intro-description').textContent = mode === 'archive' ? 'Every copy. Every detail. All together.' : mode === 'listening' ? 'Scan your record. Let the album take the room.' : 'The records you love. A place of their own.';
+  if (mode !== 'listening') room.ambient(false);
   if (mode !== 'listening') { state.view = mode === 'archive' ? 'table' : 'grid'; localStorage.setItem('grooveshelf-view', state.view); render(); }
 }
 async function chooseListening(id) {
@@ -84,12 +87,14 @@ function renderListening() {
   if (!listeningRecord) return;
   listeningRecord = hideExpired(listeningRecord);
   const r = listeningRecord;
-  const markup = `<div class="listening-art">${cover(r)}</div><div class="listening-copy"><p class="eyebrow">SELECTED FROM YOUR SHELF</p><h2>${escape(r.title)}</h2><p class="listening-artist">${escape(r.artist)}</p><p class="muted">${escape(r.inventory_number)} · ${escape(r.format)}${r.year ? ` · ${escape(r.year)}` : ''}</p>${attribution(r)}${r.metadata_status === 'stale' ? `<p class="metadata-stale-notice muted">Saved Discogs data · Last checked ${r.metadata_checked_at ? escape(new Date(r.metadata_checked_at * 1000).toLocaleString()) : 'at least six hours ago'}. These details may be outdated.</p>` : ''}<p class="listening-note">A record to spend time with.</p><details class="listening-tracklist"><summary>Track list · ${(r.tracks || []).length} tracks</summary><ol class="tracks">${(r.tracks || []).map(t=>trackMarkup(t,escape)).join('')}</ol>${r.tracks?.length ? '' : '<p class="muted">No saved tracks for this album.</p>'}</details><p class="muted">Album view only. Plays are recorded through your listening station or the record’s listening history.</p></div>`;
+  const staleNotice = r.metadata_status === 'stale' ? `<p class="metadata-stale-notice muted">Saved Discogs data · Last checked ${r.metadata_checked_at ? escape(new Date(r.metadata_checked_at * 1000).toLocaleString()) : 'at least six hours ago'}. These details may be outdated.</p>` : '';
+  const markup = room.album(r, {attribution, staleNotice, trackMarkup});
   if (markup !== listeningMarkup) {
     const open = $('#listening-album details')?.open;
     const focused = document.activeElement === $('#listening-album summary');
     listeningMarkup = markup; $('#listening-album').innerHTML = markup; coverFallbacks($('#listening-album'));
     $('#listening-album details').open = Boolean(open);
+    room.enhance($('#listening-album'), r);
     if (focused) $('#listening-album summary').focus();
   }
   $('#listening-details-open').hidden = false;
@@ -103,10 +108,11 @@ async function enterListening() {
     $('#listening-choice').innerHTML = '<option value="">Select from your collection</option>' + records.map(r=>`<option value="${escape(r.id)}">${escape(r.inventory_number)} · ${escape(hideExpired(r).title)}</option>`).join('');
     const selected = listeningRecord || state.selected || records.find(r=>r.id===localStorage.getItem('grooveshelf-listening-copy'));
     if (selected && records.some(r=>r.id===selected.id)) await chooseListening(selected.id);
+    else if (!listeningRecord) room.idle($('#listening-album'));
   } catch(error) { $('#listening-view-error').textContent = error.message; }
 }
 for (const mode of ['collection','archive','listening']) $('#mode-'+mode).addEventListener('click',()=>mode==='listening' ? enterListening() : setWorkspace(mode));
-$('#listening-choice').addEventListener('change',event=>{if(event.target.value)chooseListening(event.target.value);else {try { localStorage.removeItem('grooveshelf-listening-copy'); } catch {} ++listeningRequest;listeningRecord=null;listeningMarkup='';$('#listening-album').innerHTML='<div class="empty"><h2>Make room for a record.</h2><p>Choose an album, or scan its NFC tag at your listening station.</p></div>';$('#listening-details-open').hidden=true;}});
+$('#listening-choice').addEventListener('change',event=>{if(event.target.value)chooseListening(event.target.value);else {try { localStorage.removeItem('grooveshelf-listening-copy'); } catch {} ++listeningRequest;listeningRecord=null;listeningMarkup='';room.idle($('#listening-album'));$('#listening-details-open').hidden=true;}});
 $('#app-navigation .nav-item.active').addEventListener('click',()=>setWorkspace('collection'));
 $('#listening-details-open').addEventListener('click',()=>{if(listeningRecord)location.hash=`record/${listeningRecord.id}`;});
 const SAVED_FILTERS = 'grooveshelf-saved-filters';

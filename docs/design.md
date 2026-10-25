@@ -24,6 +24,17 @@ Dialogs share the same surface, typography and corner treatment. Touch actions r
 
 The refinement is implemented in `frontend/design.css`, loaded after the shared functional styles. Theme tokens and layout rules are grouped by purpose and responsive size. Fonts use the existing system stacks; no font service, extra image assets or network dependency is introduced.
 
+## Listening room
+
+Listening keeps its own warm night palette in every appearance: a dark walnut stage, cream text and amber details, with a soft light behind the sleeve tinted from the cover's colours. The record peeks out of the sleeve and turns at 33⅓ rpm; **Pause the spin** stops it and is remembered in this browser, and reduced-motion preferences keep it still.
+
+- **Sides.** Tracks with side positions (A1, B2…) offer one button per side with its length from the saved durations, or its track count. Choosing a side opens the track list for that side and labels the record. The full list stays available under **Track list**.
+- **Your copy.** Personal notes appear as a quote, followed by the number of plays and the last listening date. Opening the room or switching sides never records a play.
+- **Ambient mode** hides navigation and controls so only the sleeve, record and tracks remain, which suits the Pi display. **Show details** or Escape returns; leaving Listening also ends it.
+- **Waiting for a sleeve.** Without a selected album the room shows a clock, a prompt to use the station's reader and a suggestion from **What should I play?** (not played in 30 days, otherwise any copy). **Show this album** opens it in the room; **Another idea** asks for another one.
+
+Headings use Fraunces when it is installed, otherwise Georgia; no font service is used.
+
 ## Power-user workspace
 
 **Console** is a fourth appearance: graphite surfaces, amber actions, blue selection and monospaced LP numbers, grades and shortcuts. It uses local font stacks (Inter and JetBrains Mono when installed, otherwise system fonts) and compacts the page heading. Every feature below also works in Gallery, Studio and Listening Room.
