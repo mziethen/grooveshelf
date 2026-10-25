@@ -5,7 +5,7 @@ const workflows = [
   'browser', 'discogs', 'recognition', 'recognition-rotation', 'cover-matching', 'listening', 'heartbeat', 'covers', 'sync', 'sync-browsing', 'sync-layout',
   'personal', 'wishlist', 'capture', 'collection-tools', 'discovery',
   'statistics', 'identifiers', 'labels', 'settings', 'locations',
-  'archive', 'appearance', 'bulk', 'qr', 'exports', 'streaming', 'tracks', 'credits', 'pressings', 'usability', 'retention', 'reader-feedback', 'corrections', 'photos', 'release-notes', 'workspace', 'console', 'browsing', 'startup', 'sync-review', 'sync-accounts', 'sync-ratings', 'sync-rating-export', 'sync-personal', 'sync-personal-export', 'sync-folder-export', 'sync-mapping', 'backups', 'backup-inspection',
+  'archive', 'appearance', 'bulk', 'qr', 'exports', 'streaming', 'tracks', 'credits', 'pressings', 'usability', 'retention', 'reader-feedback', 'corrections', 'photos', 'release-notes', 'workspace', 'console', 'listening-room', 'browsing', 'startup', 'sync-review', 'sync-accounts', 'sync-ratings', 'sync-rating-export', 'sync-personal', 'sync-personal-export', 'sync-folder-export', 'sync-mapping', 'backups', 'backup-inspection',
 ];
 for (const workflow of workflows) {
   const result = spawnSync(process.execPath, [join(__dirname, `${workflow}.cjs`)], {
